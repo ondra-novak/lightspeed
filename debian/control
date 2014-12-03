@@ -1,0 +1,13 @@
+Source: liblightspeed
+Priority: extra
+Maintainer: Ondrej Novak <ondra-novak@email.cz>
+Build-Depends: debhelper (>= 8.0.0), autotools-dev
+Standards-Version: 3.9.2
+Section: libs
+
+Package: liblightspeed-dev
+Section: libdevel
+Architecture: any
+Description: LightSpeed library header files
+ LightSpeed library header files
+

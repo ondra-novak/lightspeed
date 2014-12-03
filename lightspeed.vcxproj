@@ -1,0 +1,699 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug_sharedLibs|Win32">
+      <Configuration>Debug_sharedLibs</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_sharedLibs|x64">
+      <Configuration>Debug_sharedLibs</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_sharedLibs|Win32">
+      <Configuration>Release_sharedLibs</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_sharedLibs|x64">
+      <Configuration>Release_sharedLibs</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>lightspeed</ProjectName>
+    <ProjectGuid>{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}</ProjectGuid>
+    <RootNamespace>lightspeed-11.10</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|Win32'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|x64'">$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|Win32'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|x64'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="src\lightspeed\base\actions\parallelexecutor2.h" />
+    <ClInclude Include="src\lightspeed\base\actions\scheduler.h" />
+    <ClInclude Include="src\lightspeed\base\align.h" />
+    <ClInclude Include="src\lightspeed\base\containers\arrayref.h" />
+    <ClInclude Include="src\lightspeed\base\containers\convertString.h" />
+    <ClInclude Include="src\lightspeed\base\containers\resourcePool.h" />
+    <ClInclude Include="src\lightspeed\base\containers\stringBase.h" />
+    <ClInclude Include="src\lightspeed\base\containers\stringKey.h" />
+    <ClInclude Include="src\lightspeed\base\containers\stringparam.h" />
+    <ClInclude Include="src\lightspeed\base\containers\stringpool.h" />
+    <ClInclude Include="src\lightspeed\base\debug\dbglog_internals.h" />
+    <ClInclude Include="src\lightspeed\base\debug\livelog.h" />
+    <ClInclude Include="src\lightspeed\base\debug\logprovider.h" />
+    <ClInclude Include="src\lightspeed\base\debug\stdlogoutput.h" />
+    <ClInclude Include="src\lightspeed\base\export.h" />
+    <ClInclude Include="src\lightspeed\base\framework\itcpserver.h" />
+    <ClInclude Include="src\lightspeed\base\iter\placeholders.h" />
+    <ClInclude Include="src\lightspeed\base\memory\alloca.h" />
+    <ClInclude Include="src\lightspeed\base\memory\allocatedMemory.h" />
+    <ClInclude Include="src\lightspeed\base\memory\allocPointer.h" />
+    <ClInclude Include="src\lightspeed\base\containers\any.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\anyExcept.h" />
+    <ClInclude Include="src\lightspeed\base\framework\app.h" />
+    <ClInclude Include="src\lightspeed\base\actions\argument.h" />
+    <ClInclude Include="src\lightspeed\base\containers\array.h" />
+    <ClInclude Include="src\lightspeed\base\containers\arrayExpr.h" />
+    <ClInclude Include="src\lightspeed\base\containers\arrayIterator.h" />
+    <ClInclude Include="src\lightspeed\base\containers\arraySet.h" />
+    <ClInclude Include="src\lightspeed\base\containers\arrayt.h" />
+    <ClInclude Include="src\lightspeed\base\debug\assertException.h" />
+    <ClInclude Include="src\lightspeed\base\memory\comptr.h" />
+    <ClInclude Include="src\lightspeed\base\memory\nodealloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\poolalloc.h" />
+    <ClInclude Include="src\lightspeed\base\objmanip.h" />
+    <ClInclude Include="src\lightspeed\base\text\tostring.h" />
+    <ClInclude Include="src\lightspeed\base\windows\IWinWaitableObject.h" />
+    <ClInclude Include="src\lightspeed\base\windows\namedPipe.h" />
+    <ClInclude Include="src\lightspeed\base\windows\SecurityAttrs.h" />
+    <ClInclude Include="src\lightspeed\mt\apc.h" />
+    <ClInclude Include="src\lightspeed\mt\apcthread.h" />
+    <ClInclude Include="src\lightspeed\mt\atomic.h" />
+    <ClInclude Include="src\lightspeed\mt\exceptionBox.h" />
+    <ClInclude Include="src\lightspeed\mt\iosleep.h" />
+    <ClInclude Include="src\lightspeed\mt\microlock.h" />
+    <ClInclude Include="src\lightspeed\mt\msgthread.h" />
+    <ClInclude Include="src\lightspeed\mt\mutex.h" />
+    <ClInclude Include="src\lightspeed\mt\objectpipe.h" />
+    <ClInclude Include="src\lightspeed\mt\sharept.h" />
+    <ClInclude Include="src\lightspeed\mt\sleepingobject.h" />
+    <ClInclude Include="src\lightspeed\mt\slist.h" />
+    <ClInclude Include="src\lightspeed\mt\threadMinimal.h" />
+    <ClInclude Include="src\lightspeed\mt\threadSleeper.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\atomic.h" />
+    <ClInclude Include="src\lightspeed\mt\atomic_type.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\atomic_type.h" />
+    <ClInclude Include="src\lightspeed\base\containers\autoArray.h" />
+    <ClInclude Include="src\lightspeed\base\streams\autoflush.h" />
+    <ClInclude Include="src\lightspeed\base\containers\avltree.h" />
+    <ClInclude Include="src\lightspeed\base\containers\avltreenode.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\badcast.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\basicTypes.h" />
+    <ClInclude Include="src\lightspeed\base\streams\binary.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\binaryType.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\binFormat.h" />
+    <ClInclude Include="src\lightspeed\base\debug\break.h" />
+    <ClInclude Include="src\lightspeed\base\containers\buffer.h" />
+    <ClInclude Include="src\lightspeed\base\containers\carray.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\classTable.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\threadsleeper.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\winpch.h" />
+    <ClInclude Include="src\lightspeed\rpc\client.h" />
+    <ClInclude Include="src\lightspeed\base\memory\cloneable.h" />
+    <ClInclude Include="src\lightspeed\base\cloneable.h" />
+    <ClInclude Include="src\lightspeed\base\memory\clusterAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\clusterAllocFactory.h" />
+    <ClInclude Include="src\lightspeed\utils\base64.h" />
+    <ClInclude Include="src\lightspeed\utils\json.h" />
+    <ClInclude Include="src\lightspeed\utils\jsonexception.h" />
+    <ClInclude Include="src\lightspeed\utils\json\bsjsoncore.h" />
+    <ClInclude Include="src\lightspeed\utils\json\json.h" />
+    <ClInclude Include="src\lightspeed\utils\json\jsonbuilder.h" />
+    <ClInclude Include="src\lightspeed\utils\json\jsondefs.h" />
+    <ClInclude Include="src\lightspeed\utils\json\jsonexception.h" />
+    <ClInclude Include="src\lightspeed\utils\json\jsonfast.h" />
+    <ClInclude Include="src\lightspeed\utils\json\jsonimpl.h" />
+    <ClInclude Include="src\lightspeed\utils\md5iter.h" />
+    <ClInclude Include="src\lightspeed\utils\xmlparser.h" />
+    <CustomBuildStep Include="src\tests\ClusterAllocTest.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'">true</ExcludedFromBuild>
+    </CustomBuildStep>
+    <ClInclude Include="src\lightspeed\base\framework\cmdLineIterator.h" />
+    <ClInclude Include="src\lightspeed\base\compare.h" />
+    <ClInclude Include="src\lightspeed\base\streams\compressNumb.h" />
+    <ClInclude Include="src\lightspeed\utils\configParser.h" />
+    <ClInclude Include="src\lightspeed\base\containers\constStr.h" />
+    <ClInclude Include="src\lightspeed\base\iter\counters.h" />
+    <ClInclude Include="src\lightspeed\base\countof.h" />
+    <ClInclude Include="src\lightspeed\base\datetime.h" />
+    <ClInclude Include="src\lightspeed\base\debug\dbglog.h" />
+    <ClInclude Include="src\lightspeed\base\debug\debug.h" />
+    <ClInclude Include="src\lightspeed\base\defaultInit.h" />
+    <ClInclude Include="src\lightspeed\rpc\defs.h" />
+    <ClInclude Include="src\lightspeed\base\containers\deque.h" />
+    <ClInclude Include="src\lightspeed\uiapp\dimensions.h" />
+    <ClInclude Include="src\lightspeed\base\actions\directExecutor.h" />
+    <ClInclude Include="src\lightspeed\base\streams\directory.h" />
+    <ClInclude Include="src\lightspeed\base\actions\distributor.h" />
+    <ClInclude Include="src\lightspeed\base\actions\distributor_mt.h" />
+    <ClInclude Include="src\lightspeed\base\memory\dynobject.h" />
+    <ClInclude Include="src\lightspeed\base\meta\emptyClass.h" />
+    <ClInclude Include="src\lightspeed\base\windows\eoln.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\errorMessageException.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\exception.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\exceptionBuilder.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\exceptionBuilderUndef.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\exceptionMsg.h" />
+    <ClInclude Include="src\lightspeed\base\actions\executor.h" />
+    <ClInclude Include="src\lightspeed\base\memory\factory.h" />
+    <ClInclude Include="src\lightspeed\base\memory\fastAllocFactory.h" />
+    <ClInclude Include="src\lightspeed\base\memory\fastallocpool.h" />
+    <ClInclude Include="src\lightspeed\base\fastfloat.h" />
+    <ClInclude Include="src\lightspeed\mt\fastlock.h" />
+    <ClInclude Include="src\lightspeed\mt\fiber.h" />
+    <ClInclude Include="src\lightspeed\mt\exceptions\fiberException.h" />
+    <ClInclude Include="src\lightspeed\base\windows\filedescriptor.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\fileExceptions.h" />
+    <ClInclude Include="src\lightspeed\base\windows\fileio.h" />
+    <ClInclude Include="src\lightspeed\base\streams\fileio.h" />
+    <ClInclude Include="src\lightspeed\base\streams\fileio_ifc.h" />
+    <ClInclude Include="src\lightspeed\base\streams\fileiobuff.h" />
+    <ClInclude Include="src\lightspeed\utils\FilePath.h" />
+    <ClInclude Include="src\lightspeed\base\containers\flatArray.h" />
+    <ClInclude Include="src\lightspeed\base\meta\fninfo.h" />
+    <ClInclude Include="src\lightspeed\rpc\format.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\formatter_concept.h" />
+    <ClInclude Include="src\lightspeed\rpc\function.h" />
+    <ClInclude Include="src\lightspeed\base\actions\functionCall.h" />
+    <ClInclude Include="src\lightspeed\mt\gate.h" />
+    <ClInclude Include="src\lightspeed\base\iter\generator.h" />
+    <ClInclude Include="src\lightspeed\base\iter\generatorBuffered.h" />
+    <ClInclude Include="src\lightspeed\base\windows\hinstance.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\httpStatusException.h" />
+    <ClInclude Include="src\lightspeed\base\framework\iapp.h" />
+    <ClInclude Include="src\lightspeed\base\iexception.h" />
+    <ClInclude Include="src\lightspeed\uiapp\iguiserver.h" />
+    <ClInclude Include="src\lightspeed\base\memory\inBlockAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\interface.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\invalidNumberFormat.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\invalidParamException.h" />
+    <ClInclude Include="src\lightspeed\base\invokable.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\ioexception.h" />
+    <ClInclude Include="src\lightspeed\base\meta\isAbstract.h" />
+    <ClInclude Include="src\lightspeed\base\meta\isConvertible.h" />
+    <ClInclude Include="src\lightspeed\base\meta\isDynamic.h" />
+    <ClInclude Include="src\lightspeed\base\framework\iservices.h" />
+    <ClInclude Include="src\lightspeed\base\iter\iterator.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\iterator.h" />
+    <ClInclude Include="src\lightspeed\base\iter\iteratorChain.h" />
+    <ClInclude Include="src\lightspeed\base\iter\iteratorFilter.h" />
+    <ClInclude Include="src\lightspeed\mt\iwaitingobject.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\lightSpeedTypes.h" />
+    <ClInclude Include="src\lightspeed\base\iter\limiter.h" />
+    <ClInclude Include="src\lightspeed\base\containers\linkedList.h" />
+    <ClInclude Include="src\lightspeed\base\containers\list.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\llevent.h" />
+    <ClInclude Include="src\lightspeed\mt\llevent.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\llmutex.h" />
+    <ClInclude Include="src\lightspeed\mt\llmutex.h" />
+    <ClInclude Include="src\lightspeed\base\sync\lockPair.h" />
+    <ClInclude Include="src\lightspeed\base\containers\map.h" />
+    <ClInclude Include="src\lightspeed\base\streams\memfile.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\memoryleakexception.h" />
+    <ClInclude Include="src\lightspeed\base\streams\memoryStream.h" />
+    <ClInclude Include="src\lightspeed\base\iter\merge.h" />
+    <ClInclude Include="src\lightspeed\base\actions\message.h" />
+    <ClInclude Include="src\lightspeed\base\meta\metaConst.h" />
+    <ClInclude Include="src\lightspeed\base\meta\metaIf.h" />
+    <ClInclude Include="src\lightspeed\base\containers\move.h" />
+    <ClInclude Include="src\lightspeed\base\actions\msgQueue.h" />
+    <ClInclude Include="src\lightspeed\base\windows\msstdint.h" />
+    <ClInclude Include="src\lightspeed\mt\mtRefCntPtr.h" />
+    <ClInclude Include="src\lightspeed\base\streams\multibyte.h" />
+    <ClInclude Include="src\lightspeed\base\windows\netAddress.h" />
+    <ClInclude Include="src\lightspeed\base\windows\netDgramSource.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\netExceptions.h" />
+    <ClInclude Include="src\lightspeed\base\streams\netio.h" />
+    <ClInclude Include="src\lightspeed\base\streams\netio_ifc.h" />
+    <ClInclude Include="src\lightspeed\base\windows\netService.h" />
+    <ClInclude Include="src\lightspeed\base\windows\netStream.h" />
+    <ClInclude Include="src\lightspeed\base\windows\netStreamSource.h" />
+    <ClInclude Include="src\lightspeed\base\windows\networkEventListener.h" />
+    <ClInclude Include="src\lightspeed\base\text\newline.h" />
+    <ClInclude Include="src\lightspeed\mt\nonrecursivethreadcounter.h" />
+    <ClInclude Include="src\lightspeed\mt\notifier.h" />
+    <ClInclude Include="src\lightspeed\base\sync\nullevent.h" />
+    <ClInclude Include="src\lightspeed\base\iter\nullIterator.h" />
+    <ClInclude Include="src\lightspeed\base\sync\nulllock.h" />
+    <ClInclude Include="src\lightspeed\base\meta\numbers.h" />
+    <ClInclude Include="src\lightspeed\base\containers\oneitemarray.h" />
+    <ClInclude Include="src\lightspeed\base\streams\openFlags.h" />
+    <ClInclude Include="src\lightspeed\base\containers\optional.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\outofmemory.h" />
+    <ClInclude Include="src\lightspeed\base\memory\ownedPointer.h" />
+    <ClInclude Include="src\lightspeed\base\actions\parallelExecutor.h" />
+    <ClInclude Include="src\lightspeed\base\platform.h" />
+    <ClInclude Include="src\lightspeed\base\windows\platform.h" />
+    <ClInclude Include="src\lightspeed\mt\platform.h" />
+    <ClInclude Include="src\lightspeed\base\pointer.h" />
+    <ClInclude Include="src\lightspeed\base\memory\pointer.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\pointerException.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\pointers.h" />
+    <ClInclude Include="src\lightspeed\base\meta\primitiveType.h" />
+    <ClInclude Include="src\lightspeed\mt\process.h" />
+    <ClInclude Include="src\lightspeed\base\framework\proginstance.h" />
+    <ClInclude Include="src\lightspeed\base\debug\programlocation.h" />
+    <ClInclude Include="src\lightspeed\base\debug\progress.h" />
+    <ClInclude Include="src\lightspeed\base\streams\proxyIterator.h" />
+    <ClInclude Include="src\lightspeed\base\sync\proxylock.h" />
+    <ClInclude Include="src\lightspeed\base\qualifier.h" />
+    <ClInclude Include="src\lightspeed\base\containers\queue.h" />
+    <ClInclude Include="src\lightspeed\base\streams\random.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\rangeException.h" />
+    <ClInclude Include="src\lightspeed\base\rational.h" />
+    <ClInclude Include="src\lightspeed\mt\recursivethreadcounter.h" />
+    <ClInclude Include="src\lightspeed\base\memory\refCntPtr.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\requiredField.h" />
+    <ClInclude Include="src\lightspeed\mt\resourceLock.h" />
+    <ClInclude Include="src\lightspeed\base\memory\rtAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\runtimeAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\scopePtr.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\sectionId.h" />
+    <ClInclude Include="src\lightspeed\mt\semaphore.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\serializer.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\serializerException.h" />
+    <ClInclude Include="src\lightspeed\rpc\server.h" />
+    <ClInclude Include="src\lightspeed\rpc\serverFunctions.h" />
+    <ClInclude Include="src\lightspeed\base\framework\serviceapp.h" />
+    <ClInclude Include="src\lightspeed\base\framework\services.h" />
+    <ClInclude Include="src\lightspeed\base\containers\set.h" />
+    <ClInclude Include="src\lightspeed\base\memory\shareAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\sharedPtr.h" />
+    <ClInclude Include="src\lightspeed\base\memory\sharedResource.h" />
+    <ClInclude Include="src\lightspeed\mt\shareExclusiveLock.h" />
+    <ClInclude Include="src\lightspeed\base\memory\singleton.h" />
+    <ClInclude Include="src\lightspeed\mt\sleeper.h" />
+    <ClInclude Include="src\lightspeed\base\memory\smallAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\smartPtrAllocators.h" />
+    <ClInclude Include="src\lightspeed\base\containers\sort.h" />
+    <ClInclude Include="src\lightspeed\base\iter\sortFilter.h" />
+    <ClInclude Include="src\lightspeed\mt\spinlock.h" />
+    <ClInclude Include="src\lightspeed\base\containers\stack.h" />
+    <ClInclude Include="src\lightspeed\base\memory\stackFaktory.h" />
+    <ClInclude Include="src\lightspeed\base\streams\standardIO.h" />
+    <ClInclude Include="src\lightspeed\base\memory\staticAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\memory\stdAlloc.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\stdexception.h" />
+    <ClInclude Include="src\lightspeed\base\memory\stdFactory.h" />
+    <ClInclude Include="src\lightspeed\base\windows\stdint.h" />
+    <ClInclude Include="src\lightspeed\base\str.h" />
+    <ClInclude Include="src\lightspeed\base\streams\strDefault.h" />
+    <ClInclude Include="src\lightspeed\base\containers\string.h" />
+    <ClInclude Include="src\lightspeed\base\containers\string_utf.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\stringException.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\struct.h" />
+    <ClInclude Include="src\lightspeed\base\sync\synchronize.h" />
+    <ClInclude Include="src\lightspeed\base\sync\syncobj.h" />
+    <ClInclude Include="src\lightspeed\mt\syncPt.h" />
+    <ClInclude Include="src\lightspeed\mt\syncptr.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\systemException.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\systime.h" />
+    <ClInclude Include="src\lightspeed\base\tags.h" />
+    <ClInclude Include="src\lightspeed\base\framework\TCPServer.h" />
+    <ClInclude Include="src\lightspeed\rpc\text.h" />
+    <ClInclude Include="src\lightspeed\base\streams\textEnum.h" />
+    <ClInclude Include="src\lightspeed\base\text\textFormat.h" />
+    <ClInclude Include="src\lightspeed\base\text\textFormatManip.h" />
+    <ClInclude Include="src\lightspeed\base\text\textIn.h" />
+    <ClInclude Include="src\lightspeed\base\text\textInBuffer.h" />
+    <ClInclude Include="src\lightspeed\base\streams\textNumber.h" />
+    <ClInclude Include="src\lightspeed\base\text\textOut.h" />
+    <ClInclude Include="src\lightspeed\base\text\textParser.h" />
+    <ClInclude Include="src\lightspeed\base\text\textstream.h" />
+    <ClInclude Include="src\lightspeed\mt\thread.h" />
+    <ClInclude Include="src\lightspeed\mt\exceptions\threadException.h" />
+    <ClInclude Include="src\lightspeed\mt\threadId.h" />
+    <ClInclude Include="src\lightspeed\mt\windows\threadId.h" />
+    <ClInclude Include="src\lightspeed\base\sync\threadObject.h" />
+    <ClInclude Include="src\lightspeed\base\sync\threadVar.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\throws.h" />
+    <ClInclude Include="src\lightspeed\mt\timeout.h" />
+    <ClInclude Include="src\lightspeed\mt\exceptions\timeoutException.h" />
+    <ClInclude Include="src\lightspeed\base\timestamp.h" />
+    <ClInclude Include="src\lightspeed\base\sync\tls.h" />
+    <ClInclude Include="src\lightspeed\base\sync\tlsalloc.h" />
+    <ClInclude Include="src\lightspeed\base\meta\truefalse.h" />
+    <ClInclude Include="src\lightspeed\base\sync\trysynchronized.h" />
+    <ClInclude Include="src\lightspeed\base\meta\type.h" />
+    <ClInclude Include="src\lightspeed\base\iter\typeconv.h" />
+    <ClInclude Include="src\lightspeed\base\typeinfo.h" />
+    <ClInclude Include="src\lightspeed\base\meta\typelist.h" />
+    <ClInclude Include="src\lightspeed\base\memory\typelists.h" />
+    <ClInclude Include="src\lightspeed\rpc\types.h" />
+    <ClInclude Include="src\lightspeed\base\types.h" />
+    <ClInclude Include="src\lightspeed\rpc\typesfast.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\unsupportedFeature.h" />
+    <ClInclude Include="src\lightspeed\base\streams\utf.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\utf.h" />
+    <ClInclude Include="src\lightspeed\base\actions\vararg.h" />
+    <ClInclude Include="src\lightspeed\base\serialize\version.h" />
+    <ClInclude Include="src\lightspeed\base\iter\vtiterator.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\waitException.h" />
+    <ClInclude Include="src\lightspeed\base\windows\winhttp.h" />
+    <ClInclude Include="src\lightspeed\base\windows\winpch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\lightspeed\base\actions\parallelExecutor2.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\scheduler.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\constStr.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\resourcePool.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\stringBase.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\stringpool.cpp" />
+    <ClCompile Include="src\lightspeed\base\debug\livelog.cpp" />
+    <ClCompile Include="src\lightspeed\base\debug\LogProvider.cpp" />
+    <ClCompile Include="src\lightspeed\base\debug\stdlogoutput.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\app.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\arrayt.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\avltreenode.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\nodeAlloc.cpp" />
+    <ClCompile Include="src\lightspeed\base\objmanip.cpp" />
+    <ClCompile Include="src\lightspeed\base\streams\filehlp.cpp" />
+    <ClCompile Include="src\lightspeed\base\text\toString.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\break.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\clusterAlloc.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\cmdLineIterator.cpp" />
+    <ClCompile Include="src\lightspeed\base\streams\compressNumb.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\firstchancex.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\namedPipe.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\SecurityAttrs.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\wintimestamp.cpp" />
+    <ClCompile Include="src\lightspeed\mt\apcthread.cpp" />
+    <ClCompile Include="src\lightspeed\mt\msgthread.cpp" />
+    <ClCompile Include="src\lightspeed\mt\mutex.cpp" />
+    <ClCompile Include="src\lightspeed\mt\notifier.cpp" />
+    <ClCompile Include="src\lightspeed\mt\threadMinimal.cpp" />
+    <ClCompile Include="src\lightspeed\mt\windows\threadSleeper.cpp" />
+    <ClCompile Include="src\lightspeed\base\datetime.cpp" />
+    <ClCompile Include="src\lightspeed\base\debug\dbglog.cpp" />
+    <ClCompile Include="src\lightspeed\base\containers\deque.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\distributor.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\dynobject.cpp" />
+    <ClCompile Include="src\lightspeed\base\exceptions\exception.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\fileio.cpp" />
+    <ClCompile Include="src\lightspeed\base\streams\fileiobuff.cpp" />
+    <ClCompile Include="src\lightspeed\utils\base64.cpp" />
+    <ClCompile Include="src\lightspeed\utils\configParser.cpp" />
+    <ClCompile Include="src\lightspeed\utils\json\json.cpp" />
+    <ClCompile Include="src\lightspeed\utils\json\jsonbuilder.cpp" />
+    <ClCompile Include="src\lightspeed\utils\json\jsonfast.cpp" />
+    <ClCompile Include="src\lightspeed\utils\windows\FilePath.cpp" />
+    <ClCompile Include="src\lightspeed\base\iter\generator.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_sharedLibs|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_sharedLibs|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="src\lightspeed\base\streams\memfile.cpp" />
+    <ClCompile Include="src\lightspeed\base\exceptions\messages.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\msgQueue.cpp" />
+    <ClCompile Include="src\lightspeed\mt\exceptions\mt_messages.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\netAddress.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\netDgramSource.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\netService.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\netStream.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\netStreamSource.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\networkEventListener.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\newline.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\parallelExecutor.cpp" />
+    <ClCompile Include="src\lightspeed\mt\windows\process.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\proginstance.cpp" />
+    <ClCompile Include="src\lightspeed\base\debug\progress.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\refCntPtr.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\serviceapp.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\services.cpp" />
+    <ClCompile Include="src\lightspeed\mt\shareExclusiveLock.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\singleton.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\startapp.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\string.cpp" />
+    <ClCompile Include="src\lightspeed\mt\syncPt.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\systemException.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\TCPServer.cpp" />
+    <ClCompile Include="src\lightspeed\base\text\textFormat.cpp" />
+    <ClCompile Include="src\lightspeed\base\text\textIn.cpp" />
+    <ClCompile Include="src\lightspeed\base\text\textInBuffer.cpp" />
+    <ClCompile Include="src\lightspeed\base\text\textParser.cpp" />
+    <ClCompile Include="src\lightspeed\mt\windows\thread.cpp" />
+    <ClCompile Include="src\lightspeed\base\exceptions\throws.cpp" />
+    <ClCompile Include="src\lightspeed\base\sync\tls.cpp" />
+    <ClCompile Include="src\lightspeed\base\sync\tlsalloc.cpp" />
+    <ClCompile Include="src\lightspeed\base\streams\utf.cc" />
+    <ClCompile Include="src\lightspeed\base\actions\vararg.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\winhttp.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\winParallelExecutor.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\winpch.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\winServiceapp.cpp" />
+    <ClCompile Include="src\lightspeed\utils\xmlparser.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.cd" />
+    <None Include="lightspeed-11.12.vcxproj" />
+    <None Include="src\lightspeed\base\actions\distrubutor.tcc" />
+    <None Include="src\lightspeed\base\containers\convertString.tcc" />
+    <None Include="src\lightspeed\base\containers\stringpool.tcc" />
+    <None Include="src\lightspeed\base\framework\app.tcc" />
+    <None Include="src\lightspeed\base\containers\arraySet.tcc" />
+    <None Include="src\lightspeed\base\containers\arrayt.tcc" />
+    <None Include="src\lightspeed\base\containers\autoArray.tcc" />
+    <None Include="src\lightspeed\base\containers\avltreenode.tcc" />
+    <None Include="src\lightspeed\base\interface.tcc" />
+    <None Include="src\lightspeed\base\serialize\classTable.tcc" />
+    <None Include="src\lightspeed\base\streams\fileiobuff.tcc" />
+    <None Include="src\lightspeed\base\streams\memfile.tcc" />
+    <None Include="src\lightspeed\base\streams\netio.tcc" />
+    <None Include="src\lightspeed\base\streams\standardio.tcc" />
+    <None Include="src\lightspeed\base\streams\textNumber.tcc" />
+    <None Include="src\lightspeed\base\streams\utf.tcc" />
+    <None Include="src\lightspeed\base\text\tostring.tcc" />
+    <None Include="src\lightspeed\utils\base64.tcc" />
+    <None Include="src\lightspeed\utils\configParser.tcc" />
+    <None Include="src\lightspeed\base\containers\deque.tcc" />
+    <None Include="src\lightspeed\base\containers\dictionary.tcc" />
+    <None Include="src\lightspeed\dokumentace.html" />
+    <None Include="src\lightspeed\base\exceptions\exceptionMsg.tcc" />
+    <None Include="src\lightspeed\utils\FilePath.tcc" />
+    <None Include="src\lightspeed\base\containers\queue.tcc" />
+    <None Include="src\lightspeed\base\containers\sort.tcc" />
+    <None Include="src\lightspeed\base\iter\sortFilter.tcc" />
+    <None Include="src\lightspeed\base\containers\stack.tcc" />
+    <None Include="src\lightspeed\base\containers\string.tcc" />
+    <None Include="src\lightspeed\base\text\textFormat.tcc" />
+    <None Include="src\lightspeed\base\text\textIn.tcc" />
+    <None Include="src\lightspeed\base\text\textInBuffer.tcc" />
+    <None Include="src\lightspeed\base\text\textOut.tcc" />
+    <None Include="src\lightspeed\base\text\textParser.tcc" />
+    <None Include="src\lightspeed\base\text\textstream.tcc" />
+    <None Include="src\lightspeed\base\exceptions\throws.tcc" />
+    <None Include="src\lightspeed\utils\json\jsonfast.tcc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
