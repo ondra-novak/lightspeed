@@ -113,7 +113,7 @@ public:
 	virtual bool canRead() const {return false;}
 	virtual bool canWrite() const {return true;}
 	virtual void flush() {}
-	virtual bool dataReady() const {return false;}
+	virtual natural dataReady() const {return 0;}
 	virtual void closeOutput() {}
 
 

@@ -257,7 +257,7 @@ protected:
 		}
 
 		//gets path at index
-		PNode getPath(natural index) {
+		PNode getPath(natural index) const {
 			if (index >= this->pathlen) return 0;
 			else return this->path[index];
 		}
@@ -411,16 +411,23 @@ public:
 	 * @param done done flag must be set to false
 	 * @param pathIndex used during recursion, must be set to 0 on initializing
 	 * @return new root after removing
+	 *
+	 * @note iterator is not modified! You have to reconstruct iterator state
+	 * if the iterator. You can use iter.peek() to retrieve item to remove and
+	 * after removing initialize iterator next or previous item after the removed
 	 */
-	AvlTreeNode *remove(Iterator &iter, bool &done, natural pathIndex = 0);
+	AvlTreeNode *remove(const Iterator &iter, bool &done, natural pathIndex = 0);
 
 	///Removes node by path
 	/**
-	 * @param iter iterator which points to item to remove. Iterator is modified
+	 * @param iter iterator which points to item to remove.
 	 * @param pathIndex used during recursion, must be set to 0 on initializing
 	 * @return new root after removing
+	 * @note iterator is not modified! You have to reconstruct iterator state
+	 * if the iterator. You can use iter.peek() to retrieve item to remove and
+	 * after removing initialize iterator next or previous item after the removed
 	 */
-	AvlTreeNode *remove(Iterator &iter) {
+	AvlTreeNode *remove(const Iterator &iter) {
 		bool done = false;
 		return remove(iter,done);
 	}

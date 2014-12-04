@@ -249,13 +249,14 @@ AvlTreeNode<LinkT> *AvlTreeNode<LinkT>::removeRootNode(AvlTreeNode<LinkT> *root,
 }
 
 template<typename LinkT>
-AvlTreeNode<LinkT> *AvlTreeNode<LinkT>::remove(Iterator &iter, bool &done, natural pathIndex ) {
-	AvlTreeNode<LinkT> *pos = static_cast<PrivateIter &>(iter).getPath(pathIndex);
+AvlTreeNode<LinkT> *AvlTreeNode<LinkT>::remove(const Iterator &iter, bool &done, natural pathIndex ) {
+	PNode ppos = static_cast<const PrivateIter &>(iter).getPath(pathIndex);
+	AvlTreeNode<LinkT> *pos = ppos;
 	if (pos == this) {
 			pos = remove(iter,done,pathIndex+1);
-			static_cast<PrivateIter &>(iter).setPath(pathIndex,pos);
+//			static_cast<PrivateIter &>(iter).setPath(pathIndex,pos);
 			return pos;
-	} if (pos == 0) {
+	} else if (pos == 0) {
 		AvlTreeNode<LinkT> *ret = removeRootNode(this,done);
 		this->resetLinks();
 		return ret;
@@ -264,7 +265,7 @@ AvlTreeNode<LinkT> *AvlTreeNode<LinkT>::remove(Iterator &iter, bool &done, natur
 	if (link[0] == pos) dir = 0;
 	else dir = 1;
 	link[dir] = link[dir]->remove(iter,done,pathIndex+1);
-	static_cast<PrivateIter &>(iter).setPath(pathIndex,link[dir]);
+//	static_cast<PrivateIter &>(iter).setPath(pathIndex,link[dir]);
 	return balanceAfterRemove(this,done,dir);
 }
 

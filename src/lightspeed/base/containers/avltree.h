@@ -328,6 +328,7 @@ namespace LightSpeed {
 			Node *nd = iter.peekNode();
 			typename AvlTreeNode<Traits>::Iterator &nditer = iter.getNodeIterator();
 			tree = static_cast<Node *>(tree->remove(nditer,done));
+			iter = Iterator(cmpOper,tree,nd,iter.getDir());
 			count--;
 			return nd;
 		}
