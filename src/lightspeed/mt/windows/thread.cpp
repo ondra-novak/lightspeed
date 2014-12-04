@@ -26,11 +26,11 @@ static const natural flagAttached = 2;
 
 struct ThreadBootstrap {
 
-	ThreadFunction fn;
+	const IThreadFunction &fn;
 	Notifier unblockCaller;
 	Thread *owner;
 
-	ThreadBootstrap(ThreadFunction fn,Thread *owner):fn(fn),owner(owner) {}
+	ThreadBootstrap(const IThreadFunction &fn,Thread *owner):fn(fn),owner(owner) {}
 
 };
 
@@ -106,7 +106,7 @@ void ThreadContext::bootstrap(void * data) {
 
 
 	//calculate size of function + pointer to allocator
-	bksize = bs->fn.ifc().getObjectSize() + sizeof(void *);
+	bksize = bs->fn.getObjectSize() + sizeof(void *);
 	//create space at stack
 	bk = alloca(bksize);
 	//create allocator
@@ -194,11 +194,11 @@ Thread::Thread():threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil) {
 
 }
 
-Thread::Thread(ThreadFunction fn):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil)  {
+Thread::Thread(const IThreadFunction &fn):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil)  {
 	start(fn);
 }
 
-Thread::Thread(ThreadFunction fn, natural stackSize):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil)  {
+Thread::Thread(const IThreadFunction &fn, natural stackSize):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil)  {
 	start(fn,stackSize);
 }
 
@@ -224,11 +224,11 @@ Thread::~Thread() try {
 	if (std::uncaught_exception()) return;
 }
 
-void Thread::start(ThreadFunction fn) {
+void Thread::start(const IThreadFunction &fn) {
 	start(fn,0);
 }
 
-void Thread::start(ThreadFunction fn, natural stackSize) {
+void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	/* This sequence creates fake context
 	  to allow MT access to the start function.
 	  Trying to start already started thread causes exception.
