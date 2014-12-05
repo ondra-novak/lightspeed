@@ -70,7 +70,7 @@ namespace LightSpeed
     ///declaration nil typu
     enum Null_t {
         nil = 0,
-        null
+        null = 0,
     };
 
     typedef Null_t NullType;
