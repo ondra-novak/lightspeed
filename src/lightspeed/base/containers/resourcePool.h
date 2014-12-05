@@ -54,7 +54,7 @@ public:
 protected:
 	AbstractResource *next;
 	Timeout expiration;
-	friend class SList<AbstractResource>;
+	friend class AbstractResourcePool;
 
 };
 
@@ -68,7 +68,7 @@ class AbstractResourcePtr;
  * Pool can define limit of resource count, how long resource can be cached until expired (i.e. due
  * idle-timeout) and how long thread can wait for resource until timeout is reported
  */
-class AbstractResourcePool {
+class AbstractResourcePool: private SyncPt {
 public:
 	///Install resource pool
 	/**
@@ -94,9 +94,9 @@ public:
 	natural getLimit() const;
 	natural getCurLimit() const;
 public:
-	typedef SList<AbstractResource> Pool;
-	Pool pool;
-	SyncPt wakePt;
+
+	AbstractResource *pool;
+
 	atomic curLimit;
 	natural resTimeout;
 	natural waitTimeout;
@@ -110,7 +110,6 @@ public:
 	void release(AbstractResource *a);
 	AbstractResource *acquire();
 
-	class SetPayload;
 
 };
 

@@ -29,19 +29,19 @@ bool AbstractResource::expired() const {
 }
 
 AbstractResourcePool::AbstractResourcePool(natural limit, natural restimeout, natural waitTimeout)
-	:resTimeout(restimeout),waitTimeout(waitTimeout),limit(limit)
+	:pool(0),resTimeout(restimeout),waitTimeout(waitTimeout),limit(limit)
 {
 	curLimit = limit;
 
 }
 
 AbstractResourcePool::~AbstractResourcePool() {
-	AbstractResource *a= pool.pop();
-	while (a) {
+	while (pool) {
+		AbstractResource *x = pool;
+		pool = pool->next;
 		try {
-			delete a;
+			delete x;
 		} catch (...) {}
-		a = pool.pop();
 	}
 }
 
@@ -65,73 +65,73 @@ protected:
 
 
 AbstractResource *AbstractResourcePool::acquire() {
+	// lock SyncPt queue
+	Synchronized<FastLock> _(SyncPt::queueLock);
+	//reset out
+	AbstractResource *out = 0;
 	do {
-		AbstractResource *a= pool.pop();
-
-		if (a == 0) {
-
-			//allocate new resource if we are in limit
-			if (lockDec(curLimit) >= 0) {
-				try {
-					AbstractResource *a = createResource();
-					a->setTimeout(resTimeout);
-					return a;
-				} catch (...) {
-					lockInc(curLimit);
-					throw;
-				}
-			} else {
-				lockInc(curLimit);
+		//if no items in the pool
+		if (pool == 0) {
+			//if still space for new resource
+			if (readAcquire(&curLimit) > 0) {
+				//unlock queue - don't need it anymore
+				SyncReleased<FastLock> __(SyncPt::queueLock);
+				//create new resource
+				AbstractResource *a = createResource();
+				//set resource timeout
+				a->setTimeout(resTimeout);
+				//decrease limit
+				lockDec(curLimit);
+				//this is new resource
+				return a;
 			}
-
-			//create slot
+			//install slot
 			SyncPt::Slot s;
-			//register slot
-			wakePt.add(s);
-			//check pool to cover adding resource to the pool since last check
-			a = pool.pop();
-			//still no resource
-			if (a == 0) {
+			//add slot to queue
+			SyncPt::add_lk(s);
+			{
+				//unlock queue - we will wait
+				SyncReleased<FastLock> __(SyncPt::queueLock);
 				//install timeout
 				Timeout waitT(waitTimeout);
 				//wait for resource
-				wakePt.wait(s,waitT,SyncPt::interruptOnExit);
-				//retrieve payload
-				a = (AbstractResource *)s.payload;
-				//if payload is null, it were timeout
-				if (a == 0)
-					//throw
+				SyncPt::wait(s,waitT,SyncPt::interruptOnExit);
+				//try to remove from queue, if successed, timeout
+				if (SyncPt::remove(s)) {
+					//report timeout
 					throw ResourceTimeoutException(THISLOCATION,getResourceName());
-			} else {
-				//we get resource - remove registration
-				wakePt.remove(s);
-				//now, it can happen that we will have two resources object
-				//first taken by pop() second through payload - check
-				AbstractResource *c = (AbstractResource *)s.payload;
-				//test payload
-				if (c) {
-					//return extra resource back to the pool
-					pool.push(a);
-					a = c;
 				}
-
+				//retrieve resource from the slot
+				out = (AbstractResource *)s.payload;
 			}
-		}
-		//check for resource expiration
-		if (a->expired()) {
-			//expired? destroy resource
-			delete a;
-			//increment the limit
-			lockInc(curLimit);
-			//get next resource - additionally destroy any expired
-		}
-		else {
-			a->setTimeout(resTimeout);
-			//finished - return resource
-			return a;
-		}
-	}while (true);
 
+		} else {
+			//in case that pool is not empty
+			out = pool;
+			//retrieve from pool and set pool's new head
+			pool = pool->next;
+		}
+
+		//check resource expired
+		if (out->expired()) {
+			//if expired, unlock queue
+			SyncReleased<FastLock> __(SyncPt::queueLock);
+			//delete resource
+			delete out;
+			//increase limit
+			lockInc(curLimit);
+			//reset out
+			out = 0;
+		} else  {
+			//set out's timeout
+			out->setTimeout(resTimeout);
+		}
+
+		//repeat if we hase no out
+
+	}while(out == 0);
+	//unlock queue a return out
+	return out;
 
 }
 
@@ -153,22 +153,29 @@ natural AbstractResourcePool::getCurLimit() const {
 	return curLimit;
 }
 
-class AbstractResourcePool::SetPayload {
-public:
-	SetPayload(void *p):p(p) {}
-	void operator()(SyncPt::Slot *s) {
-		s->payload = p;
-	}
-protected:
-	void *p;
-};
-
 void AbstractResourcePool::release(AbstractResource *a) {
-	if (curLimit < 0) {
+	//check limit, if it is negative, do not store resource
+	if (readAcquire(&curLimit) < 0) {
+		//delete resource
 		delete a;
+		//increase limit
+		lockInc(curLimit);
 	} else {
-		if (!wakePt.notifyOne(SetPayload(a))) {
-			pool.push(a);
+		//lock queue
+		Synchronized<FastLock> _(SyncPt::queueLock);
+		//pop slot
+		SyncPt::Slot *s = SyncPt::popSlot_lk();
+		//we poped slot?
+		if (s == 0) {
+			//no, store resource to pool
+			a->next = pool;
+			//set new head
+			pool = a;
+		} else {
+			//give resource to slot
+			s->payload = a;
+			//notify it
+			SyncPt::notifySlot_lk(s);
 		}
 	}
 }

@@ -478,7 +478,7 @@ public:
 	}
 
 	AvlTreeNode<LinkT> *find(const AvlTreeNode<LinkT> &nd) const {
-		bool found;
+		bool found = false;
 		Iterator out(order,tree,&nd,Direction::forward, &found);
 		if (found) return out.getNext();
 		else return 0;
