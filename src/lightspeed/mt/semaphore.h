@@ -17,8 +17,7 @@ namespace LightSpeed {
 	class Semaphore: private SyncPt {
 	public:
 
-		typedef SyncPt::SlotT<Semaphore> Slot;
-		friend class SyncPt::SlotT<Semaphore>;
+		typedef SyncPt::Slot Slot;
 		///Initializes semaphore
 		/**
 		 * @param count count of locks before semaphore starts blocking
@@ -27,14 +26,14 @@ namespace LightSpeed {
 
 		///simple lock, infinite timeout
 		void lock() {
-			Slot slot(*this);
+			Slot slot;
 			lockAsync(slot);
 			SyncPt::wait(slot,nil);
 		}
 
 		///lock semaphore, specify condition to stop waiting
 		bool lock(SyncPt::WaitInterruptMode md) {
-			Slot slot(*this);
+			Slot slot;
 			lockAsync(slot);
 			if (!SyncPt::wait(slot,nil,md)) {
 				return false;
@@ -45,7 +44,7 @@ namespace LightSpeed {
 
 		///lock semaphore and specify timeout and condition
 		bool lock(const Timeout &tm, SyncPt::WaitInterruptMode md) {
-			Slot slot(*this);
+			Slot slot;
 			lockAsync(slot);
 			if (!SyncPt::wait(slot,tm,md)) {
 				return false;
@@ -56,7 +55,7 @@ namespace LightSpeed {
 
 		///lock semaphore and specify timeout
 		bool lock(const Timeout &tm) {
-			Slot slot(*this);
+			Slot slot;
 			lockAsync(slot);
 			if (!SyncPt::wait(slot,tm)) {
 				return false;

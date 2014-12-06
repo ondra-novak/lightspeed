@@ -191,87 +191,6 @@ void ParallelExecutor2::execute(const IExecAction &action) {
 
 
 
-
-
-	//notify any waiting thread, if there is such
-/*	bool threadInPool = waitPt.notifyOne();
-	try {
-		if (threadInPool) {
-			//pool confirmed that thread has been released from pool
-			//wait for him infinite time
-			while (!ntf) Thread::sleep(naturalNull);
-		} else {
-
-			bool tryCreateThread = true;
-			//cleanup all dead workers on top
-			cleanUp();
-			//maxWait - how long caller will wait
-			Timeout maxWait(maxWaitTimeout);
-			//curWait - how long caller will wait to create new threadh
-			Timeout curWait(newThreadTimeout);
-			//in cases no running threads, start first one
-			if (topWorker == 0) {
-				startNewThread();
-				tryCreateThread = false;
-				curWait = maxWait;
-			}
-			bool ntfst, actst;
-			//repeat while ntf is not signaled or there is still message
-			//(thread must take message and notify caller -
-			// - anything other is false alarm causing continue to wait
-			ntfst = ntf;
-			actst = readAcquirePtr(&curAction) == 0;
-			while (!ntfst || !actst) {
-				//if not notified
-				if (!ntfst) {
-					//check action,
-					if (actst) {
-						//action given, we have to set timeout to infinite
-						//because thread will soon on later send notification
-						curWait = Timeout(naturalNull);
-					} else if (curWait.expired()) {
-						if (tryCreateThread) {
-							//start new thread
-							startNewThread();
-							tryCreateThread = false;
-							curWait = maxWait;
-						} else  {
-							//report timeout
-							throw TimeoutException(THISLOCATION);
-						}
-					}
-				} else {
-					//in case that notification without action taken
-					//special notification from last thread while there is still action
-					//reset notification
-					ntf.reset();
-					//perform maintaince cleanup
-					cleanUp();
-					//check whether there is thread to process message
-					if (topWorker == 0) {
-						//and start new thread
-						startNewThread();
-					}
-				}
-				//wait for notification
-				Thread::sleep(curWait);
-				ntfst = ntf;
-				actst = readAcquirePtr(&curAction) == 0;
-
-			}
-		}
-		//unregister caller
-		writeReleasePtr<ISleepingObject>(&callerNtf,0);
-		//unregister action
-		writeReleasePtr<const ExecAction>(&curAction,0);
-	} catch (...) {
-		//unregister caller
-		writeReleasePtr<ISleepingObject>(&callerNtf,0);
-		//unregister action
-		writeReleasePtr<const ExecAction>(&curAction,0);
-		throw;
-	}*/
-
 }
 
 void ParallelExecutor2::Worker::runAction(const IExecAction *action) {
@@ -309,8 +228,8 @@ void ParallelExecutor2::Worker::run() {
 	bool cont = true;
 
 	owner.onThreadInit();
-	//repeat until thread finish
-	while (cont) {
+	//repeat until thread fini`sh
+	while (cont && !Thread::canFinish()) {
 		//retrieve action - make action unaccessible for others
 		const IExecAction * action = lockExchangePtr<const IExecAction >(&owner.curAction,(IExecAction *)0);
 		//is there action?
@@ -344,19 +263,14 @@ void ParallelExecutor2::Worker::run() {
 				//callback on idle
 				owner.onThreadIdle(slot.getNotifier());
 				//wait for timeout
-				if (!owner.waitPt.wait(slot,tm,SyncPt::interruptOnExit)) {
+				if (!owner.waitPt.wait(slot,tm,SyncPt::interruptOnExit)
+						//when timeout - remove slot
+						//but it may fail, because signal arrived later
+						&& owner.waitPt.remove(slot)) {
 					//timeout - my thread will finish - decrease count of threads
 					lockDec(owner.curThreadCount);
-					//when timeout - remove slot
-					owner.waitPt.remove(slot);
-					//slot becomed signaled meanwhile
-					if (slot) {
-						//if signaled, thread remain active, return number back
-						lockInc(owner.curThreadCount);
-					} else {
-						//leave loop
-						cont = false;
-					}
+					//leave loop
+					cont = false;
 				}
 				//count idles
 				lockDec(owner.idleCount);

@@ -41,6 +41,24 @@ namespace LightSpeed {
 	 * @note destroying SyncPt with waiting slots will not notify these slots causing
 	 * a possible deadlock.
 	 *
+	 *
+	 * Best practise for asynchronous waiting
+	 *
+	 * - check condition, if passed, no waiting is needed
+	 *
+	 * - create slot
+	 *
+	 * - register slot
+	 *
+	 * - check condition, if passed, remove slot, continue
+	 *
+	 * - wait, if wait successed, continue
+	 *
+	 * - if failed, remove slot - if failed, wait succesed, continue
+	 *
+	 * - if successed, throw timeout
+	 *
+	 *
 	 */
 	class SyncPt {
 	public:
@@ -111,7 +129,7 @@ namespace LightSpeed {
 
 		};
 
-
+/*
 		///Helps to build custom slots with autocancel ability
 		template<typename T>
 		class SlotT: public Slot {
@@ -127,7 +145,7 @@ namespace LightSpeed {
 		protected:
 			T &owner;
 		};
-
+*/
 		enum Order {
 			queue, stack
 		};
@@ -185,54 +203,32 @@ namespace LightSpeed {
 
 		///Removes slot from the sync.point
 		/**
-		 * @param slot slot to remove. If slot has not been registered, function
-		 * 	does nothing. If slot is waiting, but not at this sync point,
-		 *  function doesn't change state of slot from waiting to clean.
+		 * @param slot slot to remove.
 		 *
-		 *  You can use SyncSlotBase::getState() to test, whether slot has been
-		 *  removed.
+		 *  @retval true slot removed
+		 *  @retval false slot was not found. CHECK WHETHER IS IT SIGNALED!
 		 *
-		 *  @note in connection with object based on SyncPt, removing slot
-		 *  from the SyncPt object is interpreted as give up of waiting. During
-		 *  removin, slot may be signaled, but object will interpret this as
-		 *  also as releasing the resource
+		 *  @code
+		 *  if (!syncpt.wait(slot,...) && remove(slot)) {
+		 *     throw Timeout();
+		 *  } else if (slot.isSignaled()) {
+		 *  	//signaled
+		 *  } else {
+		 *  	// error, should not reach here
+		 *  }
+		 *
+		 *  @endcode
+		 *
+		 *  @code
+		 *  if (!remove(slot) && slot.isSignaled()) {
+		 *     //signaled
+		 *  }
+		 *
+		 *
 		 */
 		bool remove(Slot &slot);
 
 
-		///Notifies one slot
-		/**
-		 * @param fn Function is called during notification - note that
-		 * 	function is called while internal lock is held allowing it to
-		 * 	manipulate with slot atomically. Function receives R/W pointer to
-		 * 	the slot as argument
-		 * @retval true notified
-		 * @retval false empty queue
-		 *
-		 * @note  Note that notifications
-		 *  and cancellation are mutual exclusive operations and may block each other. Do not
-		 *  call remove() in notification event (causing deadlock)
-		 *
-		 */
-		template<typename Fn>
-		bool notifyOne(Fn fn);
-
-		///Notifies all slots
-		/**
-		 * @param fn Function is called during notification - note that
-		 * 	function is called while internal lock is held allowing it to
-		 * 	manipulate with slot atomically.Function receives R/W pointer to
-		 * 	the slot as argument
-		 * @retval true notified
-		 * @retval false empty queue
-		 *
-		 * @note  Note that notifications
-		 *  and cancellation are mutual exclusive operations and may block each other. Do not
-		 *  call remove() in notification event (causing deadlock)
-		 *
-		 */
-		template<typename Fn>
-		bool notifyAll(Fn fn);
 
 
 		///Notifies one slot
@@ -280,6 +276,7 @@ namespace LightSpeed {
 
 		void add_lk( Slot &slot );
 
+
 	private:
 
 		Slot * volatile curQueue;
@@ -292,317 +289,90 @@ namespace LightSpeed {
 
 	};
 
+	///Synchronize point with ability to transfer value during notification
+	/**
+	 * Value is transfered synchronously, so neither source nor target
+	 * thread can affect value. Target thread will receive notification
+	 * at same time as the value.
+	 *
+	 * @tparam type of value
+	 */
+	template<typename T>
+	class SyncPtT: public SyncPt {
+	public:
+		SyncPtT() {}
+		SyncPtT(Order order):SyncPtT(order) {}
 
-	template<class Fn>
-	bool SyncPt::notifyOne(Fn fn) {
+
+		///always use this slot
+		class Slot: public SyncPt::Slot {
+		public:
+			///Constructs slot and initializes the variable
+			Slot(T variableToSet):value(variableToSet) {}
+			///Constructs slot and uses default value for the variable
+			Slot() {}
+
+			///value is stored here
+			T value;
+		};
+
+		///Adds slot to receive notification
+		/**
+		 * @param slot slot to add
+		 * @retval true success
+		 * @retval false
+		 */
+		bool add(Slot &slot) {return SyncPt::add(slot);}
+
+		///Notifies first slot in the queue and transfers the value
+		/**
+		 * @param val value to copy
+		 * @retval true notified
+		 * @retval false queue were empty
+		 */
+		bool notifyOne(const T &val);
+		///Notifies all slots in the queue and transfers the value to them
+		/**
+		 * @param val value to copy
+		 * @retval true notified
+		 * @retval false queue were empty
+		 */
+		bool notifyAll(const T &val);
+	protected:
+		//call under lock!
+		void notifySlot_lk(Slot *slot, const T &val);
+
+	};
+
+	template<typename T>
+	inline bool SyncPtT<T>::notifyOne(const T& val) {
 		Synchronized<FastLock> _(queueLock);
-		Slot *p = popSlot_lk();
+		Slot *p = static_cast<Slot *>(popSlot_lk());
 		if (p == 0) return false;
-		fn(p);
-		p->notify(0);
+		notifySlot_lk(p,val);
 		return true;
 	}
 
-	template<class Fn>
-	bool SyncPt::notifyAll(Fn fn) {
+	template<typename T>
+	inline bool SyncPtT<T>::notifyAll(const T& val) {
 		Synchronized<FastLock> _(queueLock);
-		bool suc = false;
-		Slot *p = curQueue;
-		curQueue = 0;
+		bool succ = false;
+		Slot *p = static_cast<Slot *>(popSlot_lk());
 		while (p) {
-			fn(p);
-			Slot *q = p;
-			p = p->next;
-			q->notify();
-			suc = true;
+			notiftSlot_lk(p,val);
+			succ = true;
+			p = static_cast<Slot *>(popSlot_lk());
 		}
-		return suc;
+		return succ;
 	}
 
-
-
-}
-
-
-#if 0
-
-#include "../base/types.h"
-#include "sleepingobject.h"
-#include "atomic_type.h"
-#include "timeout.h"
-#include "criticalSection.h"
-
-namespace LightSpeed {
-
-	class SyncPt;
-
-	class SyncSlot;
-	///base class of SyncSlot. Allows to register thread on SyncPt
-	class SyncSlotBase {
-	public:
-
-		///State of slot
-		enum SlotState {
-			///State is clean - it can be registered to the SyncPt
-			clean = 0,
-			///State is waiting - slot is registered and waiting for notification
-			waiting = 1,
-			///Signaled state - slot has been signaled and removed from SyncPt
-			signaled = 2
-		};
-
-		///Creates raw sync.slot
-		/**
-		 * @param obj object, which will be notified through this slot
-		 * @param reason reason used with notification
-		 */
-		SyncSlotBase(ISleepingObject &obj, natural reason = 0)
-			:waitObj(obj),reason(reason), state(clean),next(0) {}
-
-		///Retrieves state of slot
-		/**
-		 * @return state of slot: SlotState
-		 */
-		SlotState getState() const {return state;}
-
-		///Returns true, if slot is signaled
-		/** allows to use slot as boolean variable.
-		 */
-		operator bool() const {return state == signaled;}
-
-		bool operator !() const {return state != signaled;}
-
-		///Sets slot signaled manually
-		/**
-		 * @note function doesn't send notification.Only changes state.
-		 * Implementation of SyncPt may set this state during registering
-		 * the slot when it finds, that there is no reason to wait. You
-		 * have to check state of slot before you start waiting
-		 */
-		void setSignaled() {
-			if (state != waiting) state = signaled;
-		}
-		void reset() {
-			if (state != waiting) state = clean;
-		}
-
-
-		///Retrieves id of thread associated with this object
-		/**
-		 * @return associated thread.
-		 *
-		 * @note function can return valid result only if previous setThreadId has
-		 * been called. Otherwise, result is undefined. Function is used
-		 * by several locks where ownership is bound to the thread.
-		 */
-		atomic getThreadId() const {return threadId;}
-		///Associates this object with the thread using atomic thread identifer
-		/**
-		 * @param thrId id of thread associated with this object
-		 */
-		void setThreadId(atomic thrId) {threadId = thrId;}
-
-
-	protected:
-
-		ISleepingObject &waitObj;
-		natural reason;
-		SlotState state;
-		SyncSlotBase *volatile next;
-		atomic threadId; ///<reserved for threadId - not set by constructor
-
-		friend class SyncPt;
-	};
-
-
-	///Basic synchronization between threads
-	/** This object is main part of all high-level synchronization objects.
-	 * It contains the container of threads, which waiting for notification
-	 * from another thread. When other thread wants to notify waiting threads,
-	 * it can notify first or all objects in the container.
-	 *
-	 * Thread that wish to wait creates SyncSlotBase object which is registered
-	 * on the SyncPt and then it can be signaled by some other thread. The thread can
-	 * assign itself to the SyncSlotBase as ISleepingObject and then it is able
-	 * to sleep until notification is caught causing thread wakening up.
-	 *
-	 * This allows to the thread to wait on multiple sync.points while first
-	 * notification wakes the waiting thread and it is able to find out, which
-	 * notification was it
-	 *
-	 * If thread wish to wait only one sync.point at time, it can use
-	 * method wait() without need to creating SyncSlot.
-	 */
-	class SyncPt {
-	public:
-
-
-		SyncPt();
-
-		///Registers slot to the sync.point
-		/**
-		 * @param slot slot to register
-		 * @exception InvalitParamException thrown, is slot is already waiting
-		 */
-		virtual void add(SyncSlotBase &slot);
-
-		///Removes slot from the sync.point
-		/**
-		 * @param slot slot to remove. If slot has not been registered, function
-		 * 	does nothing. If slot is waiting, but not at this sync point,
-		 *  function doesn't change state of slot from waiting to clean.
-		 *
-		 *  You can use SyncSlotBase::getState() to test, whether slot has been
-		 *  removed.
-		 *
-		 *  @note in connection with object based on SyncPt, removing slot
-		 *  from the SyncPt object is interpreted as give up of waiting. During
-		 *  removin, slot may be signaled, but object will interpret this as
-		 *  also as releasing the resource
-		 */
-		virtual bool remove(SyncSlotBase &slot);
-
-
-
-		enum WaitInterruptMode {
-
-			///uninterruptable
-			/** waiting cannot be interrupted before event on timeout reached */
-			uninterruptable,
-			///interrupt waiting on set exit flag
-			/** waiting will be interrupted, when Thread::setExitFlag is called,
-			 *
-			 * @note you cannot continue wait, because exit flag remains active
-			 *  */
-			interruptOnExit,
-			///interrupt wait on another event
-			/**
-			 * Interrups waiting on any event caught by wakeUp() method.
-			 * You have a chance to check, which event arrived and continue
-			 * in waiting. You can continue in waiting in case that
-			 * interruption is caused by setExitFlag(). In this case
-			 * flag itself is not checked, function only wakeups the
-			 * thread.
-			 */
-			interruptable
-		};
-
-
-		///Wait on sync.point without need to create SyncSlotBase
-		/**
-		 * Simple waiting.
-		 * @param tm specifies timeout
-		 * @param mode specifies, how waiting can be interrupted
-		 * @retval true wait success
-		 * @retval false timeout
-		 */
-		bool wait(const Timeout &tm, WaitInterruptMode mode = uninterruptable);
-
-		virtual ~SyncPt() {}
-	protected:
-		///Notifies one waiting slot
-		/** It takes first added and sends notification to it. Then
-		 * slot is removed from the container
-		 *
-		 * @retval true notified
-		 * @retval false empty contianer
-		 * */
-		virtual SyncSlotBase *notifyOne();
-		///Notifies all waiting slots
-		/**
-		 * Notifies all, and removes them
-		 *
-		 * @retval true notified
-		 * @retval false empty contianer
-		 *
-		 */
-		virtual bool notifyAll();
-
-		SyncSlotBase *volatile first;
-		SyncSlotBase *volatile added;
-		typedef CriticalSection LockImpl;
-		mutable LockImpl inrlk;
-		typedef Synchronized<LockImpl> Lock;
-
-
-		void reorder();
-		SyncSlotBase *getFirst();
-		SyncSlotBase *getNew();
-		void append(SyncSlotBase *p);
-		void signalSlot(SyncSlotBase *p);
-
-
-	};
-
-
-	///Implements waitaible slot which can be used with SyncPt
-	/**
-	 * Using this slot, you can wait or receive notifications from SyncPt
-	 *
-	 * Note that SyncSlot doesn't inherit SyncSlotBase. This is by design decision.
-	 * SyncSlot is always connected with one instance SyncPt and cannot be used with other
-	 * instance. So class doesn't inherit SyncSlotBase to prevent manual registration
-	 * using method SyncPt::add() and SyncPt::remove()
-	 */
-	class SyncSlot {
-	public:
-
-		///Creates sync.slot forwarding notification to the specified ISleepingObject
-		/**
-		 *
-		 * @param wobj which object will be notified
-		 * @param syncPt reference to instance of syncPt
-		 *
-		 * SyncSlot instance is automatically removed on destructor regardless
-		 * on its state.
-		 */
-		SyncSlot(ISleepingObject &wobj, SyncPt &syncPt);
-		///Creates sync.slot which will wake up current thread
-		/**
-		 * @param syncPt reference to instance of syncPt. When object is created,
-		 * you can call Thread::sleep() to wait for the event. But don't forget
-		 * to check whether slot is signaled
-		 *
-		 * @code
-		 * SyncSlot s(mysyncpt);
-		 * while (!s) Thread::sleep(naturalNull);
-		 * @endcode
-		 *
-		 * SyncSlot instance is automatically removed on destructor regardless
-		 * on its state.
-		 */
-		SyncSlot(SyncPt &syncPt);
-		~SyncSlot() {
-			syncPt.remove(ssb);
-		}
-
-		///Retrieves state of slot
-		/**
-		 * @return state of slot: SyncSlotBase::SlotState
-		 */
-		SyncSlotBase::SlotState getState() const {return ssb.getState();}
-
-		///Returns true, if slot is signaled
-		/** allows to use slot as boolean variable.
-		 */
-		operator bool() const {return ssb;}
-		///Returns true, if slot is signaled
-		/** allows to use slot as boolean variable.
-		 */
-		bool operator!() const {return !(bool)ssb;}
-
-
-		bool wait(const Timeout &tm, SyncPt::WaitInterruptMode mode);
-
-
-	protected:
-		SyncSlotBase ssb;
-		SyncPt &syncPt;
-
-		friend class SyncPt;
-	};
+	template<typename T>
+	inline void SyncPtT<T>::notifySlot_lk(Slot* slot, const T& val) {
+		slot->value = val;
+		slot->notify();
+	}
 
 }
 
-#endif
+
 #endif /* LIGHTSPEED_MT_SYNCPT_H_ */

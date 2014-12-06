@@ -40,28 +40,38 @@ bool SyncPt::add(Slot& slot) {
 bool SyncPt::remove(Slot& slot) {
 	if (slot.charged) {
 		Synchronized<FastLock> _(queueLock);
-
+		//pick queue
 		Slot *q = curQueue;
+		//if queue is empty
 		if (q == 0) {
+			//can't remove
 			return false;
+		//if first item is slot
 		}else if (q == &slot) {
+			//set queue-s new head
 			curQueue = slot.next;
+			//slot removed
 			return true;
 		} else {
+			//find slot
 			while (q->next != 0 && q->next != &slot)
 				q = q->next;
 
 			bool suc;
 			if (q->next == &slot) {
+				//remove slot if found
 				q->next = slot.next;
+				//removed
 				suc = true;
 			} else {
+				//failed
 				suc = false;
 			}
 
 			return suc;
 		}
 	} else {
+		//slot is not charged, false
 		return true;
 	}
 }

@@ -14,10 +14,21 @@
 
 namespace LightSpeed {
 
+class Mutex;
+
 class Mutex {
 	class SetOwner;
 	friend class SetOwner;
+	struct MutexData {
+			atomic threadId;
+			Mutex *caller;
+
+			void operator=(const MutexData &other);
+		};
+
 public:
+	typedef SyncPtT<MutexData> WaitPt;
+
 
 	Mutex():owner(0),recursion(0) {};
 
@@ -40,7 +51,7 @@ public:
 	 * @retval true lock achieved without need to wait
 	 * @retval false lock is locked, you need wait
 	 */
-	bool lockAsync(SyncPt::Slot &slot);
+	bool lockAsync(WaitPt::Slot &slot);
 
 	///cancels waiting on asynchronous lock
 	/**
@@ -51,7 +62,7 @@ public:
 	 * Because slot can become signaled, function also unlock already achieved
 	 * lock.
 	 */
-	void cancelAsync(SyncPt::Slot &sl);
+	void cancelAsync(WaitPt::Slot &sl);
 
 	///Returns mutex's recursive counter
 	/** Can be useful to limit count of recursion in exclusive code */
@@ -72,10 +83,12 @@ public:
 	 */
 	bool setOwner(atomic newOwner);
 
+
 protected:
 
+
 	atomic owner;
-	SyncPt waitPt;
+	WaitPt waitPt;
 	atomic recursion;
 };
 

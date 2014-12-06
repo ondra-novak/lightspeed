@@ -25,7 +25,7 @@ namespace LightSpeed {
 	class Gate {
 	public:
 
-		typedef SyncPt::SlotT<Gate> Slot;
+		typedef SyncPt::Slot Slot;
 
 		enum State {
 			///gate is opened, threads will not be blocked
@@ -56,7 +56,12 @@ namespace LightSpeed {
 
 
 		///Cancels asychronous wait
-		void cancelWaitAsync(Slot &slot);
+		/**
+		 * @param slot slot to cancel
+		 * @retval true canceled
+		 * @retval false failed, probably not necesery
+		 */
+		bool cancelWaitAsync(Slot &slot);
 
 		bool isOpened() const {return state == stateOpen;}
 
@@ -65,7 +70,7 @@ namespace LightSpeed {
 
 
 	protected:
-		friend class SyncPt::SlotT<Gate>;
+		friend class SyncPt::Slot;
 		
 		void cancelSlot(Slot &sl) {cancelWaitAsync(sl);}
 
@@ -102,21 +107,21 @@ namespace LightSpeed {
 		}
 	}
 
-	inline void Gate::cancelWaitAsync(Slot& slot) {
-		sp.remove(slot);
+	inline bool Gate::cancelWaitAsync(Slot& slot) {
+		return sp.remove(slot);
 	}
 
 	inline bool Gate::wait(const Timeout& tm, SyncPt::WaitInterruptMode mode) {
-		Slot s(*this);
+		Slot s;
 		waitAsync(s);
-		return sp.wait(s,tm,mode);
+		return sp.wait(s,tm,mode) || !sp.remove(s);
 
 	}
 
 	inline bool Gate::wait(const Timeout& tm) {
-		Slot s(*this);
+		Slot s;
 		waitAsync(s);
-		return sp.wait(s,tm);
+		return sp.wait(s,tm) || !sp.remove(s);
 
 	}
 }

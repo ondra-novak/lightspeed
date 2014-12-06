@@ -9,18 +9,6 @@
 
 namespace LightSpeed {
 
-	class Mutex::SetOwner {
-	public:
-		SetOwner(Mutex &mx):mx(mx) {}
-		void operator()(SyncPt::Slot *s) {
-			mx.owner = s->threadId;
-			mx.recursion = 1;
-		}
-
-	protected:
-		Mutex &mx;
-	};
-
 
 
 bool Mutex::lock( const Timeout &tm )
@@ -39,9 +27,9 @@ bool Mutex::lock( const Timeout &tm )
 			return true;
 		}
 		//create slot
-		SyncPt::Slot sl;
+		WaitPt::Slot sl;
 		//store new owner to the payload
-		sl.threadId = me;
+		sl.value.threadId = me;
 		//add slot to notification chain
 		waitPt.add(sl);
 		//test again for ownership - may be alread released
@@ -89,8 +77,11 @@ void Mutex::unlock()
 		//exit
 		return;
 	}
+	//init mutex data;
+	MutexData md;
+	md.caller = this;
 	//notify one item in queue - it will set ownership
-	if (!waitPt.notifyOne(SetOwner(*this))) {
+	if (!waitPt.notifyOne(md)) {
 		//if nothing released - write zero to ownership
 		writeRelease(&owner,0);
 		//check, whether, waitPt is still empty
@@ -102,7 +93,7 @@ void Mutex::unlock()
 	}
 }
 
-bool Mutex::lockAsync( SyncPt::Slot &slot )
+bool Mutex::lockAsync( WaitPt::Slot &slot )
 {
 	//get my thread id
 	atomic me = ThreadId::current().asAtomic();
@@ -139,7 +130,7 @@ bool Mutex::lockAsync( SyncPt::Slot &slot )
 	return true;
 }
 
-void Mutex::cancelAsync( SyncPt::Slot &sl )
+void Mutex::cancelAsync( WaitPt::Slot &sl )
 {
 	waitPt.remove(sl);
 	atomic me = ThreadId::current().asAtomic();
@@ -152,4 +143,11 @@ bool Mutex::setOwner( atomic newOwner )
 	return lockCompareExchange(owner,curOwner,newOwner) == curOwner;
 }
 
+void Mutex::MutexData::operator =(const MutexData& other) {
+	Mutex *caller = other.caller;
+	caller->recursion = 1;
+	caller->owner = this->threadId;
 }
+
+}
+
