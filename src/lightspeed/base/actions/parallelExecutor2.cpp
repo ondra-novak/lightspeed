@@ -92,10 +92,15 @@ protected:
 
 void ParallelExecutor2::cleanUp() {
 	//perform maintaince cleanup
+	//called by callee function to perform global executor cleanup
+	//check just only topWorker
+	//no synchronization needed because only this thread can manage the top worker
 	while (topWorker != nil && topWorker->isDead()) {
 		Pointer<Worker> x = topWorker;
+		//remove top worker
 		topWorker = x->nextWorker;
 		x->thr.join();
+		//delete dead instance
 		delete x.get();
 	}
 }
@@ -189,8 +194,6 @@ void ParallelExecutor2::execute(const IExecAction &action) {
 	//message delivered, release notifier
 	writeReleasePtr<ISleepingObject>(&callerNtf,0);
 
-
-
 }
 
 void ParallelExecutor2::Worker::runAction(const IExecAction *action) {
@@ -227,9 +230,10 @@ void ParallelExecutor2::Worker::runAction(const IExecAction *action) {
 void ParallelExecutor2::Worker::run() {
 	bool cont = true;
 
+	//perform thread-init hook
 	owner.onThreadInit();
-	//repeat until thread fini`sh
-	while (cont && !Thread::canFinish()) {
+	//repeat until thread finish
+	while (cont && !Thread::canFinish() && !owner.orderStop) {
 		//retrieve action - make action unaccessible for others
 		const IExecAction * action = lockExchangePtr<const IExecAction >(&owner.curAction,(IExecAction *)0);
 		//is there action?
@@ -269,22 +273,50 @@ void ParallelExecutor2::Worker::run() {
 						&& owner.waitPt.remove(slot)) {
 					//timeout - my thread will finish - decrease count of threads
 					lockDec(owner.curThreadCount);
-					//leave loop
-					cont = false;
+					//recheck whether there is action arrived meanwhile
+					action = lockExchangePtr<const IExecAction >(&owner.curAction,(IExecAction *)0);
+					//after leaving waiting point but before count of running threads is decreased
+					//a new action can arrived causing failure of the creation of the new
+					//thread especially, when maxThreadCount is set to low value
+					//This can cause deadlock. So after worker decreased curThreadCount, it must
+					//perform extra check for the action. If there is an action, it has been probably
+					//queued during the worker was leaving wait point and before count has been decreased
+					//There is also possibility, that it happened after so new extra thread may appear
+					//in the pool.
+					if (action) {
+						//increase thread count - I am alive again
+						lockInc(owner.curThreadCount);
+						//count idles - I am working
+						lockDec(owner.idleCount);
+						//run action
+						runAction(action);
+						//count idles - I am not working now
+						lockInc(owner.idleCount);
+					} else {
+						//now we can safety leave the loop, because this thread is no more counted
+						//leave loop
+						cont = false;
+					}
+
 				}
-				//count idles
+				//count idles - I am working now
 				lockDec(owner.idleCount);
 			}
 		}
 
+		//cleanup any other finished threads
 		cleanUp();
 
+		//check current thread count
 		integer p = (integer)owner.curThreadCount;
+		//if current thread count is above limit and we successfully set it one less lower
 		if (p > (integer)owner.maxThreads && lockCompareExchange(owner.curThreadCount,p,p-1) == p) {
+			//exit this thread uncoditionally
 			break;
 		}
 	}
 
+	//perform thread-done hook
 	owner.onThreadDone();
 }
 
@@ -365,11 +397,18 @@ inline bool ParallelExecutor2::Worker::isDead() const {
 }
 
 void ParallelExecutor2::Worker::cleanUp() {
-	while (nextWorker && !nextWorker->thr.isRunning()) {
+	//every worker has to cleanup it's "next" worker
+	//check whether there is a next worker and whether it run
+	while (nextWorker && nextWorker->isDead()) {
+		//if there is dead worker - pick pointer
 		Pointer<ParallelExecutor2::Worker> x = nextWorker;
+		//remove that worker from the list
 		nextWorker = x->nextWorker;
+		//join worker to clear thread resources
 		x->thr.join();
+		//delete instance
 		delete x;
+		//continue to clean other workers in the list until lived-one found.
 	}
 
 }
@@ -384,6 +423,7 @@ inline bool ParallelExecutor2::Worker::stop(const Timeout& tm) {
 }
 
 void ParallelExecutor2::finish() {
+	orderStop = true;
 }
 
 } /* namespace LightSpeed */
