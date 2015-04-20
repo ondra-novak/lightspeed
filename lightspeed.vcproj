@@ -342,11 +342,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\atomic.h"
+				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
+				RelativePath=".\src\lightspeed\mt\atomic.h"
 				>
 			</File>
 			<File
@@ -430,11 +430,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\cloneable.h"
+				RelativePath=".\src\lightspeed\base\memory\cloneable.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\cloneable.h"
+				RelativePath=".\src\lightspeed\base\cloneable.h"
 				>
 			</File>
 			<File
@@ -618,11 +618,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\fileio.h"
+				RelativePath=".\src\lightspeed\base\streams\fileio.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\fileio.h"
+				RelativePath=".\src\lightspeed\base\windows\fileio.h"
 				>
 			</File>
 			<File
@@ -742,11 +742,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
+				RelativePath=".\src\lightspeed\base\iter\iterator.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\iterator.h"
+				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
 				>
 			</File>
 			<File
@@ -1026,11 +1026,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\pointer.h"
+				RelativePath=".\src\lightspeed\base\pointer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\pointer.h"
+				RelativePath=".\src\lightspeed\base\memory\pointer.h"
 				>
 			</File>
 			<File
@@ -1063,10 +1063,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\debug\progress.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\mt\promise.h"
 				>
 			</File>
 			<File
@@ -1402,11 +1398,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
+				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
+				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
 				>
 			</File>
 			<File
@@ -1506,11 +1502,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\winpch.h"
+				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				RelativePath=".\src\lightspeed\base\windows\winpch.h"
 				>
 			</File>
 			<File
@@ -1767,10 +1763,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\debug\progress.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\mt\promise.cpp"
 				>
 			</File>
 			<File
@@ -2044,10 +2036,6 @@
 		</File>
 		<File
 			RelativePath=".\src\lightspeed\base\iter\placeholders.tcc"
-			>
-		</File>
-		<File
-			RelativePath=".\src\lightspeed\mt\promise.tcc"
 			>
 		</File>
 		<File
