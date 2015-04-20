@@ -1,8 +1,29 @@
 #ifndef _LIGHTSPEED_MESSAGES_FUNCTIONCALL_
 #define _LIGHTSPEED_MESSAGES_FUNCTIONCALL_
 #include "../qualifier.h"
+#include "../platform.h"
 
 namespace LightSpeed {
+
+	template<typename RetT, typename Fn, typename Args>
+	class FuncWithArgs {
+	public:
+
+		FuncWithArgs(Fn fn, typename Argument<Args>::T args)
+			:fn(fn),args(args) {}
+
+		RetT operator()() const {return (RetT)fn(args);}
+		template<typename A>
+		RetT operator()(const A &a) const {return (RetT)fn(a, args);}
+		template<typename A, typename B>
+		RetT operator()(const A &a, const B &b) const {return (RetT)fn(a,b, args);}
+
+
+	protected:
+		Fn fn;
+		Args args;
+	};
+
 
 	template<typename Obj, typename Fn, typename RetT>
 	struct MemberFunctionAsFunctor {
@@ -75,7 +96,39 @@ namespace LightSpeed {
 	struct FunctionCall<A (B::*)(C,D) const > {
 		typedef MemberFunctionCall<A (B::*)(C,D) const,A> T;
 	};
-}
 
+#ifdef LIGHTSPEED_PLATFORM_WINDOWS
+	//Windows includes exception specification to function type. This is workaround for this behaviour
+	template<typename A, typename B>
+	struct FunctionCall<A (B::*)()  throw()> {
+		typedef MemberFunctionCall<A (B::*)()  throw(),A> T;
+	};
+
+	template<typename A, typename B>
+	struct FunctionCall<A (B::*)() const  throw()> {
+		typedef MemberFunctionCall<A (B::*)() const  throw(),A> T;
+	};
+
+	template<typename A, typename B, typename C>
+	struct FunctionCall<A (B::*)(C)  throw()> {
+		typedef MemberFunctionCall<A (B::*)(C)  throw(),A> T;
+	};
+
+	template<typename A, typename B, typename C>
+	struct FunctionCall<A (B::*)(C) const  throw()> {
+		typedef MemberFunctionCall<A (B::*)(C) const  throw(),A> T;
+	};
+
+	template<typename A, typename B, typename C, typename D>
+	struct FunctionCall<A (B::*)(C,D)  throw()> {
+		typedef MemberFunctionCall<A (B::*)(C,D)  throw(),A> T;
+	};
+
+	template<typename A, typename B, typename C,typename D>
+	struct FunctionCall<A (B::*)(C,D) const  throw()> {
+		typedef MemberFunctionCall<A (B::*)(C,D) const  throw(),A> T;
+	};
+#endif
+}
 
 #endif

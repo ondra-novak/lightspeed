@@ -22,6 +22,9 @@ extern "C" { int wcsncasecmp(const wchar_t *s1, const wchar_t *s2, size_t n); }
 
 namespace LightSpeed {
 
+template struct StrCmpCS<byte>;
+template struct StrCmpCS<char>;
+template struct StrCmpCS<wchar_t>;
 
 CompareResult StrCmpCI<char>::operator()(const ConstStringT<char> &a, const ConstStringT<char> &b) const {
 	natural la = a.length();

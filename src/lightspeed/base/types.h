@@ -3,7 +3,6 @@
 #ifndef LIGHTSPEED_BASE_TYPES
 #define LIGHTSPEED_BASE_TYPES
 
-#define LIGHTSPEED_SEARCH_HEADER "stdint.h"
 #include "platform.h"
 
 #include <cstdio>

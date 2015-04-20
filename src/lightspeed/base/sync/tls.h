@@ -13,36 +13,7 @@
 #include "../memory/factory.h"
 namespace LightSpeed {
 
-///Interface to delete object registered in Thred Local Storage
-class IThreadVarDelete {
-public:
-	///Called when object registered under pointer must be destroyed
-	/** note - function should not throw exceptions */
-	virtual void operator()(void *ptr)  = 0;
-};
 
-///Factory, that is extended by IThreadVarDelete interface
-/**
- * @tparam T type allocated and destroyed by this factory
- * @tparam Factory name of class used to carry responsibility of allocations and destroyings
- *
- * You can use this class as IThreadVarDelete. Object created using this
- * factory will be also destroyed by this factory when threads exits
- */
-template<typename T, typename Factory>
-class ThreadVarDeleteFactory: public IThreadVarDelete,
-			public Factory::template Factory<T> {
-	typedef typename Factory::template Factory<T> Super;
-public:
-	ThreadVarDeleteFactory(const Factory &fact)
-		:Super(Factory::template Factory<T>(fact)) {}
-	ThreadVarDeleteFactory() {}
-
-	virtual void operator()(void *ptr) {
-		Super::destroyInstance(reinterpret_cast<T *>(ptr));
-	}
-
-};
 
 ///Interface to access Thread Local Storage variable table
 /** Every thread has own table. You can retrie instance of ITLSTable
@@ -50,6 +21,8 @@ public:
  */
 class ITLSTable {
 public:
+
+	typedef void (*DeleteFunction)(void *ptr);
 
 	///Retrieves pointer to variable at given index
 	/**
@@ -61,10 +34,10 @@ public:
     /**
      * @param index index into TLS table.
      * @param value new pointer to be registered
-     * @param delFn pointer to object responsible to deleting instance. If NULL,
+     * @param delFn pointer to a function responsible to deleting instance. If NULL,
      * no action is taken.
      */
-    virtual void setVar(natural index, void *value, IThreadVarDelete *delFn) = 0;
+    virtual void setVar(natural index, void *value, DeleteFunction delFn = 0) = 0;
     virtual void unsetVar(natural index) = 0;
     virtual ~ITLSTable() {}
 
@@ -104,6 +77,11 @@ public:
 
 ITLSTable &_stGetTLS();
 ITLSAllocator &_stGetTLSAllocator();
+
+template<typename T>
+void deleteFunction(void *var) {
+	delete reinterpret_cast<T *>(var);
+}
 
 
 }  // namespace LightSpeed

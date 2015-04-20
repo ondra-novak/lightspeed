@@ -47,8 +47,9 @@ namespace JSON {
 		virtual NodeType getType() const {return nodeType;}
 		virtual ConstStrA getStringUtf8() const {return value;}
 		virtual integer getInt() const;
-
 		virtual natural getUInt() const;
+		virtual linteger getLongInt() const;
+		virtual lnatural getLongUInt() const;
 		virtual double getFloat() const;
 
 		virtual bool getBool() const;
@@ -106,6 +107,7 @@ namespace JSON {
 		virtual NodeType getType() const {return ndObject;}
 		virtual ConstStrW getString() const {return ConstStrW();}
 		virtual integer getInt() const {return integerNull;}
+		virtual linteger getLongInt() const {return lintegerNull;}
 		virtual double getFloat() const {return 0;}
 		virtual bool getBool() const {return true;}
 		virtual bool isNull() const {return false;}
@@ -132,6 +134,7 @@ namespace JSON {
 		virtual Iterator getFwIter() const;
 
 		virtual natural getUInt() const;
+		virtual lnatural getLongUInt() const;
 		virtual INode *getVariable(ConstStrA ) const;
 		virtual INode &operator[](ConstStrW v) const;
 		virtual INode &operator[](ConstStrA v) const;

@@ -17,7 +17,8 @@
 namespace LightSpeed {
 
 
-	HANDLE extractHandle( PSeqFileHandle &file, IFileIOServices::StdFile hndType );
+	HANDLE extractHandle( PInputStream &file, IFileIOServices::StdFile hndType );
+	HANDLE extractHandle( POutputStream &file, IFileIOServices::StdFile hndType );
 
 
 	bool ProcessEnvKeyCompare::operator()(const ConstStrW &a, const ConstStrW &b) const {
@@ -76,8 +77,9 @@ namespace LightSpeed {
 		HANDLE hOtherSide;
 	};
 */
-	static void createIpcPipe(PSeqFileHandle &readEnd, PSeqFileHandle &writeEnd) {
-		PSeqFileHandle tmprd, tmpwr;
+	static void createIpcPipe(PInputStream &readEnd, POutputStream &writeEnd) {
+		PInputStream tmprd;
+		POutputStream tmpwr;
 		IFileIOServices &svc = IFileIOServices::getIOServices();
 
 		svc.createPipe(tmprd,tmpwr);
@@ -94,8 +96,10 @@ namespace LightSpeed {
 		HANDLE hProcess;
 		DWORD processId;
 
-		PSeqFileHandle pInput,pOutput,pError;
-		AutoArrayStream<PSeqFileHandle> extraPipes;
+		PInputStream pInput;
+		POutputStream pOutput,pError;
+		AutoArrayStream<POutputStream> extraWritePipes;
+		AutoArrayStream<PInputStream> extraReadPipes;
 		CmdLine cmdLine;
 		CmdLine envStr;
 		bool noArgs;
@@ -229,14 +233,14 @@ namespace LightSpeed {
 
 	Process &Process::stdIn(const SeqFileInput &input) {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);
-		ctx.pInput = input.getHandle();
+		ctx.pInput = input.getStream();
 		return *this;
 	}
 
 	Process &Process::stdIn(SeqFileOutput &output) {
 
 		ProcessContext &ctx = ProcessContext::getCtx(*context);				
-		PSeqFileHandle local;
+		POutputStream local;
 		createIpcPipe(ctx.pInput,local);
 		output = local;
 		return *this;
@@ -246,7 +250,7 @@ namespace LightSpeed {
 	Process &Process::stdOut(const SeqFileOutput &output) {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);
 
-		ctx.pOutput = output.getHandle();
+		ctx.pOutput = output.getStream();
 
 		return *this;
 	}
@@ -254,7 +258,7 @@ namespace LightSpeed {
 	Process &Process::stdOut(SeqFileInput &input) {
 
 		ProcessContext &ctx = ProcessContext::getCtx(*context);				
-		PSeqFileHandle local;
+		PInputStream local;
 		createIpcPipe(local,ctx.pOutput);
 		input = local;
 		return *this;
@@ -280,7 +284,7 @@ namespace LightSpeed {
 	Process &Process::stdErr(const SeqFileOutput &output) {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);
 
-		ctx.pError = output.getHandle();
+		ctx.pError = output.getStream();
 
 		return *this;
 	}
@@ -288,7 +292,7 @@ namespace LightSpeed {
 	Process &Process::stdErr(SeqFileInput &input) {
 
 		ProcessContext &ctx = ProcessContext::getCtx(*context);		
-		PSeqFileHandle local;
+		PInputStream local;
 		createIpcPipe(local,ctx.pError);
 		input = local;
 		return *this;
@@ -307,7 +311,8 @@ namespace LightSpeed {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);
 		ctx.arg(processName,true);
 		//discard all extra pipes refered by arguments
-		ctx.extraPipes.clear();
+		ctx.extraWritePipes.clear();
+		ctx.extraReadPipes.clear();
 		return *this;
 	}
 
@@ -386,10 +391,11 @@ namespace LightSpeed {
 	 
 	Process &Process::arg(SeqFileInput &pipeIn) {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);		
-		PSeqFileHandle readEnd,writeEnd;
+		PInputStream readEnd;
+		POutputStream writeEnd;
 		createIpcPipe(readEnd,writeEnd);
 		pipeIn = SeqFileInput(readEnd);
-		ctx.extraPipes.write(writeEnd);		
+		ctx.extraWritePipes.write(writeEnd);		
 		HANDLE h;
 		writeEnd->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(h));
 		return arg(getFDName(h,false,true));		
@@ -402,11 +408,12 @@ namespace LightSpeed {
 	 * to the new application.
 	 */
 	Process &Process::arg(SeqFileOutput &pipeOut) {
-		PSeqFileHandle readEnd,writeEnd;
+		PInputStream readEnd;
+		POutputStream writeEnd;
 		createIpcPipe(readEnd,writeEnd);
 		pipeOut = SeqFileOutput(writeEnd);
 		ProcessContext &ctx = ProcessContext::getCtx(*context);		
-		ctx.extraPipes.write(readEnd);		
+		ctx.extraReadPipes.write(readEnd);		
 		HANDLE h;
 		writeEnd->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(h));
 		return arg(getFDName(h,false,true));		
@@ -443,9 +450,14 @@ namespace LightSpeed {
 
 		}
 
-		for (natural k = 0; k < ctx.extraPipes.length(); k++) {
+		for (natural k = 0; k < ctx.extraWritePipes.length(); k++) {
 			HANDLE h;
-			ctx.extraPipes.getArray()[k]->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(h));
+			ctx.extraWritePipes.getArray()[k]->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(h));
+			SetHandleInformation(h,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT);
+		}
+		for (natural k = 0; k < ctx.extraReadPipes.length(); k++) {
+			HANDLE h;
+			ctx.extraReadPipes.getArray()[k]->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(h));
 			SetHandleInformation(h,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT);
 		}
 
@@ -457,7 +469,7 @@ namespace LightSpeed {
 		} else {
 			wcsncpy_s(cmdline,ctx.cmdLine.data(),ctx.cmdLine.length());		
 		}
-		BOOL shareHandles = (stdHandles || !ctx.extraPipes.empty())?TRUE:FALSE;
+		BOOL shareHandles = (stdHandles || !ctx.extraReadPipes.empty()|| !ctx.extraWritePipes.empty())?TRUE:FALSE;
 		BOOL b = CreateProcessW(0,cmdline,0,0,shareHandles,flags|ctx.extraFlags,
 			ctx.envStr.empty()?0:(LPVOID)ctx.envStr.data(),
 			cwd.empty()?0:cwd.c_str(),&nfo,&pi);
@@ -523,7 +535,8 @@ namespace LightSpeed {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);		
 		CloseHandle(ctx.hProcess);
 		ctx.hProcess = 0;
-		ctx.pInput = ctx.pOutput = ctx.pError = nil;	
+		ctx.pInput = nil;
+		ctx.pOutput = ctx.pError = nil;	
 	}
 
 	Process::~Process() try 
@@ -602,17 +615,27 @@ namespace LightSpeed {
 		ctx.extraFlags |= DETACHED_PROCESS;
 		return *this;
 	}
-	HANDLE extractHandle( PSeqFileHandle &file, IFileIOServices::StdFile hndType )
+	HANDLE extractHandle( PInputStream &file, IFileIOServices::StdFile hndType )
 	{
 		HANDLE h;
 		if (file == nil) {			
-			file = IFileIOServices::getIOServices().openStdFile(hndType);
+			file = IFileIOServices::getIOServices().openStdFile(hndType).get();
 		}
 		file->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(HANDLE));
 		SetHandleInformation(h,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT);
 		return h;
 	}
 
+	HANDLE extractHandle( POutputStream &file, IFileIOServices::StdFile hndType )
+	{
+		HANDLE h;
+		if (file == nil) {			
+			file = IFileIOServices::getIOServices().openStdFile(hndType).get();
+		}
+		file->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(HANDLE));
+		SetHandleInformation(h,HANDLE_FLAG_INHERIT,HANDLE_FLAG_INHERIT);
+		return h;
+	}
 
 
 

@@ -61,7 +61,7 @@ inline void UrlEncoder::input(const char& x) {
 		unsigned char z = (unsigned char)x;
 		buff[2] = '%';
 		buff[1] = (z>>4) >= 10?((z>>4)+'A'-10):((z>>4)+'0');
-		buff[0] = (z & 0xF) > 10?((z & 0xF) + 'A'-10):((z & 0xF)+'0');
+		buff[0] = (z & 0xF) >= 10?((z & 0xF) + 'A'-10):((z & 0xF)+'0');
 		pt = 3;
 	}
 }

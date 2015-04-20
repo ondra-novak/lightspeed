@@ -8,20 +8,204 @@
 #ifndef LIGHTSPEED_CONTAINERS_ONEITEMSTORAGE_H_
 #define LIGHTSPEED_CONTAINERS_ONEITEMSTORAGE_H_
 
+#include <utility>
 #include "autoArray.h"
+#include "../constructor.h"
 
 namespace LightSpeed {
 
 
+	///Optional variable can be either contain value or can be null
+	/**
+	 * Optional variable is by default constructed containing null, but you can specify object or delegated construction to
+	 * construct instance.
+	 *
+	 * In compare to ordinary variable, optional variable doesn't need to have the assignment operator  defined, because assigning
+	 * to the Optional causes destroying of the previous instance and constructing the new one. That is because Optional is
+	 * great to be used with object that don't have assignment operators. Neither copy constructor is required, because you can
+	 * use delegated construction to initialize content (through assignment operator)
+	 *
+	 * Class has minimal methods, everything is done through operators. To test, whether variable is engaged, simply compare its value
+	 * with nil, this comparison returns true, when variable contains nothing.
+	 */
+	template<typename T>
+	class Optional {
+	public:
+
+		Optional():engaged(false) {}
+		explicit Optional(const T &val) {
+			construct(val);
+			engaged = true;
+		}
+		template<typename Impl>
+		Optional(const Constructor<T,Impl> &c) {
+			construct(c);
+			engaged = true;
+		}
+		Optional(NullType):engaged(false) {}
+		Optional(const Optional &other) {
+			if (other.engaged) construct(other.get());
+			engaged = other.engaged;
+		}
+
+		~Optional() {
+			if (engaged) {
+				destruct();
+			}
+		}
+
+
+		Optional &operator=(NullType) {
+			if (engaged) {
+				engaged = false;
+				destruct();
+			}
+			return *this;
+		}
+
+		Optional &operator=(const T &val) {
+			if (&val != &get()) {
+				if (engaged) {
+					engaged = false;
+					destruct();
+				}
+				construct(val);
+				engaged = true;
+
+			}
+			return *this;
+		}
+
+		template<typename Impl>
+		Optional &operator=(const Constructor<T,Impl> &val) {
+			if (engaged) {
+				engaged = false;
+				destruct();
+			}
+			construct(val);
+			engaged = true;
+
+			return *this;
+		}
+
+		Optional &operator=(const Optional &other) {
+			if (this != &other) {
+				if (engaged) {
+					engaged = false;
+					destruct();
+				}
+				if (other.engaged) {
+					constuct(other.get());
+					engaged = true;
+				}
+			}
+			return *this;
+		}
+
+
+#if __cplusplus >= 201103L
+		Optional &operator=(T &&val) {
+			if (&val != &get()) {
+				if (engaged) {
+					engaged = false;
+					destruct();
+				}
+				construct(std::move(val));
+				engaged = true;
+
+			}
+			return *this;
+		}
+		Optional(Optional &&other) {
+			if (other.engaged) construct(std::move(other.val));
+			engaged = other.engaged;
+		}
+		Optional(T &&val) {
+			construct(std::move(val));
+			engaged = true;
+		}
+		Optional &operator=(Optional &&other) {
+			if (this != &other) {
+				if (engaged) {
+					engaged = false;
+					destruct();
+				}
+				if (other.engaged) {
+					constuct(std::move(other.get()));
+					engaged = true;
+				}
+			}
+			return *this;
+		}
+
+#endif
+
+		operator const T &() const {
+			if (!engaged) throwNullPointerException(THISLOCATION);
+			return get();
+		}
+
+		operator T &() {
+			if (!engaged) throwNullPointerException(THISLOCATION);
+			return get();
+		}
+
+		bool operator==(NullType) const {
+			return !engaged;
+		}
+
+		bool operator!=(NullType) const {
+			return engaged;
+		}
+
+		const T *operator->() const {
+			if (!engaged) throwNullPointerException(THISLOCATION);
+			return &get();
+		}
+
+		T *operator->() {
+			if (!engaged) throwNullPointerException(THISLOCATION);
+			return &get();
+		}
+
+
+	protected:
+		byte buffer[sizeof(T)];
+		bool engaged;
+
+		T &get() {return *reinterpret_cast<T *>(buffer);}
+		const T &get() const {return *reinterpret_cast<const T *>(buffer);}
+
+		void destruct() {
+			get().~T();
+		}
+
+		template<typename Impl>
+		void construct(const Constructor<T,Impl> &c) {
+			c.construct(buffer);
+		}
+		void construct(const T &val) {
+			new(reinterpret_cast<void *>(buffer)) T(val);
+		}
+#if __cplusplus >= 201103L
+		void construct(T &&val) {
+			new(reinterpret_cast<void *>(buffer)) T(std::move(val));
+		}
+#endif
+	};
+
+#if 0
     ///Container that can contain one or zero items
     /**
      * You can use this container as static variable, which can be
      * constructed later on demand.
+     *
      */
     template<typename T>
     class Optional: public FlatArray<T, Optional<T>  >{
         typedef FlatArray<T, Optional<T>  > Super;
     public:
+
 
         Optional();
         Optional(const T &val);
@@ -29,7 +213,7 @@ namespace LightSpeed {
         Optional &operator=(const Optional &val);
         ~Optional();
 
-        natural __size() const;
+        natural length() const;
 
         const T *data() const;
 
@@ -51,6 +235,7 @@ namespace LightSpeed {
         const T *operator->() const {return data();}
         const T &operator *() const {return get();}
         T &operator *() {return get();}
+        bool empty() const {return !isSet();}
 
 
     protected:
@@ -109,7 +294,7 @@ namespace LightSpeed {
         return *this;
     }
     template<typename T>
-    natural Optional<T>::__size() const {
+    natural Optional<T>::length() const {
         return getUsageFlg()?1:0;
     }
 
@@ -173,6 +358,8 @@ namespace LightSpeed {
     bool Optional<T>::isSet() const {
         return getUsageFlg();
     }
+
+#endif
 }
 
 

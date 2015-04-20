@@ -99,14 +99,7 @@ namespace LightSpeed {
 				}			
 			}
 
-			bool expand(natural items) {
-				if (isLocal() && items <= cnt && items >= size) {
-					size = items;
-					return true;
-				} else {
-					return false;
-				}
-			}
+			bool expand(natural) {return false;}
 			bool shrink(natural ) {return false;}
 
 			T *getBase() const {
@@ -135,10 +128,11 @@ namespace LightSpeed {
 					} catch (const std::bad_alloc &) {
 	 					throwOutOfMemoryException(THISLOCATION, count*sizeof(T));
 					}
+					size = count;
 				} else {
 					ptr = buffer;
+					size = cnt;
 				}
-				size = count;
 			}
 		};
 

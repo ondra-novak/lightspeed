@@ -14,6 +14,7 @@
 #include <string.h>
 #include <memory>
 
+#include "bufferedio.tcc"
 namespace LightSpeed {
 
 
@@ -55,7 +56,7 @@ natural IOBuffer<bufferSize>::read(void *buffer,  natural size) {
 
 template<natural bufferSize>
 natural IOBuffer<bufferSize>::write(const void *buffer,  natural size) {
-	natural s = (wrbeg < rdpos?rdpos:bufferSize) - wrpos;
+	natural s = ((wrbeg < rdpos && rdpos < rdend)?rdpos:bufferSize) - wrpos;
 	if (s == 0) {
 		if (wrpos > wrbeg) {
 			flush();
@@ -65,10 +66,14 @@ natural IOBuffer<bufferSize>::write(const void *buffer,  natural size) {
 		}
 		
 	}
-	if (s > size) s = size;
-	memcpy(buff.data()+wrpos,buffer,s);
-	wrpos += s;
-	return s;
+	if (wrpos == wrbeg && s < size) {
+		return targetOut->write(buffer,size);
+	} else {
+		if (s > size) s = size;
+		memcpy(buff.data()+wrpos,buffer,s);
+		wrpos += s;
+		return s;
+	}
 }
 
 
@@ -86,8 +91,7 @@ natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
 
 template<natural bufferSize>
 bool IOBuffer<bufferSize>::canRead() const {
-	byte b;
-	return rdpos < rdend || peek(&b,1) == 1;
+	return rdpos < rdend || targetIn->canRead();
 }
 
 template<natural bufferSize>
@@ -134,7 +138,7 @@ natural IOBuffer<bufferSize>::dataReady() const {
 	if (rdpos >= rdend)
 		return targetIn->dataReady();
 	else
-		return (rdend-rdpos)+targetIn->dataReady();
+		return (rdend-rdpos);
 }
 
 }

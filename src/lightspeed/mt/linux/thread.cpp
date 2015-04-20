@@ -14,11 +14,15 @@
 #include "../../base/memory/singleton.h"
 #include "../../base/containers/autoArray.tcc"
 #include "../thread.h"
+
+#include "../../base/debug/dbglog.h"
 #include "../../base/sync/threadVar.h"
-#include "../../base/framework/iapp.h"
 #include "../notifier.h"
-#include <signal.h>
 #include "../exceptions/threadException.h"
+#include "../../base/framework/app.h"
+#include "../../base/linux/seh.h"
+#include "signalException.h"
+#include "../threadHook.h"
 
 namespace LightSpeed {
 
@@ -34,22 +38,9 @@ struct ThreadBootstrap {
 
 };
 
-static int enabledSignals[] = {SIGTERM,SIGKILL, SIGSEGV, SIGILL,SIGINT,SIGABRT,SIGSTOP,SIGCONT};
+static int enabledSignals[] = {SIGSEGV, SIGILL,SIGABRT,SIGSTOP,SIGCONT};
+static int enabledSignalsForMaster[] = {SIGTERM,SIGKILL, SIGSEGV, SIGILL,SIGINT,SIGABRT,SIGSTOP,SIGCONT};
 
-static void adjustThreadSignals(bool master) {
-
-	sigset_t sigMask;
-	//modify linux signals for threading
-
-	sigfillset(&sigMask);
-	if (master) {
-		for (natural i = 0; i < countof(enabledSignals); i++)
-			sigdelset(&sigMask,enabledSignals[i]);
-	}
-
-	pthread_sigmask(SIG_BLOCK,&sigMask,0);
-
-}
 
 class ThreadContext;
 
@@ -61,6 +52,7 @@ static inline ThreadContext *getCurrentContext() {
 static inline void setCurrentContext(ThreadContext *ctx) {
 	currentContext = ctx;
 }
+
 
 
 // Thread state - stored in thread stack
@@ -105,6 +97,34 @@ protected:
 	ThreadContext(const ThreadContext &other);
 
 };
+
+
+static void adjustThreadSignals(bool master) {
+
+	sigset_t sigMask;
+	//modify linux signals for threading
+
+	sigfillset(&sigMask);
+	if (master) {
+		for (natural i = 0; i < countof(enabledSignalsForMaster); i++)
+			sigdelset(&sigMask,enabledSignalsForMaster[i]);
+	} else {
+		for (natural i = 0; i < countof(enabledSignals); i++)
+			sigdelset(&sigMask,enabledSignals[i]);
+	}
+
+	pthread_sigmask(SIG_BLOCK,&sigMask,0);
+
+	LinuxSEH::init();
+
+}
+
+static bool threadSignalHandler(int sig, siginfo_t *, void *) {
+	ConstStrA threadName = DbgLog::getThreadName();
+	fprintf (stderr,"Uncaugh signal %d in thread: %s \n", sig, threadName.data());
+	LinuxSEH::output_stack_trace();
+	return true;
+}
 
 void *ThreadContext::bootstrap(void * data) {
 
@@ -154,40 +174,62 @@ void *ThreadContext::bootstrap(void * data) {
 	//set thread context
 	ctx->owner->threadContext = ctx;
 
-
 	//set pointer to currentContext global TLS variable
 	setCurrentContext(ctx);
 
+	__seh_try_fn(threadSignalHandler) {
 
-	//start thread
-	try {
-		ctx->owner->getJoinObject().close();
-		//unblock caller - bootstrap data vanished
-		bs->unblockCaller.wakeUp();
-		//call function
-		fn.deliver();
 
-		ctx->finishThread();
+		//start thread
+		try {
+			AbstractThreadHook::callOnThreadInitHooks(*ctx->owner);
 
-	} catch (const Exception &e) {
-		//on LightSpeed::Exception - handle it
-		ctx->handleException(e);
-	} catch (const std::exception &e) {
-		//on std::exception
-		StdException stde(THISLOCATION,e);
-		//handle it
-		ctx->handleException(stde);
-	} catch (...) {
-		//on unknown exception
-		UnknownException e(THISLOCATION);
-		//handle it
-		ctx->handleException(e);
+			ctx->owner->getJoinObject().close();
+			//unblock caller - bootstrap data vanished
+			bs->unblockCaller.wakeUp();
+			//wrap function call to catch exceptions by thread hooks
+			try {
+				//call function
+				fn.deliver();
+
+			} catch (...) {
+				AbstractThreadHook::callOnThreadExceptionHooks(*ctx->owner);
+				throw;
+			}
+
+			AbstractThreadHook::callOnThreadExitHooks(*ctx->owner);
+
+			ctx->finishThread();
+
+		} catch (const Exception &e) {
+			//on LightSpeed::Exception - handle it
+			ctx->handleException(e);
+		} catch (const std::exception &e) {
+			//on std::exception
+			StdException stde(THISLOCATION,e);
+			//handle it
+			ctx->handleException(stde);
+		} catch (...) {
+			//on unknown exception
+			UnknownException e(THISLOCATION);
+			//handle it
+			ctx->handleException(e);
+		}
+		//reset pointer to current context - preventing any possible future accessing destroyed structure
+		setCurrentContext(0);
+		//note: context is not reset, because owner could vanish now.
+		return 0;
+	} __seh_except(s) {
+		UnexpectedSignalException err(THISLOCATION,s);
+		AppBase::current().onThreadException(err);
+		//reset pointer to current context - preventing any possible future accessing destroyed structure
+		setCurrentContext(0);
+		std::terminate();
+		return 0;
 	}
-	//reset pointer to current context - preventing any possible future accessing destroyed structure
-	setCurrentContext(0);
-	//note: context is not reset, because owner could vanish now.
-	return 0;
 
+	//should never reach
+	return 0;
 }
 
 void ThreadContext::handleCleanup()
@@ -275,7 +317,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	getMaster();
 
 	//initialize sleeper
-	if (!sleeper.isSet()) sleeper.init();
+	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
 
 	//create bootstrap informations
 	ThreadBootstrap bootstrap(fn,this);
@@ -347,7 +389,7 @@ void Thread::deepSleep(const Timeout &timeout) {
 }
 
 void Thread::wakeUp(natural reason) throw() {
-	if (sleeper.isSet()) sleeper->wakeUp(reason);
+	if (sleeper != nil) sleeper->wakeUp(reason);
 }
 
 ///Retrieves ID of thread
@@ -442,6 +484,7 @@ ThreadAttachContext::ThreadAttachContext( bool keepContext )
 void ThreadAttachContext::handleCleanup()
 {
 	if (owner) {
+		AbstractThreadHook::callOnThreadExitHooks(*owner);
 		finishThread();
 		owner = 0;
 	}
@@ -468,7 +511,7 @@ public:
 	MasterThread() {
 		threadContext = &context;
 
-		if (!sleeper.isSet()) sleeper.init();
+		if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
 		id = pthread_self();
 
 		adjustThreadSignals(true);
@@ -500,6 +543,8 @@ public:
 		threaded = true;
 
 		setCurrentContext(&context);
+
+		AbstractThreadHook::callOnThreadInitHooks(*this);
 	}
 
 	void updatePointers() {
@@ -512,6 +557,7 @@ public:
 	///Destructor - should be called at exit only
 	virtual ~MasterThread() {
 		removeAllContexts();
+		AbstractThreadHook::callOnThreadExitHooks(*this);
 		//restore old pointers
 		ITLSAllocator::setTLSFunction(oldAllocInstance);
 		ITLSTable::setTLSFunction(oldTableInstance);
@@ -618,6 +664,7 @@ bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 		threadContext = ctx;
 		flags = flagAttached;
 		joinObject.close();
+		AbstractThreadHook::callOnThreadInitHooks(*this);
 		return true;
 	}
 
@@ -630,7 +677,7 @@ bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 	ctx->owner = this;
 	threadContext = ctx;
 	flags = flagAttached;
-	if (!sleeper.isSet()) sleeper.init();
+	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
 	id = pthread_self();
 
 
@@ -640,6 +687,7 @@ bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 	}
 	setCurrentContext(ctx);
 	joinObject.close();
+	AbstractThreadHook::callOnThreadInitHooks(*this);
 	return true;
 }
 
@@ -665,6 +713,8 @@ ITLSTable & MasterThread::getTLS()
 	}
 	else return _stGetTLS();
 }
+
+const char *linuxThreads_signalExceptionMsg = "Unexpected signal caught: %1";
 
 }
 

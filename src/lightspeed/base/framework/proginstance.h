@@ -219,6 +219,7 @@ public:
 	 * function only ensures, that process has already exited and you
 	 * can create new instance with the same name.
 	 *
+	 * On some platforms, dots can be sent to the output
 	 */
 	void waitForTerminate(natural timeout);
 
@@ -290,6 +291,23 @@ public:
 	void cancelWaitForRequest();
 
 	///Terminates instance
+	/** Terminates the instance unconditionally. Target instance has just small
+	 * chance to perform any complex action, such a cleaning of the state. You
+	 * should use this function in case, that instance is not responding
+	 * to the standard stop request. Function can take some time to process. After
+	 * return, target instance should be terminated complete
+	 *
+	 * Under LINUX, two signals are sent: First SIGTERM followed by 3 seconds of waiting
+	 * to give instance a chance to terminate by the standard way. In case, that
+	 * instance still running, SIGKILL is sent followed by additional 3 seconds of waiting
+	 *
+	 * Under Windows, function TerminateProcess is called followed by 3 seconds of waiting.
+	 *
+	 * Function can throw TimeoutException when fails (because termination is just an signal,
+	 * there is no way, how to check, whether request has been processed or will be procesed
+	 * in the near future)
+	 *
+	 */
 	void terminate();
 
 	///Extended information current instance mode

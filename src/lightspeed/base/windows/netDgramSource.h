@@ -11,6 +11,7 @@
 #include "netStream.h"
 #include "../streams/memfile.h"
 #include "../memory/smallAlloc.h"
+#include "winsocket.h"
 
 namespace LightSpeed {
 
@@ -67,19 +68,11 @@ protected:
 };
 
 
-class WindowsNetDgamSource: public INetworkDatagramSource, public INetworkSocket {
+class WindowsNetDgamSource: public WindowsSocketResource<INetworkDatagramSource>, public INetworkSocket {
 public:
 	WindowsNetDgamSource(natural port, natural timeout, natural startDID);
 
 	virtual natural getDefaultWait() const {return waitForInput;}
-
-	virtual void setWaitHandler(IWaitHandler *handler);
-
-	virtual void setTimeout(natural time_in_ms);
-
-	virtual natural getTimeout() const;
-
-	virtual natural wait(natural waitFor, natural timeout) const;
 
 	virtual PNetworkDatagram receive();
 
@@ -93,7 +86,6 @@ public:
 
 
 protected:
-	WindowsSocketResource sres;
 	static UINT_PTR createDatagramSocket(natural port);
 	friend class WindowsNetDatagram;
 

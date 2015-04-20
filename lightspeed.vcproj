@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="lightspeed-11.12"
+	Name="lightspeed-15.01"
 	ProjectGUID="{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}"
 	RootNamespace="lightspeed-11.10"
 	Keyword="Win32Proj"
@@ -43,10 +43,9 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -108,10 +107,133 @@
 				EnableFiberSafeOptimizations="true"
 				WholeProgramOptimization="true"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;NDEBUG"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug Static|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="4"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_DEBUG"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="4"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release Static|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="4"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="true"
+				EnableFiberSafeOptimizations="true"
+				WholeProgramOptimization="true"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;NDEBUG"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -152,6 +274,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\src\lightspeed\base\streams\abstractFileIOService.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\align.h"
 				>
 			</File>
@@ -176,19 +302,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\apc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\apcthread.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\framework\app.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\argarray.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\actions\argument.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\containers\array.h"
 				>
 			</File>
 			<File
@@ -200,6 +326,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\containers\arrayref.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\containers\arraySet.h"
 				>
 			</File>
@@ -208,19 +338,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\arrayTemplate.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\debug\assertException.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\containers\debug\assertException.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
+				RelativePath=".\src\lightspeed\base\meta\assert.h"
 				>
 			</File>
 			<File
@@ -228,11 +346,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\atomic_type.h"
+				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\windows\atomic_type.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\atomic_type.h"
 				>
 			</File>
 			<File
@@ -256,6 +378,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\utils\base64.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\serialize\basicTypes.h"
 				>
 			</File>
@@ -268,6 +394,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\utils\binFilter.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\serialize\binFormat.h"
 				>
 			</File>
@@ -276,11 +406,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\debug\break.h"
+				RelativePath=".\src\lightspeed\utils\json\bsjson.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\containers\buffer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\streams\bufferedio.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\streams\bufferedio_ifc.h"
 				>
 			</File>
 			<File
@@ -289,10 +427,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\serialize\classTable.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\client.h"
 				>
 			</File>
 			<File
@@ -322,14 +456,14 @@
 						Name="VCCustomBuildTool"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\memory\clusterFactory.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\memory\clusterFactoryExt.h"
-				>
+				<FileConfiguration
+					Name="Debug Static|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\framework\cmdLineIterator.h"
@@ -344,7 +478,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\memory\comptr.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\utils\configParser.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\constructor.h"
 				>
 			</File>
 			<File
@@ -352,7 +494,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\context.h"
+				RelativePath=".\src\lightspeed\base\containers\convertString.h"
 				>
 			</File>
 			<File
@@ -364,15 +506,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\criticalSection.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\datetime.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\containers\debug\dbglog.h"
 				>
 			</File>
 			<File
@@ -380,11 +514,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\debug\debug.h"
+				RelativePath=".\src\lightspeed\base\debug\dbglog_internals.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\debug\debug.h"
+				RelativePath=".\src\lightspeed\base\debug\debug.h"
 				>
 			</File>
 			<File
@@ -392,19 +526,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\defs.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\containers\deque.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\containers\dictionary.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\uiapp\dimensions.h"
 				>
 			</File>
 			<File
@@ -413,10 +535,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\streams\directory.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\dispatch.h"
 				>
 			</File>
 			<File
@@ -444,15 +562,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\uiapp\eventdispatcher.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\events.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\except.h"
+				RelativePath=".\src\lightspeed\utils\eventdb.h"
 				>
 			</File>
 			<File
@@ -476,15 +586,11 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\export.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\memory\factory.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\memory\fastAllocFactory.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\memory\fastallocpool.h"
 				>
 			</File>
 			<File
@@ -540,15 +646,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\format.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\serialize\formatter_concept.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\function.h"
 				>
 			</File>
 			<File
@@ -564,15 +662,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\generatorBuffered.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\containers\genericArray.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\globals.h"
+				RelativePath=".\src\lightspeed\base\exceptions\genexcept.h"
 				>
 			</File>
 			<File
@@ -592,11 +682,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\uiapp\iguiserver.h"
+				RelativePath=".\src\lightspeed\base\actions\ijobcontrol.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\memory\inBlockAlloc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\indexMap.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\InfParallelExecutor.h"
 				>
 			</File>
 			<File
@@ -620,6 +718,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\iosleep.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\meta\isAbstract.h"
 				>
 			</File>
@@ -636,11 +738,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\iterator.h"
+				RelativePath=".\src\lightspeed\base\framework\ITCPServer.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\iter\iterator.h"
 				>
 			</File>
 			<File
@@ -652,11 +758,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\ivararg.h"
+				RelativePath=".\src\lightspeed\base\windows\IWinWaitableObject.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\iwaitingobject.h"
+				RelativePath=".\src\lightspeed\base\actions\job.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\json.h"
 				>
 			</File>
 			<File
@@ -664,7 +774,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\jsonexception.h"
+				RelativePath=".\src\lightspeed\utils\json\jsonbuilder.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\jsondefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\jsonexception.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\jsonfast.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\jsonimpl.h"
 				>
 			</File>
 			<File
@@ -684,15 +810,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\llevent.h"
+				RelativePath=".\src\lightspeed\base\debug\livelog.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\windows\llevent.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\mt\llmutex.h"
 				>
 			</File>
 			<File
@@ -704,11 +826,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\debug\LogProvider.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\containers\map.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\marshal.h"
+				RelativePath=".\src\lightspeed\utils\impl\md5.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\md5iter.h"
 				>
 			</File>
 			<File
@@ -717,14 +847,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\exceptions\memoryleakexception.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\streams\memoryStream.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\containers\memoryStreamBase.h"
 				>
 			</File>
 			<File
@@ -744,11 +866,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\microlock.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\containers\move.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\actions\msgQueue.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\msgthread.h"
 				>
 			</File>
 			<File
@@ -761,6 +891,22 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\streams\multibyte.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\sync\multilock.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\mutex.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\namedEnum.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\namedPipe.h"
 				>
 			</File>
 			<File
@@ -804,7 +950,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\nonrecursivethreadcounter.h"
+				RelativePath=".\src\lightspeed\base\memory\nodeAlloc.h"
 				>
 			</File>
 			<File
@@ -825,6 +971,14 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\meta\numbers.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\objectpipe.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\objmanip.h"
 				>
 			</File>
 			<File
@@ -852,11 +1006,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\pathname.h"
+				RelativePath=".\src\lightspeed\base\actions\parallelExecutor2.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\platform.h"
+				RelativePath=".\src\lightspeed\base\iter\placeholders.h"
 				>
 			</File>
 			<File
@@ -864,15 +1018,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\platform.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\mt\platform.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\pointer.h"
+				RelativePath=".\src\lightspeed\base\memory\pointer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\pointer.h"
+				RelativePath=".\src\lightspeed\base\pointer.h"
 				>
 			</File>
 			<File
@@ -884,7 +1042,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\polyAlloc.h"
+				RelativePath=".\src\lightspeed\base\memory\poolalloc.h"
 				>
 			</File>
 			<File
@@ -900,15 +1058,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\debug\programlocation.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\debug\programlocation.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\debug\progress.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\promise.h"
 				>
 			</File>
 			<File
@@ -940,7 +1098,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\recursivethreadcounter.h"
+				RelativePath=".\src\lightspeed\base\memory\refcntifc.h"
 				>
 			</File>
 			<File
@@ -956,19 +1114,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\rpcIterator.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\rpcTCPServer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\rpctree.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\rpctreeedit.h"
+				RelativePath=".\src\lightspeed\base\containers\resourcePool.h"
 				>
 			</File>
 			<File
@@ -980,6 +1126,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\rwlock.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\scheduler.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\memory\scopePtr.h"
 				>
 			</File>
@@ -988,7 +1142,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\streams\secureRandom.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\SecurityAttrs.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\mt\semaphore.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\sendmail.h"
 				>
 			</File>
 			<File
@@ -997,14 +1163,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\exceptions\serializerException.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\server.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\serverFunctions.h"
 				>
 			</File>
 			<File
@@ -1020,11 +1178,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\shareAlloc.h"
+				RelativePath=".\src\lightspeed\utils\impl\sha1.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\sharedArray.h"
+				RelativePath=".\src\lightspeed\base\memory\shareAlloc.h"
 				>
 			</File>
 			<File
@@ -1040,11 +1198,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\sharept.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\memory\singleton.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\sleeper.h"
+				RelativePath=".\src\lightspeed\mt\sleepingobject.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\slist.h"
 				>
 			</File>
 			<File
@@ -1100,11 +1266,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\str.h"
+				RelativePath=".\src\lightspeed\base\debug\stdlogoutput.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\strDefault.h"
+				RelativePath=".\src\lightspeed\base\str.h"
 				>
 			</File>
 			<File
@@ -1116,7 +1282,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\containers\stringBase.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\exceptions\stringException.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\stringKey.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\stringparam.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\stringpool.h"
 				>
 			</File>
 			<File
@@ -1152,11 +1334,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\framework\TCPServer.h"
+				RelativePath=".\src\lightspeed\base\streams\tcpHandler.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\text.h"
+				RelativePath=".\src\lightspeed\base\framework\TCPServer.h"
 				>
 			</File>
 			<File
@@ -1204,6 +1386,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\threadHook.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\mt\windows\threadId.h"
 				>
 			</File>
@@ -1212,11 +1398,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\sync\threadObject.h"
+				RelativePath=".\src\lightspeed\mt\threadMinimal.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\threadPool.h"
+				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
 				>
 			</File>
 			<File
@@ -1248,7 +1438,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\tree.h"
+				RelativePath=".\src\lightspeed\base\text\toString.h"
 				>
 			</File>
 			<File
@@ -1280,23 +1470,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\typemap.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\types.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\types.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\typesfast.h"
+				RelativePath=".\src\lightspeed\base\exceptions\unsupportedFeature.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\unsupportedFeature.h"
+				RelativePath=".\src\lightspeed\utils\urlencode.h"
 				>
 			</File>
 			<File
@@ -1305,10 +1487,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\streams\utf.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\actions\vararg.h"
 				>
 			</File>
 			<File
@@ -1324,15 +1502,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\uiapp\windows\winGUIServer.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\windows\winhttp.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\windows\winpch.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\winsocket.h"
 				>
 			</File>
 			<File
@@ -1352,7 +1534,19 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\src\lightspeed\base\streams\abstractFileIOService.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\apcthread.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\framework\app.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\arrayref.cpp"
 				>
 			</File>
 			<File
@@ -1364,15 +1558,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\utils\base64.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\windows\break.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\clusterAlloc.cpp"
+				RelativePath=".\src\lightspeed\base\streams\bufferedio.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\clusterFactoryExt.cpp"
+				RelativePath=".\src\lightspeed\base\memory\clusterAlloc.cpp"
 				>
 			</File>
 			<File
@@ -1384,11 +1582,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\context.cpp"
+				RelativePath=".\src\lightspeed\utils\configParser.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\critcalSection.cpp"
+				RelativePath=".\src\lightspeed\base\containers\constStr.cpp"
 				>
 			</File>
 			<File
@@ -1404,14 +1602,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\containers\dictionary.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\rpc\dispatch.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\actions\distributor.cpp"
 				>
 			</File>
@@ -1420,11 +1610,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\except.cpp"
+				RelativePath=".\src\lightspeed\utils\eventdb.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\exceptions\exception.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\streams\filehlp.cpp"
 				>
 			</File>
 			<File
@@ -1440,23 +1634,51 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\windows\firstchancex.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\iter\generator.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\globals.cpp"
+				RelativePath=".\src\lightspeed\base\actions\InfParallelExecutor.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json.cpp"
+				RelativePath=".\src\lightspeed\base\actions\job.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\marshal.cpp"
+				RelativePath=".\src\lightspeed\utils\json\json.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\jsonbuilder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\json\jsonfast.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\debug\livelog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\debug\LogProvider.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\impl\md5.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\streams\memfile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\message.cpp"
 				>
 			</File>
 			<File
@@ -1468,7 +1690,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\msgthread.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\mt\exceptions\mt_messages.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\mutex.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\namedEnum.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\namedPipe.cpp"
 				>
 			</File>
 			<File
@@ -1500,7 +1738,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\memory\nodeAlloc.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\notifier.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\objmanip.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\actions\parallelExecutor.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\parallelExecutor2.cpp"
 				>
 			</File>
 			<File
@@ -1516,19 +1770,35 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\promise.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\tests\PromiseTest.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\memory\refCntPtr.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\rpcTCPServer.cpp"
+				RelativePath=".\src\lightspeed\base\containers\resourcePool.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\rpctree.cpp"
+				RelativePath=".\src\lightspeed\base\actions\scheduler.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\rpc\rpctreeedit.cpp"
+				RelativePath=".\src\lightspeed\base\windows\secureRandom.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\SecurityAttrs.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\sendmail.cpp"
 				>
 			</File>
 			<File
@@ -1537,6 +1807,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\framework\services.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\impl\sha1.cpp"
 				>
 			</File>
 			<File
@@ -1552,7 +1826,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\string.cpp"
+				RelativePath=".\src\lightspeed\base\debug\stdlogoutput.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\string.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\stringBase.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\containers\stringpool.cpp"
 				>
 			</File>
 			<File
@@ -1561,6 +1847,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\windows\systemException.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\streams\tcpHandler.cpp"
 				>
 			</File>
 			<File
@@ -1588,11 +1878,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\threadHook.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\threadMinimal.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\windows\threadSleeper.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\exceptions\throws.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\timestamp.cpp"
+				RelativePath=".\src\lightspeed\base\timestamp.cpp"
 				>
 			</File>
 			<File
@@ -1604,7 +1906,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\package\uninstall.bat"
+				RelativePath=".\src\lightspeed\base\text\toString.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\utils\urlencode.cpp"
 				>
 			</File>
 			<File
@@ -1612,28 +1918,8 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\vararg.cpp"
+				RelativePath=".\src\lightspeed\base\windows\win_string.cpp"
 				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\uiapp\windows\winGUIServer.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\windows\winhttp.cpp"
@@ -1652,14 +1938,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\windows\wintimestamp.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\utils\xmlparser.cpp"
 				>
 			</File>
 		</Filter>
-		<File
-			RelativePath=".\App.cd"
-			>
-		</File>
 		<File
 			RelativePath=".\src\lightspeed\base\framework\app.tcc"
 			>
@@ -1681,11 +1967,27 @@
 			>
 		</File>
 		<File
+			RelativePath=".\src\lightspeed\utils\base64.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\streams\bufferedio.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\containers\carray.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\serialize\classTable.tcc"
+			>
+		</File>
+		<File
 			RelativePath=".\src\lightspeed\utils\configParser.tcc"
 			>
 		</File>
 		<File
-			RelativePath=".\package\control.ini"
+			RelativePath=".\src\lightspeed\base\containers\convertString.tcc"
 			>
 		</File>
 		<File
@@ -1693,7 +1995,7 @@
 			>
 		</File>
 		<File
-			RelativePath=".\src\lightspeed\base\containers\dictionary.tcc"
+			RelativePath=".\src\lightspeed\base\actions\distrubutor.tcc"
 			>
 		</File>
 		<File
@@ -1705,7 +2007,15 @@
 			>
 		</File>
 		<File
+			RelativePath=".\src\lightspeed\base\streams\fileiobuff.tcc"
+			>
+		</File>
+		<File
 			RelativePath=".\src\lightspeed\utils\FilePath.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\iter\generator.tcc"
 			>
 		</File>
 		<File
@@ -1713,11 +2023,35 @@
 			>
 		</File>
 		<File
-			RelativePath=".\src\lightspeed\base\containers\queue.tcc"
+			RelativePath=".\src\lightspeed\base\iter\iteratorFilter.tcc"
 			>
 		</File>
 		<File
-			RelativePath=".\src\lightspeed\base\framework\serviceapp.tcc"
+			RelativePath=".\src\lightspeed\utils\json\jsonfast.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\streams\memfile.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\namedEnum.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\streams\netio.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\iter\placeholders.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\mt\promise.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\containers\queue.tcc"
 			>
 		</File>
 		<File
@@ -1733,7 +2067,15 @@
 			>
 		</File>
 		<File
+			RelativePath=".\src\lightspeed\base\streams\standardIO.tcc"
+			>
+		</File>
+		<File
 			RelativePath=".\src\lightspeed\base\containers\string.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\containers\stringpool.tcc"
 			>
 		</File>
 		<File
@@ -1746,6 +2088,10 @@
 		</File>
 		<File
 			RelativePath=".\src\lightspeed\base\text\textInBuffer.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\streams\textNumber.tcc"
 			>
 		</File>
 		<File
@@ -1765,7 +2111,15 @@
 			>
 		</File>
 		<File
-			RelativePath=".\src\lightspeed\base\containers\typemap.tcc"
+			RelativePath=".\src\lightspeed\base\text\toString.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\streams\utf.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\windows\winsocket.tcc"
 			>
 		</File>
 	</Files>

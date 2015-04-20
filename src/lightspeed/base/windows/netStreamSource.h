@@ -17,7 +17,7 @@ namespace LightSpeed {
 
 
 
-class WindowsNetAccept: public LightSpeed::INetworkStreamSource,
+class WindowsNetAccept: public NetworkResourceCommon<INetworkStreamSource>,
 						public INetworkSocket {
 public:
 	WindowsNetAccept(PNetworkAddress addr,
@@ -31,11 +31,6 @@ public:
 	virtual PNetworkAddress getPeerAddr() const ;
 	virtual PNetworkAddress getLocalAddr() const ;
 
-	using INetworkStreamSource::wait;
-	virtual void setWaitHandler(IWaitHandler *handler);
-	virtual void setTimeout(natural time_in_ms);
-	virtual natural getTimeout() const;
-	virtual natural wait(natural waitFor, natural timeout) const;
 	virtual integer getSocket(int idx) const {return idx?-1:acceptSock;}
 	virtual natural getDefaultWait() const {return waitForInput;}
 
@@ -45,16 +40,16 @@ protected:
 	mutable PNetworkAddress localAddr;
 	PNetworkAddress remoteAddr;
 	natural count;
-	natural timeout;
 	natural streamDefTimeout;
-	Pointer<IWaitHandler> handler;
+	Pointer<WaitHandler> handler;
 	INetworkServices *svc;
 private:
 	WindowsNetAccept(const WindowsNetAccept &);
 	WindowsNetAccept &operator=(const WindowsNetAccept &);
+	natural doWait(natural waitFor, natural timeout) const;
 };
 
-class WindowsNetConnect: public LightSpeed::INetworkStreamSource,
+class WindowsNetConnect: public NetworkResourceCommon<INetworkStreamSource>,
 					   public INetworkSocket {
 public:
 
@@ -69,11 +64,6 @@ public:
 	virtual PNetworkAddress getPeerAddr() const ;
 	virtual PNetworkAddress getLocalAddr() const ;
 
-	using INetworkStreamSource::wait;
-	virtual void setWaitHandler(IWaitHandler *handler);
-	virtual void setTimeout(natural time_in_ms);
-	virtual natural getTimeout() const;
-	virtual natural wait(natural waitFor, natural timeout) const;
 	virtual integer getSocket(int idx) const;
 	virtual natural getDefaultWait() const {return waitForOutput;}
 
@@ -81,10 +71,8 @@ protected:
 	PNetworkAddress localAddr;
 	PNetworkAddress remoteAddr;
 	natural count;
-	natural timeout;
 	natural streamDefTimeout;
 	mutable natural readySocket;
-	Pointer<IWaitHandler> handler;
 
 	static const natural maxWatchSockets = 4;
 	mutable AutoArray<UINT_PTR, StaticAlloc<maxWatchSockets> > asyncSocket;
@@ -93,6 +81,8 @@ protected:
 
 	PNetworkStream makeConnect();
 	INetworkServices *svc;
+	virtual natural doWait(natural waitFor, natural timeout) const;
+
 };
 
 }

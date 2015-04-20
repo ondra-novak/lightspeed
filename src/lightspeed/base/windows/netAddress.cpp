@@ -41,8 +41,8 @@ WindowsNetAddress::~WindowsNetAddress() {
 StringA WindowsNetAddress::asString(bool resolve) {
 	if (addrinfo == 0) return StringA();
 	TextFormatBuff<char, SmallAlloc<256> > buff;
-	char hostbuff[512];
-	char svcbuff[256];
+	char hostbuff[512] = "<err_host>";
+	char svcbuff[256] = "<err_svc>";
 
 	int flags = resolve?0:NI_NUMERICHOST|NI_NUMERICSERV;
 

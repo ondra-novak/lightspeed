@@ -9,6 +9,9 @@
 #define LIGHTSPEED_CONTAINERS_MOVE_H_
 
 #include <utility>
+#include <string.h>
+
+
 
 namespace LightSpeed {
 
@@ -24,16 +27,32 @@ enum MoveConstruct {
 	/** It performs moving using standard constructor. It first creates
 	 * copy on new address and the destroys object on old address
 	 */
+
+	class MoveObject_Copy {
+	public:
+		template<typename T>
+		static T *doMove(T *oldAddr, void *newAddr) {
+			T *res = new(newAddr) T(*oldAddr);
+			oldAddr->~T();
+			return res;
+		}
+	};
+
+
 	template<typename T>
-	class MoveObject {
+	class MoveObject: public MoveObject_Copy {
 	public:
 
+#if __cplusplus > 199711L
 		static T *doMove(T *oldAddr, void *newAddr) {
-	        T *res = new(newAddr) T(*oldAddr);
+	        T *res = new(newAddr) T(std::move(*oldAddr));
 	        oldAddr->~T();
 	        return res;
 		}
+#endif
 	};
+
+
 
 	///Moving using binary copying
 	/** Binary copying can be a lot of faster, but no all objects can be moved by this method.
@@ -43,17 +62,8 @@ enum MoveConstruct {
 	public:
 		template<typename T>
 		static T *doMove(T *oldAddr, void *newAddr) {
-			natural cnt = sizeof(T)/sizeof(natural);
-			for (natural i = 0; i < cnt; i++) {
-				reinterpret_cast<natural *>(newAddr)[i] =
-						reinterpret_cast<natural *>(oldAddr)[i];
-			}
-			natural cnt2 = sizeof(T)%sizeof(natural);
-			for (natural i = 0; i < cnt2; i++) {
-				reinterpret_cast<byte *>(newAddr)[cnt*sizeof(natural)+i] =
-						reinterpret_cast<byte *>(oldAddr)[cnt*sizeof(natural)+i];
-			}
-			return reinterpret_cast<T *>(oldAddr);
+			memmove(newAddr, oldAddr, sizeof(T));
+			return reinterpret_cast<T *>(newAddr);
 		}
 	};
 

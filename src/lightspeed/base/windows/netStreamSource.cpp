@@ -13,20 +13,10 @@
 #include <string.h>
 #include "../../mt/timeout.h"
 #include "../debug/dbglog.h"
+#include "winsocket.tcc"
 
 namespace LightSpeed {
 
-	struct timeval millisecToTimeval(natural millisec) {
-		struct timeval val;
-		if (millisec == naturalNull) {
-			val.tv_sec = ~0;
-			val.tv_usec = 0;
-		} else {
-			val.tv_sec = long(millisec / 1000);
-			val.tv_usec = long((millisec % 1000) * 1000);
-		}
-		return val;
-	}
 
 static int getPortNumber(struct addrinfo *ainfo) {
 	if (ainfo->ai_addrlen == sizeof(struct sockaddr_in)) {
@@ -107,7 +97,7 @@ PNetworkStream WindowsNetAccept::getNext()
 {
 	if (count == 0)
 		throwIteratorNoMoreItems(THISLOCATION,typeid(PNetworkStream));
-	if (handler != nil) handler->wait(0,timeout);else wait();
+	wait();
 	char buff[256];
 	struct sockaddr *saddr = (struct sockaddr *)buff;
 	socklen_t socklen = sizeof(buff);
@@ -127,16 +117,8 @@ PNetworkStream WindowsNetAccept::getNext()
 }
 
 
-void WindowsNetAccept::setWaitHandler(IWaitHandler *handler) {
-	this->handler = handler;
-}
-void WindowsNetAccept::setTimeout(natural time_in_ms) {
-	timeout = time_in_ms;
-}
-natural WindowsNetAccept::getTimeout() const {
-	return timeout;
-}
-natural WindowsNetAccept::wait(natural waitFor, natural timeout) const {
+
+natural WindowsNetAccept::doWait(natural waitFor, natural timeout) const {
 
 	fd_set rdset;
 	FD_ZERO(&rdset);
@@ -155,8 +137,9 @@ WindowsNetAccept::WindowsNetAccept(PNetworkAddress addr,
 		natural count ,natural timeout, natural streamDefTimeout,
 		INetworkServices *svc)
 	:acceptSock(createListenSocket(addr) )
-	,count(count),timeout(timeout),streamDefTimeout(streamDefTimeout)
+	,count(count),streamDefTimeout(streamDefTimeout)
 	,svc(svc){
+		setTimeout(timeout);
 
 }
 
@@ -207,9 +190,10 @@ WindowsNetConnect::WindowsNetConnect(PNetworkAddress addr,
 		natural count, natural timeout, natural streamDefTimeout,
 		INetworkServices *svc)
 	:remoteAddr(addr),count(count),
-	 timeout(timeout),streamDefTimeout(streamDefTimeout)
+	 streamDefTimeout(streamDefTimeout)
 	 ,svc(svc)
 {
+	setTimeout(timeout);
 }
 
 
@@ -219,17 +203,7 @@ bool WindowsNetConnect::hasItems() const
 	return count > 0;
 }
 
-void WindowsNetConnect::setWaitHandler(IWaitHandler *handler) {
-	this->handler = handler;
-}
-void WindowsNetConnect::setTimeout(natural time_in_ms){
-	this->timeout = time_in_ms;
-
-}
-natural WindowsNetConnect::getTimeout() const {
-	return timeout;
-}
-natural WindowsNetConnect::wait(natural waitFor, natural timeout) const {
+natural WindowsNetConnect::doWait(natural waitFor, natural timeout) const {
 
 	setupSocket();
 	Timeout tmwait(timeout);
@@ -285,8 +259,6 @@ integer WindowsNetConnect::getSocket(int idx) const {
 }
 
 WindowsNetConnect::~WindowsNetConnect() {
-	if (handler != nil)
-		handler->close();
 	for (natural i = 0; i < asyncSocket.length();++i)
 		closesocket(asyncSocket[i]);
 }

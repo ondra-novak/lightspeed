@@ -15,7 +15,7 @@ namespace LightSpeedTest {
 
 using namespace LightSpeed;
 
-class SimpleHTTPServer: public ITCPServerConnection {
+class SimpleHTTPServer: public ITCPServerConnHandler {
 public:
 
 	SimpleHTTPServer(String rootPath, String indexFile);
@@ -32,6 +32,18 @@ public:
 protected:
 	String rootPath;
 	String indexFile;
+
+	virtual Command onDataReady(const PNetworkStream &stream, ITCPServerContext *context) throw() {return onData(stream,context)?cmdWaitRead:cmdRemove;}
+	virtual Command onWriteReady(const PNetworkStream &, ITCPServerContext *) throw() {return cmdRemove;}
+	virtual Command onTimeout(const PNetworkStream &, ITCPServerContext *) throw () {return cmdRemove;}
+	virtual Command onUserWakeup(const PNetworkStream &, ITCPServerContext *) throw() {return cmdRemove;}
+	virtual void onDisconnectByPeer(ITCPServerContext *) throw () {}
+	virtual ITCPServerContext *onIncome(const NetworkAddress &addr) throw() {return onConnect(addr);}
+	virtual Command onAccept(ITCPServerConnControl *, ITCPServerContext *) {return cmdWaitRead;}
+
+
+
+
 
 	static bool loadHeader(Header &hdr, ScanTextA &reader);
 

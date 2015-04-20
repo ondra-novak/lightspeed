@@ -114,15 +114,11 @@ namespace LightSpeed{
 		 return hEvent;
 	}
 
-	LightSpeed::natural NamedPipeServer::getDefaultWait() const
+	natural NamedPipeServer::getDefaultWait() const
 	{
 		return waitForInput;
 	}
 
-	void NamedPipeServer::setWaitHandler( IWaitHandler *handler )
-	{
-		waitHandler = handler;
-	}
 
 	void NamedPipeServer::setTimeout( natural time_in_ms )
 	{
@@ -134,7 +130,7 @@ namespace LightSpeed{
 		return connectTimeout;
 	}
 
-	LightSpeed::natural NamedPipeServer::wait( natural waitFor, natural timeout ) const
+	LightSpeed::natural NamedPipeServer::doWait( natural waitFor, natural timeout ) const
 	{
 		if (waitFor & waitForInput) {
 			return WaitForSingleObject(hEvent,(DWORD)timeout) == WAIT_TIMEOUT?0:waitForInput;
@@ -160,7 +156,7 @@ namespace LightSpeed{
 	natural NamedPipe::read( void *buffer, natural size )
 	{
 		if (size == 0 || eof) return 0;
-		natural res = wait(waitForInput,defaultTimeout);
+		natural res = wait(waitForInput,defTimeout);
 		if (res == 0) throw TimeoutException(THISLOCATION);
 		if (!eof)
 			{
@@ -187,7 +183,7 @@ namespace LightSpeed{
 	natural NamedPipe::write( const void *buffer, natural size )
 	{
 		if (size == 0) return 0;
-		natural res = wait(waitForOutput,defaultTimeout);
+		natural res = wait(waitForOutput,defTimeout);
 		if (res == 0) throw TimeoutException(THISLOCATION);
 
 		if (size > countof(writeBuff)) size = countof(writeBuff);
@@ -197,7 +193,8 @@ namespace LightSpeed{
 		return size;
 	}
 
-	natural NamedPipe::wait( natural waitFor, natural timeout ) const
+	
+	natural NamedPipe::doWait( natural waitFor, natural timeout ) const
 	{
 		return const_cast<NamedPipe *>(this)->internalWait(waitFor,timeout);
 	}
@@ -269,7 +266,7 @@ namespace LightSpeed{
 	{
 		if (size == 0 || eof) return 0;
 		if (rdBuffUse == 0) {
-			if (wait(waitForInput,defaultTimeout) == 0) throw TimeoutException(THISLOCATION);
+			if (wait(waitForInput,defTimeout) == 0) throw TimeoutException(THISLOCATION);
 		}
 		if (eof) return 0;
 		if (size < rdBuffUse) size = rdBuffUse;
@@ -291,7 +288,7 @@ namespace LightSpeed{
 	{
 		if (writeCharged) {
 			bool rep;
-			Timeout tm(defaultTimeout);
+			Timeout tm(defTimeout);
 			do {
 				if (WaitForSingleObject(hWriteWait,(DWORD)tm.getRemain().msecs()) == WAIT_TIMEOUT)
 					throw TimeoutException(THISLOCATION);
@@ -311,29 +308,15 @@ namespace LightSpeed{
 	{
 	}
 
-	natural NamedPipe::getDefaultWait() const
-	{
-		return defaultTimeout;
-	}
 
-	void NamedPipe::setWaitHandler( IWaitHandler *handler )
+	LightSpeed::natural NamedPipe::getDefaultWait() const
 	{
-		whndl = handler;
-	}
-
-	void NamedPipe::setTimeout( natural time_in_ms )
-	{
-		defaultTimeout = time_in_ms;
-	}
-
-	natural NamedPipe::getTimeout() const
-	{
-		return defaultTimeout;
+		return waitForInput;
 	}
 
 	NamedPipe::NamedPipe(String name, HANDLE hPipe, bool allowRead, bool allowWrite )
 		:hPipe(hPipe),hReadWait(0),hWriteWait(0),rdBuffUse(0),wrBuffUse(0),readCharged(false),writeCharged(false)
-		,defaultTimeout(naturalNull),name(name),eof(!allowRead),allowWrite(allowWrite)
+		,name(name),eof(!allowRead),allowWrite(allowWrite)
 	{
 		if (allowRead) {
 			hReadWait = CreateEvent(0,TRUE,FALSE,0);
@@ -554,7 +537,6 @@ namespace LightSpeed{
 		:name(name),openMode(openMode),maxInstances(maxInstances),streamDefTimeout(streamDefTimeout)
 		,hPrepared(0),fakeEvent(0)
 	{
-
 	}
 
 	bool NamedPipeClient::hasItems() const
@@ -585,26 +567,6 @@ namespace LightSpeed{
 	LightSpeed::natural NamedPipeClient::getDefaultWait() const
 	{
 		return waitForOutput;
-	}
-
-	void NamedPipeClient::setWaitHandler( IWaitHandler *handler )
-	{
-		waitHandler = handler;
-	}
-
-	void NamedPipeClient::setTimeout( natural time_in_ms )
-	{
-		
-	}
-
-	LightSpeed::natural NamedPipeClient::getTimeout() const
-	{
-		return naturalNull;
-	}
-
-	LightSpeed::natural NamedPipeClient::wait( natural waitFor, natural timeout ) const
-	{
-		return 0;		
 	}
 
 	void NamedPipeClient::prepare()
@@ -643,6 +605,13 @@ namespace LightSpeed{
 	bool NamedPipeClient::onWaitSuccess( natural waitFor )
 	{
 		return true;
+	}
+
+	natural NamedPipeClient::doWait( natural waitFor, natural timeout ) const
+	{
+		HANDLE h = const_cast<NamedPipeClient *>(this)->getWaitHandle(waitFor);
+		if (WaitForSingleObject(h,timeout) == WAIT_TIMEOUT) return 0;
+		else return waitForInput;
 	}
 
 }

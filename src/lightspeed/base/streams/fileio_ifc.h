@@ -55,15 +55,21 @@ namespace LightSpeed {
 
 		virtual bool canRead() const = 0;
 
-		///Check, if there are data read to read immediatelly without blocking
+		///Check, if there are data read to read immediately without blocking
 		/**
 		 * @return 0 no data are ready, reading causes I/O operation with external device (disk, network, pipe)
 		 * @retval 1 at least one byte is ready, can be more, because no all implementations can determine how many bytes
-		 *              can be read immediatelly
+		 *              can be read immediately
 		 * @retval >1 at least returned bytes are available for immediate reading.
 		 *
-		 * @note recomendation: disk file should always return 0 unless it is internally buffered.
-		 * Function is designed for software buffers.
+		 * @note recommendation: disk file should always return 0 unless it is internally buffered.
+		 * Function is designed for software buffers. Software buffers should return count of bytes
+		 * buffered by the immediate buffer. If buffer is empty, then function should return
+		 * count of bytes in additional buffers. If there are no buffers available, then source
+		 * stream must be asked for the value which can cause decreased performance. Non zero
+		 * values should be cached. This means that value doesn't need to reflect true state of
+		 * the stream buffers. Once non-zero is returned, it won't be updated until all ready
+		 * bytes are read,
 		 *
 		 * @note If stream is in eof state (no more data to read), function SHOULD return 1 (because EOF is readable state).
 		 * This will enforce caller to check stream state (and receive end of stream state)
@@ -133,21 +139,21 @@ namespace LightSpeed {
 		 * It causes, that future writes will be unavailble. It also
 		 * closes any associated resource with this stream opened
 		 * in output mode. For example, when stream is file opened for
-		 * write, function closes it for writing. Function don't need
-		 * to release resource complete (so for example locks can be
+		 * write, function closes it for writing. Function needn't
+		 * release resource complete (so for example locks can be
 		 * still held). If stream is pipe or connection, function closes
 		 * write end of the connection.
 		 *
 		 * After output is closed, reading is still available, but may
 		 * be closed soon by the other side once the closing event is
-		 * recognized by the other side.
+		 * recognized on the other side.
 		 *
 		 * Function flushes all output buffer before output is closed, so you
 		 * don't need to flush() it explicitly. Closing output on already
 		 * closed connection causes exception. Error during flush can also
 		 * cause exception.
 		 *
-		 * Closed output should be indicated in function canWrite() which should
+		 * Closed output should be indicated by function canWrite() which should
 		 * return false;
 		 */
 		virtual void closeOutput() = 0;
@@ -250,7 +256,7 @@ namespace LightSpeed {
     class IOutputBlockStream: public IOutputStream {
     public:
 
-    	///Closes current block and creates new onetor
+    	///Closes current block and creates new one
     	/**
     	 * Function closes current block and allows to open new block with first write on it.
     	 * Multiple call of next() without writting to the block doesn't cause to create empty
@@ -402,7 +408,7 @@ namespace LightSpeed {
     };
 
 
-    class IDirectoryIterator;
+    class IFolderIterator;
 
     class IMappedFile;
 
@@ -413,7 +419,7 @@ namespace LightSpeed {
     ///Shared pointer. You can share the object. 
     typedef RefCntPtr<IRndFileHandle> PRndFileHandle;
     ///Shared pointer. You can share the object.
-    typedef RefCntPtr<IDirectoryIterator> PDirectoryIterator;
+    typedef RefCntPtr<IFolderIterator> PFolderIterator;
     ///Shared pointer. You can share the object.
     typedef RefCntPtr<IMappedFile> PMappedFile;
 
@@ -439,14 +445,14 @@ namespace LightSpeed {
 		 * @param handle file handle opened for writing - you can use it to write data on it
 		 * @param filename name of the file
 		 */
-		TemporaryFile(IFileIOServices &svc, PSeqFileHandle handle, String filename)
+		TemporaryFile(IFileIOServices &svc, PInOutStream handle, String filename)
 			:filename(filename)
 			,writeHandle(handle)
 			,svc(svc) {}
 			
 
 		///Retrieves handle of file, which can be passed to SeqFileOutput;
-		PSeqFileHandle getStream() const {return writeHandle;}
+		PInOutStream getStream() const {return writeHandle;}
 		///Retrieves path-name of file. You can pass name to other process to open this file
 		String getFilename() const {return filename;}
 		///Closes the file
@@ -479,16 +485,16 @@ namespace LightSpeed {
 	protected:
 
 		String filename;
-		PSeqFileHandle writeHandle;
+		PInOutStream writeHandle;
 		IFileIOServices &svc;
 
 	};
 
 	typedef RefCntPtr<TemporaryFile> PTemporaryFile;
-    ///interface that implements I/O services
-    class IFileIOServices: virtual public IInterface {
-    public:
-        
+
+	class IFileIOHandler: virtual public IInterface {
+	public:
+
         ///File open mode
         enum FileOpenMode {
         	///do not open file, only test accessibility. Used in special cases only
@@ -503,20 +509,6 @@ namespace LightSpeed {
             fileExecutable = 4,
         };
 
-        ///Type of standard file
-        enum StdFile {
-            ///Standard input
-            stdInput = 0,
-            ///Standard output
-            stdOutput = 1,
-            ///Standard error
-            stdError = 2
-        };
-
-
-        
-
-
         ///Opens sequential file
         /**
          * @param ofn name and parameters of file as OpenFile object
@@ -525,82 +517,28 @@ namespace LightSpeed {
          * @exception IOException I/O error
          * @exception FileNotFoundException File or path not found
          */
-        virtual PSeqFileHandle openSeqFile(ConstStrW fname,  FileOpenMode mode, OpenFlags::Type flags) = 0;
-        
-        ///Opens standard file
+        virtual PInOutStream openSeqFile(ConstStrW fname,  FileOpenMode mode, OpenFlags::Type flags) = 0;
+        ///Opens random access file
         /**
-         * @param stdfile standard file type
-         * @return shared pointer to I/O interface
-         */
-        virtual PSeqFileHandle openStdFile(StdFile stdfile) = 0;
-        
-        ///Creates simple pipe
-        /** Pipe allows to transfer data between threads or processes.
-         * @param readEnd reference to uninitialized pointer that will be
-         *      filled with pointer to interface to the reading end of pipe
-         * @param writeEnd reference to uninitialized pointer that will be
-         *      filled with pointer to interface to the writing end of pipe
-         * @exception IOException I/O error
-         */        
-        virtual void createPipe(PSeqFileHandle &readEnd, PSeqFileHandle &writeEnd) = 0;
+        * @param ofn name and parameters of file as OpenFile object
+        * @param mode open mode
+        * @return shared pointer to I/O interface
+        * @exception IOException I/O error
+        * @exception FileNotFoundException File or path not found
+        */
+       virtual PRndFileHandle openRndFile(ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags) = 0;
 
-		///Creates temporary file
-		/**
-		 * @param prefix any text used as prefix to filename. It should contain only alphabetic and numeric
-		 * characters. Operation system can truncate too long prefixes. Prefix also can be empty.
-		 * @param rndfile specifies, whether to create file with random name. Default value is
-		 *  true. If false specified, prefix is used to name of the file. Note that
-		 *  function will not open existing file. In this case, object is created
-		 * with closed stream. But you can still receive full filename
-		 */
-		virtual PTemporaryFile createTempFile(ConstStrW prefix, bool rndfile = true) = 0;
+       virtual bool canOpenFile(ConstStrW name, FileOpenMode mode) const = 0;
 
-         ///Opens random access file
-         /**
-         * @param ofn name and parameters of file as OpenFile object
-         * @param mode open mode 
-         * @return shared pointer to I/O interface
-         * @exception IOException I/O error
-         * @exception FileNotFoundException File or path not found
-         */
-        virtual PRndFileHandle openRndFile(ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags) = 0;
-
-		
-
-
-        ///Opens file using raw handle received from 3rd part library or operation system
-        /**
-         * @param handle pointer to handle. Depends on curren platform
-         * @param handleSize size of handle. It used to check, whether handle has expected size
-         * @param mode how to open handle.
-         * @return in success, returns pointer to the stream.
-         *
-         * @note Destructor closes the handle
-         *
-         * @note Under linux, file descriptor (int) is expected. Under Windows,
-         * HANDLE is expected
-         */
-        //@{
-        virtual PSeqFileHandle openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode) = 0;
-
-        virtual PRndFileHandle openRndFile(const void *handle, size_t handleSize, FileOpenMode mode) = 0;
-        //@}
-
-        virtual ~IFileIOServices() {}
-        
- 
-        virtual bool canOpenFile(ConstStrW name, FileOpenMode mode) const = 0;
-
-
-        ///Opens directory for reading entries
-        /**
-         *
-         * @param pathname
-         * @return object which can be used to iterator through the directory.
-         *
-         * @note function will not return nil. In case of error, throws exception
-         */
-        virtual PDirectoryIterator openDirectory(ConstStrW pathname)  = 0;
+       ///Opens folder for reading entries
+       /**
+        *
+        * @param pathname
+        * @return object which can be used to iterator through the directory.
+        *
+        * @note function will not return nil. In case of error, throws exception
+        */
+       virtual PFolderIterator openFolder(ConstStrW pathname)  = 0;
 
 		///Retrieves information about file or directory
 		/**
@@ -611,26 +549,7 @@ namespace LightSpeed {
 		 * Function throws exception in case that file is not found
 		 */
 		 
-		virtual PDirectoryIterator getFileInfo(ConstStrW pathname)  = 0;
-
-
-        ///Retrieves reference to the object implementing this interface
-        /** Implementation is different in each platform. Implementation
-         * can be also changed in runtime by calling setIOServices()
-         * 
-         * @return reference to the service object
-         */
-        static IFileIOServices &getIOServices();
-        
-        ///Changes implementation of FileIOServices
-        /**
-         * @param newServices pointer to object, that implementing the
-         * FileIOServices. If you specify NULL, original object will
-         * be returned.
-         */
-        static void setIOServices(IFileIOServices *newServices);
-
-
+		virtual PFolderIterator getFileInfo(ConstStrW pathname)  = 0;
         ///Creates specified folder
         /**
          * @param folderName name of folder
@@ -689,6 +608,93 @@ namespace LightSpeed {
         virtual PMappedFile mapFile(ConstStrW filename, FileOpenMode mode) = 0;
 
 
+	};
+
+    ///interface that implements I/O services
+    class IFileIOServices: virtual public IFileIOHandler {
+    public:
+
+        ///Type of standard file
+        enum StdFile {
+            ///Standard input
+            stdInput = 0,
+            ///Standard output
+            stdOutput = 1,
+            ///Standard error
+            stdError = 2
+        };
+
+
+
+        ///Opens standard file
+        /**
+         * @param stdfile standard file type
+         * @return shared pointer to I/O interface
+         */
+        virtual PInOutStream openStdFile(StdFile stdfile) = 0;
+
+        ///Creates simple pipe
+        /** Pipe allows to transfer data between threads or processes.
+         * @param readEnd reference to uninitialized pointer that will be
+         *      filled with pointer to interface to the reading end of pipe
+         * @param writeEnd reference to uninitialized pointer that will be
+         *      filled with pointer to interface to the writing end of pipe
+         * @exception IOException I/O error
+         */
+        virtual void createPipe(PInputStream &readEnd, POutputStream &writeEnd) = 0;
+
+		///Creates temporary file
+		/**
+		 * @param prefix any text used as prefix to filename. It should contain only alphabetic and numeric
+		 * characters. Operation system can truncate too long prefixes. Prefix also can be empty.
+		 * @param rndfile specifies, whether to create file with random name. Default value is
+		 *  true. If false specified, prefix is used to name of the file. Note that
+		 *  function will not open existing file. In this case, object is created
+		 * with closed stream. But you can still receive full filename
+		 */
+		virtual PTemporaryFile createTempFile(ConstStrW prefix, bool rndfile = true) = 0;
+
+		using IFileIOHandler::openSeqFile;
+		using IFileIOHandler::openRndFile;
+
+        ///Opens file using raw handle received from 3rd part library or operation system
+        /**
+         * @param handle pointer to handle. Depends on curren platform
+         * @param handleSize size of handle. It used to check, whether handle has expected size
+         * @param mode how to open handle.
+         * @return in success, returns pointer to the stream.
+         *
+         * @note Destructor closes the handle
+         *
+         * @note Under linux, file descriptor (int) is expected. Under Windows,
+         * HANDLE is expected
+         */
+        //@{
+        virtual PInOutStream openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode) = 0;
+
+        virtual PRndFileHandle openRndFile(const void *handle, size_t handleSize, FileOpenMode mode) = 0;
+        //@}
+
+        virtual ~IFileIOServices() {}
+
+
+        ///Retrieves reference to the object implementing this interface
+        /** Implementation is different in each platform. Implementation
+         * can be also changed in runtime by calling setIOServices()
+         *
+         * @return reference to the service object
+         */
+        static IFileIOServices &getIOServices();
+
+        ///Changes implementation of FileIOServices
+        /**
+         * @param newServices pointer to object, that implementing the
+         * FileIOServices. If you specify NULL, original object will
+         * be returned.
+         */
+        static void setIOServices(IFileIOServices *newServices);
+
+
         ///Searches file in list of paths
         /**
          * @param filename name or relative path to search
@@ -710,6 +716,26 @@ namespace LightSpeed {
          */
         virtual String findExec(ConstStrW execName) = 0;
 
+
+        ///Sets IO handler for given prefix
+        /**
+         * @param prefix path prefix. You can register for example "http://" to handle http requests
+         * @param handler pointer to handler which will handle specified prefix. You can specify NULL to unregister prefix.
+         *        Handler's object must not be destroyed while it is registered. Object doesn't maintain ownership.
+         * @return Pointer to previously defined handler
+         */
+        virtual IFileIOHandler *setHandler(ConstStrW prefix, IFileIOHandler *handler) = 0;
+
+
+        ///Searches for handler of given path
+        /**
+         * Function returns pointer to handler that server specified path
+         *
+         * @param path path to explore
+         * @return pointer to handler. If NULL is returned, then default handler is used which is not accessible directly through IFileIOHandler.
+         */
+        virtual IFileIOHandler *findHandler(ConstStrW path) const = 0;
+
 	};
 
 	class SysTime;
@@ -719,7 +745,7 @@ namespace LightSpeed {
      *
      *
      */
-    class IDirectoryIterator: public RefCntObj {
+    class IFolderIterator: public RefCntObj {
     public:
 
     	enum DirEntryType {
@@ -727,6 +753,7 @@ namespace LightSpeed {
     		file,
     		///entry is directory, it can be opened as directory
     		directory,
+			folder = directory,
     		///entry is file allows sequential access only. It can be pipe or socket
     		seqfile,
     		///entry has special meaning, such a block or character device and other
@@ -795,7 +822,7 @@ namespace LightSpeed {
     	 * Current field must be directory, otherwise, function throws exception
     	 * @return
     	 */
-    	virtual PDirectoryIterator openDirectory() const = 0;
+    	virtual PFolderIterator openFolder() const = 0;
 
 		///Retrieves full path of current file
     	virtual String getFullPath() const = 0;
@@ -806,7 +833,7 @@ namespace LightSpeed {
 		 * @param mode open mode
 		 * @param flags open flags
 		 */
-		virtual PSeqFileHandle openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags) = 0;
+		virtual PInOutStream openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags) = 0;
                 
 		///Opens current file as random access
 		/**
@@ -834,7 +861,7 @@ namespace LightSpeed {
 		virtual void move(ConstStrW to, bool overwrite) = 0;
 
 
-    	virtual ~IDirectoryIterator() {}
+    	virtual ~IFolderIterator() {}
 
 		bool isDirectory() const { return type == directory; }
 		bool isDot() const { return type == dots; }

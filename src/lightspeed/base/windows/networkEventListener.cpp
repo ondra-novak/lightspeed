@@ -13,6 +13,7 @@
 #include "..\exceptions\netExceptions.h"
 #include "..\memory\staticAlloc.h"
 #include "../containers/autoArray.tcc"
+#include "winsocket.tcc"
 static const int tmEvent = 95;
 
 
@@ -340,7 +341,7 @@ void WindowsNetworkEventListener::updateEvents( SOCKET s, const EventInfo *hndl)
 
 void WindowsNetworkEventListener::callEvent(SOCKET s, EventInfo * evInfo, int id, int waitEvent )
 {
-	WindowsSocketResource rsrc(s,0,true);
+	WindowsSocketResource<INetworkResource> rsrc(s,0,true);
 	if (rsrc.wait(waitEvent,0)) {
 		ISleepingObject *o = evInfo->waitEvents[id].listener;
 		if (o == 0) return;

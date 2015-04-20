@@ -310,7 +310,7 @@ WindowsPipe::WindowsPipe( String pipeName, HANDLE hPipe, bool output )
 	}
 */}
 
-void WindowsPipe::createPipeOtherSide( PSeqFileHandle & otherEnd)
+void WindowsPipe::createPipeOtherSide( PInOutStream & otherEnd)
 {
 	OVERLAPPED ovr;
 	HANDLE hEvent = CreateEvent(0,TRUE,0,0);
@@ -361,7 +361,7 @@ void WindowsPipe::closeOutput()
 	}
 }
 
-PSeqFileHandle WindowsFileService::openStdFile( StdFile stdfile )
+PInOutStream WindowsFileService::openStdFile( StdFile stdfile )
 {
 	int id;
 	FileOpenMode mode;
@@ -377,7 +377,7 @@ PSeqFileHandle WindowsFileService::openStdFile( StdFile stdfile )
 	return new WindowsStdConsole(name,id);
 }
 
-void WindowsFileService::createPipe( PSeqFileHandle &readEnd, PSeqFileHandle &writeEnd )
+void WindowsFileService::createPipe( PInputStream &readEnd, POutputStream &writeEnd )
 {
 	static LONG pipeIdCounter=0;
 	TextFormatBuff<wchar_t, StaticAlloc<256> >fnt;
@@ -395,11 +395,13 @@ void WindowsFileService::createPipe( PSeqFileHandle &readEnd, PSeqFileHandle &wr
 		throw FileOpenError(THISLOCATION,GetLastError(),name);
 	WindowsPipe *wrpipe = new WindowsPipe(name,p1,true);
 	writeEnd = wrpipe;
+	PInOutStream rd;
 
-	wrpipe->createPipeOtherSide(readEnd);
+	wrpipe->createPipeOtherSide(rd);
+	readEnd = rd.get();
 }
 
-LightSpeed::PSeqFileHandle WindowsFileService::openSeqFile( const void *handle, size_t handleSize, FileOpenMode mode )
+LightSpeed::PInOutStream WindowsFileService::openSeqFile( const void *handle, size_t handleSize, FileOpenMode mode )
 {
 	if (handleSize != sizeof(HANDLE)) throw InvalidParamException(THISLOCATION,2,"Unknown handle type");
 	if (handle == 0) throw InvalidParamException(THISLOCATION,1,"Invalid handle address");
@@ -417,7 +419,7 @@ class WindowsFileCommitOnClose: public IFileExtractHandle
 	,public ISeqFileHandle,
 				public IRndFileHandle {
 public:	
-	WindowsFileCommitOnClose(PSeqFileHandle hndl, String name)
+	WindowsFileCommitOnClose(PInOutStream hndl, String name)
 		:hndl(&hndl->getIfc<WindowsFile>()),name(name),opened(true) {}
 	~WindowsFileCommitOnClose() {
 		if (!std::uncaught_exception()) {
@@ -478,7 +480,7 @@ protected:
 	bool opened;
 
 };
-PSeqFileHandle WindowsFileService::openSeqFile( ConstStrW fname, FileOpenMode mode, OpenFlags::Type flags )
+PInOutStream WindowsFileService::openSeqFile( ConstStrW fname, FileOpenMode mode, OpenFlags::Type flags )
 {	
 	if (fname.head(7) == ConstStrW(L"http://")) {
 		return new WinHttpStream(fname,httpSettings);
@@ -492,7 +494,7 @@ PSeqFileHandle WindowsFileService::openSeqFile( ConstStrW fname, FileOpenMode mo
 				&& mode == fileOpenWrite) {
 
 		String tmpName = fname + ConstStrW(L".$$$");
-		PSeqFileHandle hndl = openSeqFile(tmpName,mode,flags & ~OpenFlags::commitOnClose);
+		PInOutStream hndl = openSeqFile(tmpName,mode,flags & ~OpenFlags::commitOnClose);
 		return new WindowsFileCommitOnClose(hndl,fname);
 	}
 
@@ -565,7 +567,7 @@ PSeqFileHandle WindowsFileService::openSeqFile( ConstStrW fname, FileOpenMode mo
 
 LightSpeed::PRndFileHandle WindowsFileService::openRndFile( const void *handle, size_t handleSize, FileOpenMode mode )
 {
-	PSeqFileHandle sh = openSeqFile(handle,handleSize,mode)	;
+	PInOutStream sh = openSeqFile(handle,handleSize,mode)	;
 	IRndFileHandle *rf = sh->getIfcPtr<IRndFileHandle>();
 	if (rf == 0)
 		throw InvalidParamException(THISLOCATION,1,"Cannot open such a handle as random access file");
@@ -574,14 +576,14 @@ LightSpeed::PRndFileHandle WindowsFileService::openRndFile( const void *handle, 
 
 LightSpeed::PRndFileHandle WindowsFileService::openRndFile( ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags )
 {
-	PSeqFileHandle sh = openSeqFile(ofn,mode,flags);
+	PInOutStream sh = openSeqFile(ofn,mode,flags);
 	IRndFileHandle *rf = sh->getIfcPtr<IRndFileHandle>();
 	if (rf == 0)
 		throw InvalidParamException(THISLOCATION,1,"File cannot be opened in random access");
 	return rf;
 }
 
-LightSpeed::PSeqFileHandle WindowsFileService::openSeqFileByHandle( HANDLE h, FileOpenMode mode, String name )
+LightSpeed::PInOutStream WindowsFileService::openSeqFileByHandle( HANDLE h, FileOpenMode mode, String name )
 {
 	DWORD type = GetFileType(h);
 
@@ -640,7 +642,7 @@ bool WindowsFileService::canOpenFile( ConstStrW name, FileOpenMode mode ) const
 	return err == 0;
 }
 
-LightSpeed::PDirectoryIterator WindowsFileService::openDirectory( ConstStrW pathname ) 
+LightSpeed::PFolderIterator WindowsFileService::openFolder( ConstStrW pathname ) 
 {
 	return new WindowsDirectoryIterator(pathname,*this,false);
 }
@@ -721,14 +723,14 @@ void WindowsFileService::removeFolder( ConstStrW folderName, bool recursive )
 void WindowsFileService::copyDirectories( ConstStrW from, ConstStrW to ) 
 {
 	try {
-		PDirectoryIterator iter = openDirectory(from);
+		PFolderIterator iter = openFolder(from);
 		if (!canOpenFile(to,fileAccessible)) createFolder(to,true);
 		while (iter->getNext()) {
 			String target = to + ConstStrW('\\') + iter->entryName;
 			String source = iter->getFullPath();
-			if (iter->type == IDirectoryIterator::directory) {
+			if (iter->type == IFolderIterator::directory) {
 				copyDirectories(source,target);
-			} else if (iter->type == IDirectoryIterator::file) {
+			} else if (iter->type == IFolderIterator::file) {
 				copy(source,target,true);
 			}
 		}
@@ -764,8 +766,15 @@ void WindowsFileService::move( ConstStrW from, ConstStrW to, bool overwrite )
 	if (!checkZeroAtString(from)) return move(String(from),to,overwrite);
 	if (!checkZeroAtString(to)) return move(from,String(to),overwrite);
 	BOOL res = MoveFileExW(from.data(),to.data(),overwrite?MOVEFILE_REPLACE_EXISTING:0);
-	if (res == FALSE)
-		throw FileIOError(THISLOCATION,GetLastError(),to);
+	if (res == FALSE) {
+		DWORD err = GetLastError();
+		if (err == ERROR_NOT_SAME_DEVICE) {
+			copy(from,to,overwrite);
+			remove(from);
+		} else {
+			throw FileIOError(THISLOCATION,GetLastError(),to);
+		}
+	}
 
 }
 
@@ -812,7 +821,7 @@ LightSpeed::PTemporaryFile WindowsFileService::createTempFile(ConstStrW prefix, 
 	if (rndfile) {
 		GetTempFileNameW(tempPath,prefix.data(),0,tempFile);
 		String filename(tempFile);
-		PSeqFileHandle hnd = openSeqFile(filename,fileOpenWrite,
+		PInOutStream hnd = openSeqFile(filename,fileOpenWrite,
 			OpenFlags::truncate|OpenFlags::temporary|OpenFlags::shareRead|OpenFlags::shareWrite|OpenFlags::shareDelete);
 		return new TemporaryFile(*this,hnd,filename);
 	} else {
@@ -820,7 +829,7 @@ LightSpeed::PTemporaryFile WindowsFileService::createTempFile(ConstStrW prefix, 
 		fmt("%1\\%2") << tempPath << prefix;
 		String filename(fmt.write());
 		try {
-			PSeqFileHandle hnd = openSeqFile(filename,fileOpenWrite,
+			PInOutStream hnd = openSeqFile(filename,fileOpenWrite,
 				OpenFlags::create|OpenFlags::temporary|OpenFlags::shareRead|OpenFlags::shareWrite);
 			return new TemporaryFile(*this,hnd,filename);
 		} catch (FileOpenError &e) {
@@ -832,9 +841,9 @@ LightSpeed::PTemporaryFile WindowsFileService::createTempFile(ConstStrW prefix, 
 	}
 }
 
-LightSpeed::PDirectoryIterator WindowsFileService::getFileInfo( ConstStrW pathname ) 
+LightSpeed::PFolderIterator WindowsFileService::getFileInfo( ConstStrW pathname ) 
 {
-	PDirectoryIterator iter = new WindowsDirectoryIterator(pathname,*this,true);
+	PFolderIterator iter = new WindowsDirectoryIterator(pathname,*this,true);
 	if (!iter->getNext())
 		throw FileOpenError(THISLOCATION,2,pathname);
 	return iter;
@@ -1016,7 +1025,7 @@ IFileIOServices::FileOpenMode WindowsDirectoryIterator::getAllowedOpenMode() con
 	return IFileIOServices::fileAccessible;
 }
 
-LightSpeed::PDirectoryIterator WindowsDirectoryIterator::openDirectory() const
+LightSpeed::PFolderIterator WindowsDirectoryIterator::openFolder() const
 {
 	return new WindowsDirectoryIterator(String(getFullPath()),svc,false);
 
@@ -1033,7 +1042,7 @@ void WindowsDirectoryIterator::rewind()
 	hFind = 0;
 }
 
-LightSpeed::PSeqFileHandle WindowsDirectoryIterator::openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags)
+LightSpeed::PInOutStream WindowsDirectoryIterator::openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags)
 {
 	return svc.openSeqFile(getFullPath(),mode,flags);
 }

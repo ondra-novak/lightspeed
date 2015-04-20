@@ -10,6 +10,7 @@ CPP_SRCS += \
 ../src/lightspeed/mt/notifier.cpp \
 ../src/lightspeed/mt/shareExclusiveLock.cpp \
 ../src/lightspeed/mt/syncPt.cpp \
+../src/lightspeed/mt/threadHook.cpp \
 ../src/lightspeed/mt/threadMinimal.cpp 
 
 OBJS += \
@@ -19,6 +20,7 @@ OBJS += \
 ./src/lightspeed/mt/notifier.o \
 ./src/lightspeed/mt/shareExclusiveLock.o \
 ./src/lightspeed/mt/syncPt.o \
+./src/lightspeed/mt/threadHook.o \
 ./src/lightspeed/mt/threadMinimal.o 
 
 CPP_DEPS += \
@@ -28,6 +30,7 @@ CPP_DEPS += \
 ./src/lightspeed/mt/notifier.d \
 ./src/lightspeed/mt/shareExclusiveLock.d \
 ./src/lightspeed/mt/syncPt.d \
+./src/lightspeed/mt/threadHook.d \
 ./src/lightspeed/mt/threadMinimal.d 
 
 

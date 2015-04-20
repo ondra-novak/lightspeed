@@ -149,7 +149,7 @@ namespace LightSpeed {
 		 */
 		Iterator insertAfter(const Iterator &iter, const T &val) {
 			if (!iter.hasItems()) throwIteratorNoMoreItems(THISLOCATION,typeid(T));
-			ListItem *x = fact.createInstance(val);
+			ListItem *x = fact->createInstanceUsing<ListItem,T>(val);
 			return insertAfter(iter,x);
 		}
 		///Inserts item before item pointed by the iterator
@@ -160,7 +160,7 @@ namespace LightSpeed {
 		 */
 		Iterator insertBefore(const Iterator &iter, const T &val) {
 			if (!iter.hasItems()) throwIteratorNoMoreItems(THISLOCATION,typeid(T));
-			ListItem *x = fact.createInstance(val);
+			ListItem *x = fact->createInstanceUsing<ListItem,T>(val);
 			return insertBefore(iter,x);
 		}
 
@@ -196,7 +196,7 @@ namespace LightSpeed {
 		Iterator insertAfter(const Iterator &iter, ListItem *item) {
 			if (!iter.hasItems()) throwIteratorNoMoreItems(THISLOCATION,typeid(T));
 			item->next = const_cast<ListItem *>(iter.cur->next);
-			const_cast<ListItem *>(iter.cur->next) = item;
+			const_cast<ListItem *>(iter.cur)->next = item;
 			if (iter.cur == last) last = item;
 			return Iterator(item);
 		}
@@ -209,10 +209,10 @@ namespace LightSpeed {
 		 */
 		Iterator insertBefore(const Iterator &iter, ListItem *item) {
 			if (!iter.hasItems()) throwIteratorNoMoreItems(THISLOCATION,typeid(T));
-			if (iter.prev == 0) return insert(item);
+			if (iter.prev == 0) return insertFirst(item);
 
 			item->next = const_cast<ListItem *>(iter.cur);
-			const_cast<ListItem *>(iter.prev->next) = item;
+			const_cast<ListItem *>(iter.prev)->next = item;
 			const_cast<Iterator &>(iter).prev = item;
 			return Iterator(item);
 		}

@@ -86,7 +86,7 @@ public:
 	SeqFileInput(IInputStream *fhnd):fhnd(fhnd) {}
 	SeqFileInput(PInputStream fhnd):fhnd(fhnd) {}
 	SeqFileInput(NullType) {}
-	SeqFileInput(PRndFileHandle fhnd, natural offset):fhnd(new RndFileReader(fhnd,offset)) {}
+	SeqFileInput(PRndFileHandle fhnd, IRndFileHandle::FileOffset offset):fhnd(new RndFileReader(fhnd,offset)) {}
 	SeqFileInput(ConstStrW ofn, OpenFlags::Type flags = 0)
 		:fhnd(IFileIOServices::getIOServices().openSeqFile(ofn,
 				IFileIOServices::fileOpenRead,flags)) {}
@@ -149,7 +149,7 @@ public:
 	SeqFileOutput(POutputStream fhnd):fhnd(fhnd) {}
 	SeqFileOutput(IOutputStream *fhnd):fhnd(fhnd) {}
 	SeqFileOutput(NullType) {}
-	SeqFileOutput(PRndFileHandle fhnd, natural offset):fhnd(new RndFileWriter(fhnd,offset)) {}
+	SeqFileOutput(PRndFileHandle fhnd, IRndFileHandle::FileOffset offset):fhnd(new RndFileWriter(fhnd,offset)) {}
 	SeqFileOutput(ConstStrW ofn, OpenFlags::Type flags = OpenFlags::create|OpenFlags::truncate)
 		:fhnd(IFileIOServices::getIOServices().openSeqFile(ofn,
 				IFileIOServices::fileOpenWrite,flags)) {}
@@ -292,7 +292,8 @@ public:
 	 */
 	void detach() {pread = nil; pwrite = nil;}
 protected:
-	PSeqFileHandle pread,pwrite;
+	PInputStream pread;
+	POutputStream pwrite;
 };
 
 }

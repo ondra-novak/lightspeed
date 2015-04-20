@@ -1,4 +1,4 @@
-/* src/lightspeed/platform.in.  Generated from configure.in by autoheader.  */
+/* src/lightspeed/platform.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to 1 if you have the declaration of `__atomic_compare_exchange', and
    to 0 if you don't. */

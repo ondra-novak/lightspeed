@@ -89,6 +89,13 @@ template<typename T> bool GeneratorIterator<T>::prepareNext()  {
 	return curStream != 0;
 }
 
+template<typename T> bool GeneratorIterator<T>::prepareNext() const {
+	if (!this->checkState()) return false;
+	curStream = 0;
+	const_cast<GeneratorIterator<T> *>(this)->wakeUp();
+	return curStream != 0;
+}
+
 template<typename T> GeneratorWriter<T>::GeneratorWriter():otherSide(findOtherSide()) {
 
 }

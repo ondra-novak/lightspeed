@@ -69,11 +69,6 @@ public:
 	 */
 	TCPServer(ITCPServerConnHandler &handler, TCPSharedThreadPool *connExecutor);
 
-	///Constructs the server (old handler)
-	TCPServer(ITCPServerConnection &handler, natural maxThreads = 32);
-	///Constructs the server sharing thread pool with another server (old handler)
-	TCPServer(ITCPServerConnection &handler, TCPSharedThreadPool *connExecutor);
-
 	virtual ~TCPServer();
 
 	///starts service on given port
@@ -138,7 +133,10 @@ protected:
 			:owner(*owner),stream(stream),ctx(ctx),
 			 dataReadyTimeout(naturalNull),
 			 writeReadyTimeout(naturalNull),
-			sourceId(sourceId) {}
+			sourceId(sourceId),
+			userWakeupState(0),
+			complWakeUp(*this) {
+		}
 
 		///wake up when data
 		void wakeUp(natural reason) throw();
@@ -156,16 +154,38 @@ protected:
 		virtual natural getWriteReadyTimeout() const {return writeReadyTimeout;}
 		virtual natural getSourceId() const {return sourceId;}
 		IExecutor *getServerExecutor() const {return owner.getExecutor();}
-
+		ISleepingObject *getUserSleeper() throw() {return &complWakeUp;}
 
 
 	protected:
+		friend class TCPServer;
+
 		TCPServer &owner;
 		PNetworkStream stream;
 		AllocPointer<ITCPServerContext> ctx;
 		natural dataReadyTimeout;
 		natural writeReadyTimeout;
 		natural sourceId;
+		atomic userWakeupState;
+
+		static const atomicValue userWakeupEnabled = 1;
+		static const atomicValue userWakeupEvent = 2;
+		static const atomicValue userWakeupEnabledEvent = userWakeupEnabled | userWakeupEvent;
+
+
+		class CompletionWakeUp: public ISleepingObject {
+		public:
+			Connection &owner;
+			CompletionWakeUp(Connection &owner):owner(owner) {}
+
+			virtual void wakeUp( natural reason = 0 ) throw();
+
+		};
+
+		CompletionWakeUp complWakeUp;
+		void userWakeup(natural reason);
+		atomicValue setUserWakeupState(atomicValue flag);
+
 
 	};
 
@@ -191,11 +211,11 @@ protected:
 	AutoArray<SharedPtr<OtherPortAccept> > otherPorts;
 	ConnectionList connList;
 	Mutex lock;
-	ITCPServerConnection *handler;
 	ITCPServerConnHandler *handler2;
 	atomic shutdown;
 
 	natural readTimeout, writeTimeout;
+
 
 
 	virtual void wakeUp(natural reason = 0) throw();
@@ -203,13 +223,14 @@ protected:
 	void worker(Connection *owner);
 	void workerEx(Connection *owner, natural eventId);
 	void workerDisconnect(Connection *owner);
+	void checkUserWakeup(Connection *k);
 	void close(Connection *k);
 	void reuse(Connection *k);
 	void reuse(Connection *k, ITCPServerConnHandler::Command command);
 	bool running;
 
-	class RunWorker;
 	class RunWorkerEx;
+	class RunWorkerCompletion;
 	class RunDisconnect;
 };
 

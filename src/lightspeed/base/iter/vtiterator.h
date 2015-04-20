@@ -1,6 +1,7 @@
 #ifndef LIGHTSPEED_VTITERATOR_H_
 #define LIGHTSPEED_VTITERATOR_H_
 
+#include "../containers/arrayref.h"
 #include "iterator.h"
 
 namespace LightSpeed {

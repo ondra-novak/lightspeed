@@ -37,11 +37,11 @@ namespace LightSpeed {
 	 * supply an object as target and member fuction is called with that object. If message
 	 * doesn't carry member function, target is supplied as first argument of the function
 	 *
-	 * @tparam SourceT specifies type or class of source. Again like TargetT, this is primaarily
+	 * @tparam SourceT specifies type or class of source. Again like TargetT, this is primarily
 	 * useful for messages containing reference to member function. It should
 	 * contain information about source and it is passed as argument of that function. In case
-	 * thah message doesn't carry member function, source is passed as second argument. In case
-	 * thah TargetT is 'void', SourceT is always passed as first argument of the function. That
+	 * that message doesn't carry member function, source is passed as second argument. In case
+	 * that TargetT is 'void', SourceT is always passed as first argument of the function. That
 	 * message can't carry member function.
 	 *
 	 *
@@ -153,6 +153,13 @@ namespace LightSpeed {
 	template<typename Obj, typename Fn, typename Args, typename RetT, typename TargetT, typename SourceT>
 	class MessageImpl3;
 
+	template <typename Fn, typename RetT, typename TargetT, typename SourceT>
+	class MessageThen;
+	template <typename Fn, typename RetT, typename TargetT, typename SourceT>
+	class MessageExcept;
+
+
+
 	template<> struct Argument<void> {typedef bool T;};
 
 
@@ -176,7 +183,7 @@ namespace LightSpeed {
 		/** Don't use this unless you plan to supply message later.
 		 *
 		 */
-		MessageBase();
+		MessageBase() {}
 
 		MessageBase(const Ifc &a):msg(a.clone()) {msg = msg.getMT();}
 
@@ -271,6 +278,9 @@ namespace LightSpeed {
 		operator Ifc &() {return *msg;}
 		operator const Ifc &() const {return *msg;}
 
+		bool operator==(NullType) const {return msg == null;}
+		bool operator!=(NullType) const {return msg != null;}
+
 	protected:
 
 		PMessage msg;
@@ -301,8 +311,9 @@ namespace LightSpeed {
 		typedef typename Super::Ifc Ifc;
 		typedef typename Super::Ref Ref;
 		typedef typename Super::PMessage PMessage;
+		typedef Message<RetT, TargetT, SourceT> CloneTarget;
 
-		Message();
+		Message() {}
 		template<typename Fn>
 		Message(const Fn &fn):Super(fn) {}
 		template<typename A, typename B>
@@ -328,8 +339,10 @@ namespace LightSpeed {
 		typedef typename Super::Ifc Ifc;
 		typedef typename Super::Ref Ref;
 		typedef typename Super::PMessage PMessage;
+		typedef Message<RetT, TargetT, void> CloneTarget;
 
-		Message();
+
+		Message() {}
 		template<typename Fn>
 		Message(const Fn &fn):Super(fn) {}
 		template<typename A, typename B>
@@ -350,7 +363,9 @@ namespace LightSpeed {
 		typedef typename Super::Ifc Ifc;
 		typedef typename Super::Ref Ref;
 		typedef typename Super::PMessage PMessage;
+		typedef Message<RetT, void, SourceT> CloneTarget;
 
+		Message() {}
 		template<typename Fn>
 		Message(const Fn &fn):Super(fn) {}
 		template<typename A, typename B>
@@ -370,8 +385,10 @@ namespace LightSpeed {
 		typedef typename Super::Ifc Ifc;
 		typedef typename Super::Ref Ref;
 		typedef typename Super::PMessage PMessage;
+		typedef Message<RetT, void, void> CloneTarget;
 
-		Message();
+
+		Message() {}
 		template<typename Fn>
 		explicit Message(const Fn &fn):Super(fn) {}
 		template<typename A, typename B>
@@ -390,20 +407,39 @@ namespace LightSpeed {
 	typedef Message<void>::Ifc IAction;
 
 
+	template<typename RetT, typename TargetT, typename SourceT>
+	class IMessageDecl: public ICloneable, public RefCntObj, public DynObject {
+	public:
+		typedef typename Argument<TargetT>::T Arg1;
+		typedef typename Argument<SourceT>::T Arg2;
+		typedef Message<RetT, TargetT, SourceT> CloneTarget;
+		typedef RetT _RetT;
+		typedef TargetT _TargetT;
+		typedef SourceT _SourceT;
+
+		template<typename Fn>
+		MessageThen<Fn,RetT,TargetT, SourceT> then(const Fn &fn) const {
+			return MessageThen<Fn,RetT,TargetT, SourceT>(
+					static_cast<const IMessage<RetT, TargetT, SourceT> &>(*this), fn);
+		}
+
+		template<typename Fn>
+		MessageExcept<Fn, RetT, TargetT, SourceT > except(const Fn &fn)  {
+			return MessageExcept<Fn,RetT,TargetT, SourceT>(
+					static_cast<const IMessage<RetT, TargetT, SourceT> &>(*this), fn);
+		}
+
+	};
 
 	///interface of the message supports target and source
 	/** @see Message */
 	template<typename RetT, typename TargetT, typename SourceT>
-	class IMessage: public ICloneable, public RefCntObj, public DynObject {
+	class IMessage: public IMessageDecl<RetT, TargetT, SourceT> {
 	public:
-		typedef typename Argument<TargetT>::T Arg1;
-		typedef typename Argument<SourceT>::T Arg2;
+		typedef IMessageDecl<RetT, TargetT, SourceT> Super;
 
+		virtual RetT operator()(typename Super::Arg1 ctx, typename Super::Arg1 invoker) const = 0;
 
-		virtual RetT operator()(Arg1 ctx, Arg2 invoker) const = 0;
-
-		template<typename Fn>
-		static MessageImpl<Fn,RetT,TargetT,SourceT> create(const Fn &fn);
 
 
 		LIGHTSPEED_CLONEABLEDECL(IMessage)
@@ -415,16 +451,11 @@ namespace LightSpeed {
 	///interface of the message supports target
 	/** @see Message */
 	template<typename RetT, typename TargetT>
-	class IMessage<RetT, TargetT,void>: public ICloneable, public RefCntObj, public DynObject {
+	class IMessage<RetT, TargetT,void>: public IMessageDecl<RetT, TargetT, void>  {
 	public:
+		typedef IMessageDecl<RetT, TargetT, void> Super;
 
-		typedef typename Argument<TargetT>::T Arg1;
-		typedef typename Argument<void>::T Arg2;
-
-		virtual RetT operator()(Arg1 ctx) const = 0;
-
-		template<typename Fn>
-		static MessageImpl<Fn,RetT,TargetT,void> create(const Fn &fn);
+		virtual RetT operator()(typename Super::Arg1 ctx) const = 0;
 
 		LIGHTSPEED_CLONEABLEDECL(IMessage)
 
@@ -435,16 +466,13 @@ namespace LightSpeed {
 	///interface of the message supports target
 	/** @see Message */
 	template<typename RetT, typename SourceT>
-	class IMessage<RetT, void, SourceT>: public ICloneable, public RefCntObj, public DynObject {
+	class IMessage<RetT, void, SourceT>: public IMessageDecl<RetT, void, SourceT> {
 	public:
+		typedef IMessageDecl<RetT, void, SourceT> Super;
 
-		typedef typename Argument<SourceT>::T Arg1;
-		typedef typename Argument<void>::T Arg2;
+		virtual RetT operator()(typename Super::Arg2 ctx) const = 0;
 
-		virtual RetT operator()(Arg1 ctx) const = 0;
 
-		template<typename Fn>
-		static MessageImpl<Fn,RetT,void, SourceT> create(const Fn &fn);
 
 		LIGHTSPEED_CLONEABLEDECL(IMessage)
 
@@ -453,15 +481,12 @@ namespace LightSpeed {
 	};
 
 	template<typename RetT>
-	class IMessage<RetT,void,void>: public ICloneable, public RefCntObj, public DynObject {
+	class IMessage<RetT,void,void>: public IMessageDecl<RetT, void, void> {
 	public:
-		typedef typename Argument<void>::T Arg1;
-		typedef typename Argument<void>::T Arg2;
+		typedef IMessageDecl<RetT, void, void> Super;
 
 		virtual RetT operator()() const = 0;
 
-		template<typename Fn>
-		static MessageImpl<Fn,RetT,void,void> create(const Fn &fn);
 
 		LIGHTSPEED_CLONEABLEDECL(IMessage)
 
@@ -551,48 +576,23 @@ namespace LightSpeed {
 		Fn fn;
 	};
 
-	template<typename RetT, typename Fn, typename Args>
-	class FuncWithArgs {
+
+	template<typename Fn, typename ExceptFn, typename RetT>
+	class FunctionCallHandleException {
 	public:
 
-		FuncWithArgs(Fn fn, typename Argument<Args>::T args)
-			:fn(fn),args(args) {}
+		FunctionCallHandleException(Fn fn, ExceptFn exceptFn)
+			:fn(fn),exceptFn(exceptFn) {}
 
-		RetT operator()() const {return (RetT)fn(args);}
+		RetT operator()() const {try {return (RetT)fn();} catch (...) {exceptFn();throw;}}
 		template<typename A>
-		RetT operator()(const A &a) const {return (RetT)fn(a, args);}
+		RetT operator()(const A &a) const {try {return (RetT)fn(a);} catch (...) {exceptFn();throw;}}
 		template<typename A, typename B>
-		RetT operator()(const A &a, const B &b) const {return (RetT)fn(a,b, args);}
-
-
+		RetT operator()(const A &a, const B &b) const {try {return (RetT)fn(a,b);} catch (...) {exceptFn();throw;}}
 	protected:
+
 		Fn fn;
-		Args args;
-	};
-
-	template<typename A, typename B>
-	struct FuncTwoArgs {
-		A arg1;
-		B arg2;
-	};
-
-	template<typename RetT, typename Fn, typename AA, typename AB>
-	class FuncWithArgs<RetT,Fn,FuncTwoArgs<AA, AB> > {
-	public:
-
-		FuncWithArgs(Fn fn, const FuncTwoArgs<AA, AB> &args)
-			:fn(fn),args(args) {}
-
-		RetT operator()() const {return (RetT)fn(args);}
-		template<typename A>
-		RetT operator()(const A &a) const {return (RetT)fn(a, args);}
-		template<typename A, typename B>
-		RetT operator()(const A &a, const B &b) const {return (RetT)fn(a,b, args);}
-
-
-	protected:
-		Fn fn;
-		FuncTwoArgs<AA,AB> args;
+		ExceptFn exceptFn;
 	};
 
 	template<typename Fn, typename RetT, typename TargetT, typename SourceT>
@@ -650,8 +650,74 @@ namespace LightSpeed {
 		MessageImpl3(const Obj &obj, Fn fn, typename Argument<Args>::T args)
 			:Super(FnArgs(MbrFn(obj,fn),args)) {}
 	};
-}
 
+	template<typename Fn, typename RetT, typename TargetT, typename SourceT>
+	class MessageThen: public IMessage<RetT, TargetT, SourceT> {
+	public:
+		typedef IMessage<RetT, TargetT, SourceT> Super;
+		typedef Message<RetT, TargetT, SourceT> ThisMsg;
+
+		MessageThen(const IMessage<RetT, TargetT, SourceT> &next, const Fn &fn)
+			:nextref(next),fn(fn) {}
+		MessageThen(const MessageThen &other)
+					:next(other.next == nil?ThisMsg(other.nextref):ThisMsg(other.next))
+					,nextref(this->next),fn(other.fn) {}
+
+		RetT operator()() const {return (RetT)fn((RetT)nextref());}
+		RetT operator()(typename Super::Arg1 a) const {return (RetT)fn((RetT)nextref(a));}
+		RetT operator()(typename Super::Arg1 a, typename Super::Arg2 b) const {return (RetT)fn((RetT)nextref(a,b));}
+
+		typedef MessageThen ICloneableBase;
+		LIGHTSPEED_CLONEABLECLASS;
+
+	protected:
+		ThisMsg next;
+		const IMessage<RetT, TargetT, SourceT> &nextref;
+		Fn fn;
+	};
+
+	template<typename Fn, typename TargetT, typename SourceT>
+	class MessageThen<Fn,void,TargetT,SourceT>: public IMessage<void, TargetT, SourceT> {
+	public:
+		MessageThen(const IMessage<void, TargetT, SourceT> &next, const Fn &fn)
+			:next(next),fn(fn) {}
+
+		typedef IMessage<void, TargetT, SourceT> Super;
+
+		void operator()() const {next();fn();}
+		void operator()(typename Super::Arg1 a) const {return next(a);fn();}
+		void operator()(typename Super::Arg1 a, typename Super::Arg2 b) const {return next(a,b);fn();}
+
+		typedef MessageThen ICloneableBase;
+		LIGHTSPEED_CLONEABLECLASS;
+
+	protected:
+		Message<void, TargetT, SourceT> next;
+		Fn fn;
+	};
+
+	template<typename Fn, typename RetT, typename TargetT, typename SourceT>
+	class MessageExcept: public IMessage<RetT, TargetT, SourceT> {
+	public:
+		MessageExcept(const IMessage<RetT, TargetT, SourceT> &next, const Fn &fn)
+			:next(next),fn(fn) {}
+
+		typedef IMessage<void, TargetT, SourceT> Super;
+
+
+		RetT operator()() const {try {return (RetT)next();}catch (...) {fn();throw;}}
+		RetT operator()(typename Super::Arg1 a) const {try {return next(a);} catch (...)  {fn();throw;}}
+		RetT operator()(typename Super::Arg1 a, typename Super::Arg2 b) const {try {return next(a,b);} catch (...)  {fn();throw;}}
+
+		typedef MessageExcept ICloneableBase;
+		LIGHTSPEED_CLONEABLECLASS;
+
+	protected:
+		Message<RetT, TargetT, SourceT> next;
+		Fn fn;
+	};
+
+}
 namespace std {
 
 template<typename A, typename B, typename C>
@@ -659,5 +725,4 @@ void swap(LightSpeed::Message<A,B,C> &a,LightSpeed::Message<A,B,C> &b) {
 	a.swap(b);
 }
 }
-
 #endif /* LIGHTSPEED_MESSAGES_MESSAGE_H_ */

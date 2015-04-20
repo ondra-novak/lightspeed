@@ -132,6 +132,8 @@ namespace LightSpeed {
 			return result;
 		}
 	};
+
+
 }
 
 #endif /*RANDOM_H_*/

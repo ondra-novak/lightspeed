@@ -6,7 +6,6 @@
  */
 
 #include <time.h>
-#include "../sync/threadObject.h"
 #include "dbglog_internals.h"
 #include "../memory/singleton.h"
 #include "../interface.tcc"
@@ -18,7 +17,7 @@
 
 namespace LightSpeed {
 
-static ThreadObj<_intr::LogFormatter> globalFormatter;
+static ThreadVarInitDefault<_intr::LogFormatter> globalFormatter;
 static LogOutputSingleton defaultLogOutput = 0;
 
 
@@ -36,7 +35,7 @@ namespace _intr {
 
 LogFormatter & LogFormatter::getInstance()
 {
-	return *globalFormatter;
+	return globalFormatter[ITLSTable::getInstance()];
 }
 
 
@@ -61,7 +60,7 @@ LogFormatter::LogFormatter( const LogFormatter &other )
 {
 }
 
-void LogFormatter::buildThreadIdent() const
+void LogFormatter::buildThreadIdent()
 {
 	TextFormatBuff<char, StaticAlloc<256> > fmt;
 	if (!Thread::isThreaded() || Thread::current().getThreadId() == Thread::getMaster().getThreadId()) {
@@ -206,6 +205,24 @@ void DbgLog::setThreadName( ConstStrA ident, bool threadId  )
 	} else {
 		fmt.setThreadIdent(ident);
 	}
+}
+
+void DbgLog::setThreadName(const StringA &name, bool appendId) {
+	if (appendId) setThreadName(ConstStrA(name), true);
+	else {
+		_intr::LogFormatter &fmt = _intr::LogFormatter::getInstance();
+		fmt.setThreadIdent(name.getMT());
+	}
+}
+
+void DbgLog::setThreadName(const char *name, bool appendId) {
+	setThreadName(ConstStrA(name),appendId);
+}
+
+ConstStrA DbgLog::getThreadName(  )
+{
+	_intr::LogFormatter &fmt = _intr::LogFormatter::getInstance();
+	return fmt.getThreadIdent();
 }
 
 StdLogOutput* DbgLog::getStdLog() {

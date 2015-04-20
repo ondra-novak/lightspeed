@@ -27,7 +27,7 @@ namespace LightSpeed {
 	};
 
 
-	class NamedPipeServer: public INetworkStreamSource, public IWinWaitableObject {
+	class NamedPipeServer: public NetworkResourceCommon<INetworkStreamSource>, public IWinWaitableObject {
 	public:
 		virtual bool hasItems() const ;
 		virtual PNetworkStream getNext() ;
@@ -51,15 +51,12 @@ namespace LightSpeed {
 
 		virtual natural getDefaultWait() const;
 
-		virtual void setWaitHandler( IWaitHandler *handler );
-
 		virtual void setTimeout( natural time_in_ms );
 
 		virtual natural getTimeout() const;
 
-		virtual natural wait( natural waitFor, natural timeout ) const;
+		virtual HANDLE getWaitHandle(natural waitFor);
 
-		virtual HANDLE getWaitHandle( natural waitFor );
 
 		virtual bool onWaitSuccess( natural waitFor );
 
@@ -75,14 +72,16 @@ namespace LightSpeed {
 		HANDLE hPrepared;
 		HANDLE hEvent;
 		PException storedExcept;
-		Pointer<IWaitHandler> waitHandler;
+		Pointer<WaitHandler> waitHandler;
 		natural connectTimeout;
 		natural streamTimeout;
+
+		virtual natural doWait( natural waitFor, natural timeout ) const;
 
 	};	
 
 
-	class NamedPipe: public INetworkStream, public IWinWaitableObject {
+	class NamedPipe: public NetworkResourceCommon<INetworkStream>, public IWinWaitableObject {
 	public:
 
 		NamedPipe(String name, HANDLE hPipe, bool allowRead, bool allowWrite);
@@ -106,19 +105,11 @@ namespace LightSpeed {
 
 		virtual natural getDefaultWait() const;
 
-		virtual void setWaitHandler( IWaitHandler *handler );
-
-		virtual void setTimeout( natural time_in_ms );
-
-		virtual natural getTimeout() const;
-
-		virtual natural wait( natural waitFor, natural timeout ) const;
-
 		virtual HANDLE getWaitHandle(natural waitFor);
+
 		virtual bool onWaitSuccess(natural waitFor) ;
 
 	protected:
-		Pointer<IWaitHandler> whndl;
 		HANDLE hPipe;
 		HANDLE hReadWait;
 		HANDLE hWriteWait;
@@ -131,7 +122,6 @@ namespace LightSpeed {
 		mutable bool readCharged;
 		mutable bool writeCharged;
 		FastLock lk;
-		natural defaultTimeout;
 		String name;
 		bool eof;
 		bool allowWrite;		
@@ -142,10 +132,13 @@ namespace LightSpeed {
 
 		natural internalWait( natural waitFor, natural timeout );
 		bool finishWrite();
+
+		virtual natural doWait(natural waitFor, natural timeout) const;
+
 	};
 
 
-	class NamedPipeClient:public INetworkStreamSource, public IWinWaitableObject {
+	class NamedPipeClient:public NetworkResourceCommon<INetworkStreamSource>, public IWinWaitableObject {
 	public:
 		NamedPipeClient(String name, DWORD openMode, natural maxInstances, natural streamDefTimeout);
 		~NamedPipeClient();
@@ -162,14 +155,6 @@ namespace LightSpeed {
 
 		virtual natural getDefaultWait() const;
 
-		virtual void setWaitHandler( IWaitHandler *handler );
-
-		virtual void setTimeout( natural time_in_ms );
-
-		virtual natural getTimeout() const;
-
-		virtual natural wait( natural waitFor, natural timeout ) const;
-
 		virtual HANDLE getWaitHandle( natural waitFor );
 
 		virtual bool onWaitSuccess( natural waitFor );
@@ -179,9 +164,9 @@ namespace LightSpeed {
 		DWORD openMode;
 		natural maxInstances;
 		natural streamDefTimeout;
-		Pointer<IWaitHandler> waitHandler;
 		HANDLE hPrepared;
 		HANDLE fakeEvent;
+		virtual natural doWait(natural waitFor, natural timeout) const ;
 	};
 	
 }

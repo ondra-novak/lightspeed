@@ -19,6 +19,7 @@
 #include "../../mt/fastlock.h"
 #include "../../base/sync/synchronize.h"
 #include "../../base/text/textParser.tcc"
+#include "../../base/interface.tcc"
 
 namespace LightSpeed {
 namespace JSON {
@@ -536,6 +537,14 @@ void serializeInt(const INode *json, IWriteIterator<char, T> &witer) {
 }
 
 template<typename T>
+void serializeCustom(const INode *json, IWriteIterator<char, T> &witer,bool escapeUTF8) {
+	const ICustomNode &nd = json->getIfc<ICustomNode>();
+	VtWriteIterator<IWriteIterator<char, T> &> iter(witer);
+	nd.serialize(iter,escapeUTF8);
+}
+
+
+template<typename T>
 void serialize(const INode *json, IWriteIterator<char, T> &iter, bool escapeUTF8) {
 	if (json == 0) throwNullPointerException(THISLOCATION);
 	NodeType t = json->getType();
@@ -548,6 +557,7 @@ void serialize(const INode *json, IWriteIterator<char, T> &iter, bool escapeUTF8
 	case ndInt: serializeInt(json,iter);break;
 	case ndNull: serializeNull(json,iter);break;
 	case ndString: serializeString(json,iter,escapeUTF8);break;
+	default: serializeCustom(json,iter,escapeUTF8);break;
 	}
 }
 

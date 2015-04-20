@@ -373,7 +373,7 @@ inline ConstStrW FilePathT<config>::getDrive() const {
 template<const FilePathConfig* config>
 inline ConstStrW FilePathT<config>::getTitle() const {
 	ConstStrW fname = getFilename();
-	natural p = this->findLast(config->extensionSeparator);
+	natural p = fname.findLast(config->extensionSeparator);
 	if (p == naturalNull) return fname;
 	else return fname.head(p);
 }

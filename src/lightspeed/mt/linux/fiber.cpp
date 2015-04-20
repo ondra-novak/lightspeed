@@ -106,15 +106,13 @@ namespace LightSpeed {
 
 	}
 
-	class FiberCleanup: public IThreadVarDelete {
-	public:
-		void operator()(void *ptr) {
-			Fiber *f = reinterpret_cast<Fiber *>(ptr);
-			if (f->isMaster()) {
-				delete f;
-			}
+
+	static void fiberCleanup(void *ptr) {
+		Fiber *f = reinterpret_cast<Fiber *>(ptr);
+		if (f->isMaster()) {
+			delete f;
 		}
-	};
+	}
 
 
 	void Fiber::start(const IFiberFunction &fn, natural stackSize ) {
@@ -261,7 +259,6 @@ namespace LightSpeed {
 		return cur.ctx->wakeUpReason;
 	}
 
-	static FiberCleanup fiberCleanup;
 
 	Fiber &Fiber::createMasterFiber() {
 		ITLSTable &tbl = ITLSTable::getInstance();

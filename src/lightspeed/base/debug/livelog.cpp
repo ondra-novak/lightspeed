@@ -97,7 +97,6 @@ void LiveLog::logLine(ConstStrA line, ILogOutput::LogType curLogType ,natural cu
 					SyncReleased<FastLock> _(lock);
 					logLine(line.write(),logNote,1);
 				}
-				s->onUnregister();
 			} catch (...) {
 			}
 		}

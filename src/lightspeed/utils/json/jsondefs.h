@@ -50,6 +50,7 @@ public:
 	using INode::erase;
 	using INode::operator[];
     virtual natural getUInt() const {return (natural)getInt();}
+	virtual lnatural getLongUInt() const {return (lnatural)getLongInt();}
 
 	LightSpeed::ConstStrA getStringUtf8() const;
 	INode & operator[]( ConstStrA v ) const;
@@ -118,6 +119,10 @@ public:
 	virtual PNode newArray();
 	virtual PNode newValue(natural v);
 	virtual PNode newValue(integer v);
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+	virtual PNode newValue(lnatural v);
+	virtual PNode newValue(linteger v);
+#endif
 	virtual PNode newValue(float v);
 	virtual PNode newValue(double v);
 	virtual PNode newValue(bool v);
@@ -144,6 +149,7 @@ public:
 	virtual IRuntimeAlloc *getAllocator() const {return &StdAlloc::getInstance();}
 	virtual IFactory *clone() {return new Factory_t;}
 };
+
 
 class Iterator::IIntIter{
 public:

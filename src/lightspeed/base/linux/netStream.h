@@ -9,52 +9,18 @@
 #define LIGHTSPEED_BASE_LINUX_NETSTREAM_H_
 #include "../streams/netio_ifc.h"
 #include <sys/time.h>
-
+#include "linsocket.h"
 
 namespace LightSpeed {
 
 
-class LinuxSocketResource: public INetworkResource{
 
-public:
-	const int sock;
-
-
-	LinuxSocketResource(int socket, natural defWait, bool noclose = false)
-		: sock(socket),timeout(naturalNull),defWait(defWait),noclose(noclose) {}
-	virtual ~LinuxSocketResource();
-
-	using INetworkResource::wait;
-	virtual void setWaitHandler(IWaitHandler *handler);
-	virtual Pointer<IWaitHandler> getWaitHandler();
-	virtual void setTimeout(natural time_in_ms);
-	virtual natural getTimeout() const ;
-	virtual natural wait(natural waitFor, natural timeout) const ;
-	virtual natural getDefaultWait() const {return defWait;}
-
-	natural userWait(natural waitFor, natural timeout) const;
-protected:
-
-	Pointer<IWaitHandler> handler;
-	natural timeout;
-	natural defWait;
-	bool noclose;
-
-
-};
-
-
-class LinuxNetStream: public INetworkStream, public INetworkSocket {
+class LinuxNetStream: public LinuxSocketResource<INetworkStream>, public INetworkSocket {
 public:
 	LinuxNetStream(int socket, natural timeout);
 	virtual ~LinuxNetStream();
 
 
-	using INetworkResource::wait;
-	virtual void setWaitHandler(IWaitHandler *handler);
-	virtual void setTimeout(natural time_in_ms);
-	virtual natural getTimeout() const ;
-	virtual natural wait(natural waitFor, natural timeout) const ;
     virtual natural read(void *buffer,  natural size);
     virtual natural write(const void *buffer,  natural size) ;
 	virtual natural peek(void *buffer, natural size) const ;
@@ -68,9 +34,10 @@ public:
 
 
 protected:
-	LinuxSocketResource sres;
 	mutable bool foundEof;
+	mutable natural countReady;
 	bool outputClosed;
+
 };
 
 struct timeval millisecToTimeval(natural millisec);

@@ -37,8 +37,8 @@ natural LinuxHttpStream::peek(void* buffer, natural size) const {
 }
 
 bool LinuxHttpStream::canRead() const {
-	if (state != stReading) return true;
-	else return inputStream.hasItems();
+	if (state != stReading) const_cast<LinuxHttpStream *>(this)->sendRequest();
+	return inputStream.hasItems();
 }
 
 bool LinuxHttpStream::canWrite() const {
@@ -334,5 +334,55 @@ void LinuxHttpStream::closeOutput() {
 	}
 }
 
+
+PInOutStream LinuxHttpHandler::openSeqFile(ConstStrW fname, FileOpenMode , OpenFlags::Type ) {
+   		return new LinuxHttpStream(fname,httpSettings);
 }
 
+PRndFileHandle LinuxHttpHandler::openRndFile(ConstStrW , FileOpenMode , OpenFlags::Type ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+bool LinuxHttpHandler::canOpenFile(ConstStrW , FileOpenMode ) const {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+PFolderIterator LinuxHttpHandler::openFolder(ConstStrW ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+PFolderIterator LinuxHttpHandler::getFileInfo(ConstStrW ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+void LinuxHttpHandler::createFolder(ConstStrW , bool ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+void LinuxHttpHandler::removeFolder(ConstStrW , bool ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+void LinuxHttpHandler::copy(ConstStrW , ConstStrW , bool ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+void LinuxHttpHandler::move(ConstStrW , ConstStrW , bool ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+void LinuxHttpHandler::link(ConstStrW , ConstStrW,bool ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+
+}
+
+void LinuxHttpHandler::remove(ConstStrW ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+}
+
+PMappedFile LinuxHttpHandler::mapFile(ConstStrW , FileOpenMode ) {
+	throwUnsupportedFeature(THISLOCATION,this,"");throw;
+
+}
+
+}

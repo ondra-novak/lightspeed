@@ -17,7 +17,7 @@ namespace LightSpeed {
 
 
 
-class LinuxNetAccept: public INetworkStreamSource,
+class LinuxNetAccept: public NetworkResourceCommon<INetworkStreamSource>,
 						public INetworkSocket {
 public:
 	LinuxNetAccept(PNetworkAddress addr,
@@ -32,10 +32,6 @@ public:
 	virtual PNetworkAddress getLocalAddr() const ;
 
 	using INetworkStreamSource::wait;
-	virtual void setWaitHandler(IWaitHandler *handler);
-	virtual void setTimeout(natural time_in_ms);
-	virtual natural getTimeout() const;
-	virtual natural wait(natural waitFor, natural timeout) const;
 	virtual integer getSocket(int idx) const {return idx?-1:acceptSock;}
 	virtual natural getDefaultWait() const {return waitForInput;}
 
@@ -45,12 +41,13 @@ protected:
 	mutable PNetworkAddress localAddr;
 	PNetworkAddress remoteAddr;
 	natural count;
-	natural timeout;
 	natural streamDefTimeout;
-	Pointer<IWaitHandler> handler;
+
+	virtual natural doWait(natural waitFor, natural timeout) const;
+
 };
 
-class LinuxNetConnect: public INetworkStreamSource,
+class LinuxNetConnect: public NetworkResourceCommon<INetworkStreamSource>,
 					   public INetworkSocket {
 public:
 
@@ -64,11 +61,6 @@ public:
 	virtual PNetworkAddress getPeerAddr() const ;
 	virtual PNetworkAddress getLocalAddr() const ;
 
-	using INetworkStreamSource::wait;
-	virtual void setWaitHandler(IWaitHandler *handler);
-	virtual void setTimeout(natural time_in_ms);
-	virtual natural getTimeout() const;
-	virtual natural wait(natural waitFor, natural timeout) const;
 	virtual integer getSocket(int idx) const;
 	virtual natural getDefaultWait() const {return waitForOutput;}
 
@@ -76,10 +68,11 @@ protected:
 	PNetworkAddress localAddr;
 	PNetworkAddress remoteAddr;
 	natural count;
-	natural timeout;
 	natural streamDefTimeout;
 	mutable int readySocket;
-	Pointer<IWaitHandler> handler;
+
+	virtual natural doWait(natural waitFor, natural timeout) const;
+
 
 	static const natural maxWatchSockets = 4;
 	mutable AutoArray<int, StaticAlloc<maxWatchSockets> > asyncSocket;

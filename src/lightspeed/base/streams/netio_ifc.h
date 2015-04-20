@@ -234,19 +234,20 @@ namespace LightSpeed {
 		/**
 		 * @note handler is not called, if resource is inserted into INetworkEventListener
 		 */
-		class IWaitHandler {
+		class WaitHandler {
 		public:
 
 			///Implements user waiting
 			/**
 			 *
+			 * @param resource Which resource is waiting - this allows to create central wait handlers
 			 * @param waitFor what event to wait
 			 * @param timeout how long in miliseconds
 			 * @return wait event detected on the resource, or waitTimeout, if timeouted
 			 */
-			virtual natural wait(natural waitFor, natural timeout) const = 0;
-			///Called when netrwork resource becomes invalid
-			virtual void close() const = 0;
+			virtual natural wait(const INetworkResource *resource, natural waitFor, natural timeout) const {
+				return resource->doWait(waitFor,timeout);
+			}
 		};
 
 		///waiting timeouted
@@ -286,7 +287,9 @@ namespace LightSpeed {
 		 *   Object can implement own version of waiting.
 		 * @param handler pointer to handler.
 		 */
-		virtual void setWaitHandler(IWaitHandler *handler) = 0;
+		virtual void setWaitHandler(WaitHandler *handler) = 0;
+
+		virtual WaitHandler *getWaitHandler() = 0;
 
 		///Sets default timeout for all waiting operations
 		/**
@@ -320,6 +323,7 @@ namespace LightSpeed {
 		 */
 		virtual natural wait(natural waitFor, natural timeout) const = 0;
 
+
 		natural wait(natural waitFor) const {
 			return wait(waitFor, getTimeout());
 		}
@@ -327,10 +331,20 @@ namespace LightSpeed {
 		natural wait() const {
 			return wait(0);
 		}
+	protected:
+		///Performs wait without notifying the waithandler.
+		/**
+		 * Function is useful for wait handler to call orginal waiting
+		 * @param waitFor
+		 * @param timeout
+		 * @return
+		 */
+		virtual natural doWait(natural waitFor, natural timeout) const = 0;
+
+		friend class WaitHandler;
 
 
 	};
-
 
 
 	typedef RefCntPtr<INetworkAddress> PNetworkAddress;
@@ -771,6 +785,36 @@ namespace LightSpeed {
 			natural streamDefTimeout = naturalNull
 		) = 0;
 
+	};
+
+
+	template<typename Base>
+	class NetworkResourceCommon: public Base {
+	public:
+
+		NetworkResourceCommon():defTimeout(naturalNull) {}
+		virtual void setWaitHandler(INetworkResource::WaitHandler *handler) {
+			waitHandler = handler;
+		}
+		virtual INetworkResource::WaitHandler *getWaitHandler() {
+			return waitHandler;
+		}
+		virtual void setTimeout(natural time_in_ms) {
+			defTimeout = time_in_ms;
+		}
+		virtual natural getTimeout() const {
+			return defTimeout;
+		}
+		virtual natural wait(natural waitFor, natural timeout) const {
+			if (waitHandler == nil) return this->doWait(waitFor,timeout);
+			else return waitHandler->wait(this,waitFor,timeout);
+		}
+		
+		using Base::wait;
+
+	protected:
+		Pointer<INetworkResource::WaitHandler> waitHandler;
+		natural defTimeout;
 	};
 
 }

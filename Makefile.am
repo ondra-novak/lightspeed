@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I Build
 
 SUBDIRS = src .
 
-lib_LIBRARIES = liblightspeed.a
+noinst_LIBRARIES = liblightspeed.a
 
 
 liblightspeed.a:FORCE

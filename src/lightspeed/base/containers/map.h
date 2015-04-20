@@ -496,8 +496,11 @@ namespace LightSpeed {
 			iter.listIter = lst.erase(iter.listIter);
 			if (lst.empty()) {
 				Super::erase(iter.mapIter);
+				if (iter.mapIter.hasItems())
+					iter.listIter = iter.mapIter.peek().value.getFwIter();
+			} else {
+				iter.adjustAfterSkip();
 			}
-			iter.adjustAfterSkip();
 		}
 
 		///Erases whole key with all values

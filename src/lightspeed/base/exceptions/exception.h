@@ -40,6 +40,10 @@ namespace LightSpeed {
 
         Exception(const ProgramLocation &loc);
 
+		Exception(const Exception &loc);
+
+		    
+
 
         LIGHTSPEED_CLONEABLEDECL(Exception);
 

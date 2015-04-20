@@ -61,7 +61,7 @@ std::string SHA1::final()
     uint64 total_bits = (transforms*BLOCK_BYTES + buffer.size()) * 8;
 
     /* Padding */
-    buffer += 0x80;
+    buffer += (char)0x80;
     unsigned int orig_size = buffer.size();
     while (buffer.size() < BLOCK_BYTES)
     {
@@ -81,8 +81,8 @@ std::string SHA1::final()
     }
 
     /* Append total_bits, split this uint64 into two uint32 */
-    block[BLOCK_INTS - 1] = total_bits;
-    block[BLOCK_INTS - 2] = (total_bits >> 32);
+    block[BLOCK_INTS - 1] = (uint32)total_bits;
+    block[BLOCK_INTS - 2] = (uint32)(total_bits >> 32);
     transform(block);
 
 
@@ -259,7 +259,7 @@ void SHA1::buffer_to_block(const std::string &buffer, uint32 block[BLOCK_BYTES])
 
 void SHA1::read(std::istream &is, std::string &s, int max)
 {
-    char sbuf[max];
+    char *sbuf = (char *)alloca(max);
     is.read(sbuf, max);
     s.assign(sbuf, is.gcount());
 }

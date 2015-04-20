@@ -96,6 +96,12 @@ namespace LightSpeed {
 		 * and it is designed to identification relevant log lines.
 		 */
 		void setThreadName(ConstStrA name, bool appendId);
+		void setThreadName(const StringA &name, bool appendId);
+		void setThreadName(const char *name, bool appendId);
+
+
+		ConstStrA getThreadName();
+
 
 		///Retrieves reference to StdLogOutput for additional configuration
 		/**

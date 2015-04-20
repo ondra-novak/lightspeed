@@ -9,6 +9,7 @@
 #define LIGHTSPEED_STREAMS_NETIO_H_
 
 
+#include "bufferedio.h"
 #include "fileio.h"
 #include "standardIO.h"
 #include "netio_ifc.h"
@@ -205,21 +206,27 @@ namespace LightSpeed {
 	};
 
 
-
-	template<natural bufferSize = 2048>
+	///Buffered bidirectional stream object.
+	template<natural inputBufferSize = 0, natural outputBufferSize = inputBufferSize>
 	class NetworkStream: public SeqFileInput, public SeqFileOutput {
 	public:
 
 		NetworkStream(PNetworkStream handle)
 			:SeqFileInput(nil),SeqFileOutput(nil)
-			,buffer(handle.get()),handle(handle) {
-			buffer.setStaticObj();
+			,buffInput(handle.get())
+			,buffOutput(handle.get())
+			,handle(handle) {
+			buffInput.setStaticObj();
+			buffOutput.setStaticObj();
 			SeqFileInput &i = *this;
-			i = SeqFileInput(&buffer);
+			i = SeqFileInput(&buffInput);
 			SeqFileOutput &o = *this;
-			o = SeqFileOutput(&buffer);
+			o = SeqFileOutput(&buffOutput);
+			buffInput.setAutoflush(&buffOutput);
 		}
 
+		typedef BufferedInputStream<StreamBuffer<inputBufferSize> > BuffIn;
+		typedef BufferedOutputStream<StreamBuffer<outputBufferSize> > BuffOut;
 
 		PNetworkStream getHandle() {
 			return handle;
@@ -231,80 +238,25 @@ namespace LightSpeed {
 			SeqFileOutput &o = *this;
 			o = SeqFileOutput(nil);
 		}
-		PSeqFileHandle getBufferHandle()  {
-			return &buffer;
+		IBufferedInputStream *getBufferedInputStream()  {
+			return &buffInput;
+		}
+		IBufferedOutputStream *getBufferedOutputStream()  {
+			return &buffOutput;
 		}
 		using SeqFileInput::hasItems;
-		bool dataReady() const {
-			return buffer.dataReady();
+		natural dataReady() const {
+			return buffInput.dataReady();
 		}
 
 	protected:
-		IOBuffer<bufferSize> buffer;
+		BuffIn buffInput;
+		BuffOut buffOutput;
 		PNetworkStream handle;
 	private:
 		NetworkStream(const NetworkStream &) {}
 		NetworkStream &operator=(const NetworkStream &) {return *this;}
 
-	};
-
-
-	///Abstract network connection, which contains iterators to read or write into the stream
-	/** It is received from NetworkStreamSource as result \
-	    of operation getNext() 
-		
-		You can specify size of internal buffer that holds
-		bytes before they are sent. You can define flush character
-		that will be used to automatic flush output buffer
-		For line oriented protocol, eoln character is recommended
-
-	*/
-	template<natural bufferSize=4096>
-	class NetworkStreamOld {
-	public:
-
-		typedef SeqFileInBuff<bufferSize> In;
-		typedef SeqFileOutBuff<bufferSize> Out;
-
-		PNetworkStream stream;
-		//variable contains initialized input stream
-		In in;
-		//variable contains initialized output stream
-		Out out;
-
-		PNetworkStream getHandle() const {return stream;}
-
-		NetworkStreamOld(PNetworkStream hndl)
-			:stream(hndl),in(SeqFileInput(hndl.get())),out(SeqFileOutput(hndl.get()))			
-		{
-			in.setAutoflush(out);
-		}
-		NetworkStreamOld(PNetworkStream hndl,  byte flushChar)
-			:stream(hndl),in(SeqFileInput(hndl.get())),out(SeqFileOutput(hndl.get()))			
-		{
-			in.connectOutput(&out);
-			out.setFlushChar(flushChar);
-		}
-		NetworkStreamOld(NetworkStreamSource &nss)
-			:stream(nss.getNext())
-			 ,in(SeqFileInput(stream.get())),out(SeqFileOutput(stream.get()))
-		{
-			in.connectOutput(&out);
-			out.unsetFlushChar();			
-			nss.hasItems(); //clean internal variable
-		}
-		NetworkStreamOld(NetworkStreamSource &nss, byte flushChar)
-			:stream(nss.getNext()),
-			in(SeqFileInput(stream.get())),out(SeqFileOutput(stream.get()))
-		{
-			in.connectOutput(&out);
-			out.setFlushChar(flushChar);
-			nss.hasItems(); //clean internal variable
-		}
-		NetworkStreamOld(const NetworkStreamOld &other)
-			:stream(other.stream),in(other.in),out(other.out) {
-				in.connectOutput(&out);
-		}
 	};
 
 

@@ -12,35 +12,22 @@
 #include "../exceptions/netExceptions.h"
 #include "netAddress.h"
 #include <algorithm>
+#include "winsocket.tcc"
 
 namespace LightSpeed {
 
 
 
 WindowsNetDgamSource::WindowsNetDgamSource(natural port, natural timeout, natural startDID)
-	:sres(createDatagramSocket(port),timeout),dgrId(startDID)
+	:WindowsSocketResource<INetworkDatagramSource>(createDatagramSocket(port),timeout),dgrId(startDID)
 {
 
 }
 
-natural WindowsNetDgamSource::wait(natural waitFor, natural timeout) const {
-	return sres.userWait(waitFor,timeout);
-}
- void WindowsNetDgamSource::setWaitHandler(IWaitHandler *handler) {
-	sres.setWaitHandler(handler);
-}
-
-void WindowsNetDgamSource::setTimeout(natural time_in_ms) {
-	sres.setTimeout(time_in_ms);
-}
-
-natural WindowsNetDgamSource::getTimeout() const {
-	return sres.getTimeout();
-}
 
 PNetworkDatagram WindowsNetDgamSource::receive() {
 
-	sres.wait();
+	wait();
 
 	//TODO: optimize memory alocation
 	RefCntPtr<WindowsNetDatagram> dgr = new WindowsNetDatagram(this);
@@ -49,11 +36,11 @@ PNetworkDatagram WindowsNetDgamSource::receive() {
 	socklen_t len = sizeof(dgr->addrbuff);
 
 	u_long res = 0;
-	ioctlsocket(sres.sock,FIONREAD,&res);
+	ioctlsocket(sock,FIONREAD,&res);
 	dgr->inputData.setSize(res);
 	char *buff = reinterpret_cast<char *>(dgr->inputData.getBuffer().data());
 
-	int r = ::recvfrom(sres.sock,buff,res,0,saddr,&len);
+	int r = ::recvfrom(sock,buff,res,0,saddr,&len);
 	if (r == -1) {
 		int err = WSAGetLastError(); throw NetworkIOError(THISLOCATION,err,"recvfrom failed");
 	}
@@ -93,7 +80,7 @@ PNetworkDatagram WindowsNetDgamSource :: create(PNetworkAddress adr) {
 }
 
 integer WindowsNetDgamSource ::getSocket(int index) const {
-	return (integer)(index?-1:sres.sock);
+	return (integer)(index?-1:sock);
 }
 
 static void localfreeaddrinfo(struct addrinfo *a) {
@@ -133,7 +120,7 @@ void WindowsNetDatagram::send() {
 	if (addrlen == 0)
 		throw NetworkInvalidAddressException(THISLOCATION,nil);
 	else {
-		int r = (int)::sendto(owner->sres.sock,
+		int r = (int)::sendto(owner->sock,
 			reinterpret_cast<const char *>(outputData.getBuffer().data()),
 				(int)outputData.getBuffer().length(),0,
 				(struct sockaddr *)addrbuff, (int)addrlen);
@@ -151,7 +138,7 @@ void WindowsNetDatagram::sendTo(PNetworkAddress target) {
 		WindowsNetAddress *a = dynamic_cast<WindowsNetAddress *>(target.get());
 		if (a == 0)
 			throw NetworkInvalidAddressException(THISLOCATION,target);
-		int r = ::sendto(owner->sres.sock,
+		int r = ::sendto(owner->sock,
 				reinterpret_cast<const char *>(outputData.getBuffer().data()),
 				(int)outputData.getBuffer().length(),0,
 				a->getAddrInfo()->ai_addr, (int)a->getAddrInfo()->ai_addrlen);
@@ -293,5 +280,7 @@ UINT_PTR WindowsNetDgamSource::createDatagramSocket(natural port) {
 
 
 }
+
+
 
 }

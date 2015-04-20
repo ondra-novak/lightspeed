@@ -209,6 +209,12 @@ integer TextField_t::getInt() const {
 	else return integerNull;
 }
 
+linteger TextField_t::getLongInt() const {
+	linteger res;
+	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
+	else return integerNull;
+}
+
 ConstStrA TextField_t::getStringUtf8() const {
 	if (utf!=0) return *utf;
 	StringA *k = new StringA(x.getUtf8());
@@ -248,6 +254,12 @@ double TextField_t::getFloat() const {
 
 integer TextFieldA_t::getInt() const {
 	integer res;
+	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
+	else return integerNull;
+}
+
+linteger TextFieldA_t::getLongInt() const {
+	linteger res;
 	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
@@ -295,12 +307,31 @@ ConstStrW IntField_t::getString() const {
 	return strx;
 }
 
+ConstStrW IntField64_t::getString() const {
+	if (strx.empty()) {
+		TextFormatBuff<wchar_t,StaticAlloc<200> > fmt;
+		fmt("%1") << x;
+		strx = fmt.write();
+	}
+	return strx;
+}
+
 INode *IntField_t::clone(PFactory factory) const {
+	return factory->newValue(x).detach();
+}
+
+INode *IntField64_t::clone(PFactory factory) const {
 	return factory->newValue(x).detach();
 }
 
 bool IntField_t::operator==(const INode &other) const {
 	const IntField_t *t = dynamic_cast<const IntField_t *>(&other);
+	if (t == 0) return false;
+	else return x == t->x;
+}
+
+bool IntField64_t::operator==(const INode &other) const {
+	const IntField64_t *t = dynamic_cast<const IntField64_t *>(&other);
 	if (t == 0) return false;
 	else return x == t->x;
 }
@@ -446,6 +477,10 @@ PNode Factory_t::newClass() {return new Object_t;}
 PNode Factory_t::newArray() {return new Array_t;}
 PNode Factory_t::newValue(natural v) {return new IntField_t(v);}
 PNode Factory_t::newValue(integer v) {return new IntField_t(v);}
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+PNode Factory_t::newValue(lnatural v) {return new IntField64_t(v);}
+PNode Factory_t::newValue(linteger v) {return new IntField64_t(v);}
+#endif
 PNode Factory_t::newValue(float v) {return new FloatField_t(v);}
 PNode Factory_t::newValue(double v) {return new FloatField_t(v);}
 PNode Factory_t::newValue(bool v) {return new Bool_t(v);}
@@ -615,7 +650,7 @@ LightSpeed::JSON::PNode FactoryCommon_t::mergeClasses( const Object_t * clschang
 
 
 Iterator::~Iterator() {
-	iter->~IIntIter();
+	if (iter) iter->~IIntIter();
 }
 
 Iterator::Iterator(const IIntIter* internalIter) {

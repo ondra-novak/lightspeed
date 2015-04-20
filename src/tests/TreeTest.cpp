@@ -23,7 +23,7 @@ integer LightSpeedTest::TreeTest::start(const Args&) {
 
 
 	for (natural i = 0; i < 100000; i++) {
-		bool found;
+		bool found = true;
 		natural r = rand() % 1000;
 		TestSet::Iterator x = tsts.seek(r,&found);
 		if (found) {

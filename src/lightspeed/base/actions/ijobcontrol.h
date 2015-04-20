@@ -8,8 +8,10 @@
 #ifndef LIGHTSPEED_BASE_ACTIONS_IJOBCONTROL_H_
 #define LIGHTSPEED_BASE_ACTIONS_IJOBCONTROL_H_
 #include "message.h"
+#include "promise.h"
 
 namespace LightSpeed {
+
 
 ///Controls single job, which can be also executor or thread
 
@@ -30,6 +32,7 @@ public:
 	 * handle multiple jobs at time.
 	 */
 	virtual void execute(const IJobFunction &fn) = 0;
+
 
 
 	///Orders job to finish.
@@ -62,6 +65,46 @@ public:
 
 
 	virtual ~IJobControl() {}
+
+	template<typename Fn> class AsActionImpl;
+
+
+	///Creates object that acts as function which executes other function on current executor
+	/**
+	 * @param fn function to execute. Function can request zero or one argument. It expects, that caller
+	 * have to known, how many arguments and which type function requires.
+	 *
+	 * @return object that acts as function. If this object is called as a function, fn is executed through
+	 * the executor.
+	 *
+	 * @note executor must not be destroyed before function is called
+	 */
+	template<typename Fn> AsActionImpl<Fn> asAction(const Fn &fn) {return AsActionImpl<Fn>(this,fn);}
+
+
+	///implementation of asMessage function
+	template<typename Fn>
+	class AsActionImpl {
+	public:
+		AsActionImpl(IJobControl *cntr, const Fn &fn):cntr(cntr),fn(fn) {}
+
+		void operator()() const {
+			cntr->execute(Action::create(fn));
+		}
+
+		template<typename Arg>
+		const Arg &operator()(const Arg &arg) const {
+			cntr->execute(Action::create(fn,arg));
+			return arg;
+		}
+
+
+	protected:
+		IJobControl *cntr;
+		Fn fn;
+	};
+
+
 
 };
 

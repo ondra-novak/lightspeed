@@ -7,6 +7,7 @@
 
 #ifndef LIGHTSPEED_UTILS_JSONIMPL_H_
 #define LIGHTSPEED_UTILS_JSONIMPL_H_
+#include "../../base/types.h"
 #include "../../base/containers/map.h"
 #include "jsondefs.h"
 #include "../../base/containers/stringparam.h"
@@ -22,6 +23,7 @@ public:
 	virtual NodeType getType() const {return ndObject;}
 	virtual ConstStrW getString() const {return ConstStrW();}
 	virtual integer getInt() const {return integerNull;}
+	virtual linteger getLongInt() const {return integerNull;}
 	virtual double getFloat() const {return 0;}
 	virtual bool getBool() const {return true;}
 	virtual bool isNull() const {return false;}
@@ -57,6 +59,7 @@ public:
 	virtual NodeType getType() const {return ndArray;}
 	virtual ConstStrW getString() const {return list.empty()?ConstStrW():list[0]->getString();}
 	virtual integer getInt() const {return list.empty()?0:list[0]->getInt();}
+	virtual linteger getLongInt() const {return integerNull;}
 	virtual double getFloat() const {return list.empty()?0:list[0]->getFloat();}
 	virtual bool getBool() const {return list.empty()?0:list[0]->getBool();}
 	virtual bool isNull() const {return list.empty()?0:list[0]->isNull();}
@@ -92,6 +95,7 @@ public:
 	virtual NodeType getType() const {return ndString;}
 	virtual ConstStrW getString() const {return x;}
 	virtual integer getInt() const;
+	virtual linteger getLongInt() const;
 	virtual double getFloat() const;
 	virtual bool getBool() const {return !x.empty();}
 	virtual bool isNull() const {return false;}
@@ -112,6 +116,7 @@ public:
 	virtual NodeType getType() const {return ndString;}
 	virtual ConstStrW getString() const;
 	virtual integer getInt() const;
+	virtual linteger getLongInt() const;
 	virtual double getFloat() const;
 	virtual bool getBool() const {return !x.empty();}
 	virtual bool isNull() const {return false;}
@@ -124,12 +129,15 @@ public:
 	StringA x;
 	mutable String *unicode;
 };
+
+
 class IntField_t: public LeafNode_t {
 public:
 	IntField_t(integer x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
 	virtual ConstStrW getString() const;
 	virtual integer getInt() const {return x;}
+	virtual linteger getLongInt() const {return x;}
 	virtual double getFloat() const {return double(x);}
 	virtual bool getBool() const {return x != 0;}
 	virtual bool isNull() const {return false;}
@@ -140,12 +148,30 @@ public:
 	mutable String strx;
 };
 
+class IntField64_t: public LeafNode_t {
+public:
+	IntField64_t(linteger x):x(x) {}
+	virtual NodeType getType() const {return ndInt;}
+	virtual ConstStrW getString() const;
+	virtual integer getInt() const {return (integer)x;}
+	virtual linteger getLongInt() const {return x;}
+	virtual double getFloat() const {return double(x);}
+	virtual bool getBool() const {return x != 0;}
+	virtual bool isNull() const {return false;}
+	virtual INode *clone(PFactory factory) const;
+	virtual bool operator==(const INode &other) const;
+
+	linteger x;
+	mutable String strx;
+};
+
 class FloatField_t: public LeafNode_t {
 public:
 	FloatField_t(double x):x(x) {}
 	virtual NodeType getType() const {return ndFloat;}
 	virtual ConstStrW getString() const;
 	virtual integer getInt() const {return (integer)x;}
+	virtual linteger getLongInt() const {return (linteger)x;}
 	virtual double getFloat() const {return x;}
 	virtual bool getBool() const {return x != 0;}
 	virtual bool isNull() const {return false;}
@@ -161,7 +187,10 @@ class Null_t: public LeafNode_t {
 public:
 	virtual NodeType getType() const {return ndNull;}
 	virtual ConstStrW getString() const {return String();}
-	virtual integer getInt() const {return naturalNull;}
+	virtual integer getInt() const {return integerNull;}
+	virtual linteger getLongInt() const {return lintegerNull;}
+	virtual natural getUInt() const {return naturalNull;}
+	virtual lnatural getLongUInt() const {return lnaturalNull;}
 	virtual double getFloat() const {return 0;}
 	virtual bool getBool() const {return false;}
 	virtual bool isNull() const {return true;}
@@ -174,6 +203,7 @@ public:
 	virtual NodeType getType() const {return ndDelete;}
 	virtual ConstStrW getString() const {throw accessError(THISLOCATION);}
 	virtual integer getInt() const {throw accessError(THISLOCATION);}
+	virtual linteger getLongInt() const {throw accessError(THISLOCATION);}
 	virtual double getFloat() const {throw accessError(THISLOCATION);}
 	virtual bool getBool() const {throw accessError(THISLOCATION);}
 	virtual bool isNull() const {throw accessError(THISLOCATION);}
@@ -195,6 +225,7 @@ public:
 	virtual NodeType getType() const {return ndBool;}
 	virtual ConstStrW getString() const {return b?L"true":L"false";}
 	virtual integer getInt() const {return b?naturalNull:0;}
+	virtual linteger getLongInt() const {return b?naturalNull:0;}
 	virtual double getFloat() const {return b?-1:0;}
 	virtual bool getBool() const {return b;}
 	virtual bool isNull() const {return false;}
@@ -224,6 +255,10 @@ public:
 	virtual PNode newArray() {return new(alloc) DynNode_t<Array_t>;}
 	virtual PNode newValue(natural v) {return new(alloc) DynNode_t<IntField_t>(v);}
 	virtual PNode newValue(integer v) {return new(alloc) DynNode_t<IntField_t>(v);}
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+	virtual PNode newValue(lnatural v) {return new(alloc) DynNode_t<IntField64_t>(v);}
+	virtual PNode newValue(linteger v) {return new(alloc) DynNode_t<IntField64_t>(v);}
+#endif
 	virtual PNode newValue(float v) {return new(alloc) DynNode_t<FloatField_t>(v);}
 	virtual PNode newValue(double v) {return new(alloc) DynNode_t<FloatField_t>(v);}
 	virtual PNode newValue(bool v) {return new(alloc) DynNode_t<Bool_t>(v);}

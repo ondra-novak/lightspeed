@@ -77,7 +77,7 @@ PNetworkStream LinuxNetAccept::getNext()
 {
 	if (count == 0)
 		throwIteratorNoMoreItems(THISLOCATION,typeid(PNetworkStream));
-	if (handler != nil) handler->wait(0,timeout);else wait();
+	wait();
 	char buff[256];
 	struct sockaddr *saddr = (struct sockaddr *) (buff);
 	socklen_t socklen = sizeof(buff);
@@ -93,31 +93,25 @@ PNetworkStream LinuxNetAccept::getNext()
 
 	return stream;
 }
-void LinuxNetAccept::setWaitHandler(IWaitHandler* handler) {
-	this->handler = handler;
-}
-
-void LinuxNetAccept::setTimeout(natural time_in_ms) {
-	timeout = time_in_ms;
-}
 
 LinuxNetAccept::~LinuxNetAccept() {
 	close(acceptSock);
 }
 
-natural LinuxNetAccept::getTimeout() const {
-	return timeout;
-}
-natural LinuxNetAccept::wait(natural , natural timeout) const {
+
+natural LinuxNetAccept::doWait(natural , natural timeout) const {
 
 	return safeSelect(acceptSock,waitForInput,timeout);
 }
 
 
+
+
 LinuxNetAccept::LinuxNetAccept(PNetworkAddress addr,
 		natural count ,natural timeout, natural streamDefTimeout)
 	:acceptSock(createListenSocket(addr) )
-	,count(count),timeout(timeout),streamDefTimeout(streamDefTimeout){
+	,count(count),streamDefTimeout(streamDefTimeout){
+	setTimeout(timeout);
 
 }
 
@@ -160,8 +154,9 @@ PNetworkAddress LinuxNetConnect::getLocalAddr() const
 LinuxNetConnect::LinuxNetConnect(PNetworkAddress addr,
 		natural count, natural timeout, natural streamDefTimeout)
 	:remoteAddr(addr),count(count),
-	 timeout(timeout),streamDefTimeout(streamDefTimeout)
+	 streamDefTimeout(streamDefTimeout)
 {
+	setTimeout(timeout);
 }
 
 
@@ -171,16 +166,6 @@ bool LinuxNetConnect::hasItems() const
 	return count > 0;
 }
 
-void LinuxNetConnect::setWaitHandler(IWaitHandler *handler) {
-	this->handler = handler;
-}
-void LinuxNetConnect::setTimeout(natural time_in_ms){
-	this->timeout = time_in_ms;
-
-}
-natural LinuxNetConnect::getTimeout() const {
-	return timeout;
-}
 
 static bool probeSocket(int fd) {
 	int e = 0;
@@ -194,7 +179,9 @@ static bool probeSocket(int fd) {
 	return true;
 }
 
-natural LinuxNetConnect::wait(natural , natural timeout) const {
+
+
+natural LinuxNetConnect::doWait(natural , natural timeout) const {
 
 	setupSocket();
 
@@ -226,8 +213,6 @@ integer LinuxNetConnect::getSocket(int idx) const {
 }
 
 LinuxNetConnect::~LinuxNetConnect() {
-	if (handler != nil)
-		handler->close();
 	for (natural i = 0; i < asyncSocket.length();++i)
 		close(asyncSocket[i]);
 }

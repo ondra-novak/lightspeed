@@ -1,4 +1,7 @@
 #include "../../base/interface.h"
+#include "../../base/iter/vtiterator.h"
+#include "../../base/memory/refcntifc.h"
+#include "../../base/meta/emptyClass.h"
 /**@file
  * All basic declarations to allow JSON work. To compile this header, you will need declare two classes in
  * LightSpeed namespace
@@ -41,6 +44,8 @@ namespace LightSpeed {
 			ndArray = 6,
 			///Node has been deleted, this node is used when differential JSON is created
 			ndDelete = 7,
+			///Custom node - custom serialization. Should not appear during parsing
+			ndCustom = 0x100,
 
 			ndClass = 5
 		};
@@ -270,7 +275,7 @@ namespace LightSpeed {
 
 		*/
 
-		class INode: public ::LightSpeed::RefCntObj {
+		class INode: public ::LightSpeed::IRefCntInterface {
 		public:
 
 			///retrieves type of node
@@ -293,6 +298,16 @@ namespace LightSpeed {
 			 * @return unsigned integer value
 			 */
 			virtual natural getUInt() const = 0;
+			///Retrieves long int value
+			/**
+			 * @return long integer value
+			 */
+			virtual linteger getLongInt() const = 0;
+			///Retrieves long unsigned int value
+			/**
+			 * @return long  unsigned integer value
+			 */
+			virtual lnatural getLongUInt() const = 0;
 			///Retrieves float value
 			/**
 			 * @return float value
@@ -315,13 +330,38 @@ namespace LightSpeed {
 			 * @return pointer to node containing value. NULL returned, when
 			 * node doesn't contain given field by name, or when node is
 			 * not object
+			 *
+			 * @see getPtr
 			 */
 			virtual INode *getVariable(ConstStrA ) const = 0;
 			///Retrieves count of values in array or object
 			virtual natural getEntryCount() const = 0;
 			///Retrieves entry referenced by index - must be array
 			virtual INode *getEntry(natural idx) const = 0;
+			///Retrieves count of values in array or object
 			natural length() const {return getEntryCount();}
+			///Searches for field of given name
+			/**
+			 * @param name of field.
+			 * @return Returns pointer to value, returns NULL if field doesn't exist
+			 * or target is not object. Function doesn't fail with exception so you
+			 * can use it to test whether field exists
+			 */
+			INode *getPtr(ConstStrA v) const {
+				return getVariable(v);
+			}
+
+			///Retrieves field on given index
+			/**
+			 * @param index of field.
+			 * @return Returns pointer to value, returns NULL if field doesn't exist
+			 * or target is not object. Function doesn't fail with exception so you
+			 * can use it to test whether field exists
+			 */
+			INode *getPtr(natural idx) const {
+				return getEntry(idx);
+			}
+
 			///Enumerates all entries 
 			/**
 			 * @param fn object receives results
@@ -452,6 +492,12 @@ namespace LightSpeed {
 			bool isDeleteObj() const {return getType() == ndDelete;}
 		};
 
+		template<typename A,typename B>
+		struct ConvHelper;
+
+		template<typename X>
+		class TypeToNodeDefinition;
+
 
 		///Factory is responsible to create JSON node
 		/** You should not create nodes directly, instead of use factory which can
@@ -463,6 +509,8 @@ namespace LightSpeed {
 		 */
 		class IFactory: public RefCntObj, public IInterface {
 		public:
+
+
 			///Create object (obsolete)
 			virtual PNode newClass() = 0;
 			///Creates JSON object
@@ -473,8 +521,12 @@ namespace LightSpeed {
 			virtual PNode newValue(natural v) = 0;
 			///Creates JSON number using signed value
 			virtual PNode newValue(integer v) = 0;
-			///Creates JSON number using float value
-			virtual PNode newValue(float v) = 0;
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+			///Creates JSON number using unsigned value
+			virtual PNode newValue(lnatural v) = 0;
+			///Creates JSON number using signed value
+			virtual PNode newValue(linteger v) = 0;
+#endif
 			///Creates JSON number using double-float value
 			virtual PNode newValue(double v) = 0;
 			///Creates JSON bool and stores value
@@ -483,16 +535,23 @@ namespace LightSpeed {
 			virtual PNode newValue(ConstStrW v) = 0;
 			///Creates JSON string
 			virtual PNode newValue(ConstStrA v) = 0;
-			///Creates JSON string
-			virtual PNode newValue(const wchar_t *v) = 0;
-			///Creates JSON string
-			virtual PNode newValue(const char *v) = 0;
 			///Retrieves allocator used to allocate nodes
 			virtual IRuntimeAlloc *getAllocator() const = 0;
 
 			///Reflection - to keep templates to work
-			PNode newValue(PNode v) const {return v;}
+			PNode newValue(PNode v) {return v;}
 			
+			///Serialize custom value (undefined upper)
+			template<typename T>
+			PNode newCustomValue(const T &x) {
+				TypeToNodeDefinition<T> def(this);
+				return def(x);
+			}
+
+			template<typename T>
+			PNode newValue(const T &val);
+
+
 			///Creates new NULL node
 			/**
 			 * @note factory can use one NULL node for all required NULLs
@@ -561,33 +620,16 @@ namespace LightSpeed {
 			 */
 			PNode fromStream( SeqFileInput &stream );
 
-			PNode operator()(natural v) {return newValue(v);}
-			///Creates JSON number using signed value
-			PNode operator()(integer v) {return newValue(v);}
-			///Creates JSON number using float value
-			PNode operator()(float v) {return newValue(v);}
-			///Creates JSON number using double-float value
-			PNode operator()(double v) {return newValue(v);}
-			///Creates JSON bool and stores value
-			PNode operator()(bool v) {return newValue(v);}
-			///Creates JSON C string
-			PNode operator()(const char * v) {return newValue(ConstStrA(v));}
-			///Creates JSON C string
-			PNode operator()(const wchar_t * v) {return newValue(ConstStrW(v));}
-			///Creates JSON string
-			PNode operator()(ConstStrW v) {return newValue(v);}
-			///Creates JSON string
-			PNode operator()(ConstStrA v) {return newValue(v);}
-			///Creates JSON string
-			PNode operator()(NullType) {return newNullNode();}
-
-			PNode operator()(JSON::PNode p) {return p;}
+			template<typename T>
+			PNode operator()(const T &v) {return newValue(v);}
 
 			///Creates JSON string
 			PNode array() {return newArray();}
 			PNode object() {return newObject();}
 
 			virtual ~IFactory()  {}
+
+
 		};
 
 		///Sets property of toString function
@@ -623,6 +665,26 @@ namespace LightSpeed {
 		PNode getNullNode();
 			
 
+		///Custom node interface
+		/** Interface is available with custom nodes, but it is not part
+		 * of INode. You have to use getIfc<ICustomNode> to retrieve
+		 * ICustomNode from INode if available;
+		 */
+		class ICustomNode {
+		public:
+
+			///custom serializer
+			/**
+			 * @param output reference to output iterator
+			 *
+			 * @note when serialization takes effect, function must
+			 * render output directly to the stream and should not expect
+			 * any future processing. For example in case, that string
+			 * is rendered, it must contain quotes and invalid characters
+			 * should be escaped
+			 */
+			virtual void serialize(IVtWriteIterator<char> &output, bool escapeUTF8) const = 0;
+		};
 
 
 		template<typename T>
@@ -695,7 +757,61 @@ namespace LightSpeed {
 		}
 
 
+		template<typename A,typename B>
+		struct ConvHelper {
+			template<typename X>
+			static PNode conv(const X &x, IFactory &f) {
+				return conv(x,f,typename MIsConvertible<X,A>::MValue());
+			}
+			template<typename X>
+			static PNode conv(const X &x, IFactory &f, MTrue) {
+				return f.newValue(A(x));
+			}
+			template<typename X>
+			static PNode conv(const X &x, IFactory &f, MFalse) {
+				return B::conv(x,f);
+			}
+		};
+
+		template<typename A>
+		struct ConvHelper<A,Empty> {
+			template<typename X>
+			static PNode conv(const X &x, IFactory &f) {
+				return conv(x,f,typename MIsConvertible<X,A>::MValue());
+			}
+			template<typename X>
+			static PNode conv(const X &x, IFactory &f, MTrue) {
+				return f.newValue(A(x));
+			}
+			template<typename X>
+			static PNode conv(const X &x, IFactory &f, MFalse) {
+				return f.newCustomValue(x);
+			}
+		};
+
+		template<typename T>
+		PNode IFactory::newValue(const T &val) {
+			typedef ConvHelper<integer,
+					ConvHelper<natural,
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+					ConvHelper<linteger,
+					ConvHelper<lnatural,
+#endif
+					ConvHelper<float,
+					ConvHelper<double,
+					ConvHelper<ConstStrA,
+					ConvHelper<ConstStrW,
+					ConvHelper<bool,Empty>
+#ifdef LIGHTSPEED_HAS_LONG_TYPES					
+					> > 
+#endif				
+					> > > > > >				Conv;
+
+			return Conv::conv(val,*this);
+		}
+
 	};
+
 
 
 };

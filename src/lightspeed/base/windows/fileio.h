@@ -2,6 +2,7 @@
 
 #include "../streams/fileio_ifc.h"
 #include "winhttp.h"
+#include "../streams/abstractFileIOService.h"
 
 namespace LightSpeed {
 
@@ -67,7 +68,7 @@ namespace LightSpeed {
 
 	struct PipeOverlappedInfo;
 
-	class WindowsPipe: public ISeqFileHandle,
+	class WindowsPipe: public IInOutStream,
 					   public WindowsFileCommon{
 	public:
 		WindowsPipe(String pipeName, HANDLE hPipe, 
@@ -84,7 +85,7 @@ namespace LightSpeed {
 		virtual bool canWrite() const;
 		virtual void flush();
 		virtual natural dataReady() const;
-		void createPipeOtherSide( PSeqFileHandle & otherEnd);
+		void createPipeOtherSide( PInOutStream & otherEnd);
 
 		virtual void closeOutput();
 
@@ -139,20 +140,20 @@ namespace LightSpeed {
 
 	};
 
-	class WindowsFileService: public IFileIOServices {
+	class WindowsFileService: public AbstractFileIOService {
 	public:
 
-		virtual PSeqFileHandle openSeqFile(ConstStrW fname,  FileOpenMode mode, OpenFlags::Type flags) ;
-		virtual PSeqFileHandle openStdFile(StdFile stdfile) ;
-		virtual void createPipe(PSeqFileHandle &readEnd, PSeqFileHandle &writeEnd) ;
+		virtual PInOutStream openSeqFile(ConstStrW fname,  FileOpenMode mode, OpenFlags::Type flags) ;
+		virtual PInOutStream openStdFile(StdFile stdfile) ;
+		virtual void createPipe(PInputStream &readEnd, POutputStream &writeEnd) ;
 		virtual PRndFileHandle openRndFile(ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags) ;
-		virtual PSeqFileHandle openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode);
+		virtual PInOutStream openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode);
 
-		PSeqFileHandle openSeqFileByHandle( HANDLE h, FileOpenMode mode, String name );
+		PInOutStream openSeqFileByHandle( HANDLE h, FileOpenMode mode, String name );
 		virtual PRndFileHandle openRndFile(const void *handle, size_t handleSize, FileOpenMode mode) ;
 		virtual bool canOpenFile(ConstStrW name, FileOpenMode mode) const ;
-		virtual PDirectoryIterator openDirectory(ConstStrW pathname);
-		virtual PDirectoryIterator getFileInfo(ConstStrW pathname);
+		virtual PFolderIterator openFolder(ConstStrW pathname);
+		virtual PFolderIterator getFileInfo(ConstStrW pathname);
 		virtual void createFolder(ConstStrW folderName, bool parents)  ;
 		virtual void removeFolder(ConstStrW folderName, bool recursive) ;
 		virtual void copy(ConstStrW from, ConstStrW to, bool overwrite) ;
@@ -170,7 +171,7 @@ namespace LightSpeed {
 		HTTPSettings httpSettings,httpsSettings;
 	};
 
-	class WindowsDirectoryIterator: public IDirectoryIterator {
+	class WindowsDirectoryIterator: public IFolderIterator {
 	public:
 		virtual bool getNext();
 		virtual void rewind();
@@ -178,14 +179,14 @@ namespace LightSpeed {
 		virtual const IFileInformation &getInfo() const;
 		virtual TimeStamp getModifiedTime() const ;
 		virtual IFileIOServices::FileOpenMode getAllowedOpenMode() const ;
-		virtual PDirectoryIterator openDirectory() const ;
+		virtual PFolderIterator openFolder() const ;
 		virtual String getFullPath() const;
 
 		WindowsDirectoryIterator(ConstStrW path, IFileIOServices &svc, bool thisFile);
 		~WindowsDirectoryIterator();
 		void updateFindData();
 
-		virtual PSeqFileHandle openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
+		virtual PInOutStream openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
 
 		virtual PRndFileHandle openRndFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
 

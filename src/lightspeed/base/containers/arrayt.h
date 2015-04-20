@@ -457,7 +457,7 @@ private:
     		return false;
     	}
     protected:
-    	const ItemT &item;
+    	const ArrayT<T,X> &item;
     	natural &pos;
     };
 

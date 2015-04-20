@@ -33,6 +33,12 @@ Exception::Exception(const ProgramLocation & loc)
 //	debugBreak();
 }
 
+Exception::Exception(const Exception & other)
+:location(other.location),reason(other.reason.getMT())
+{
+
+}
+
 Exception::~Exception() throw() {
 	exceptionDestroyed(this);
 }
@@ -135,8 +141,10 @@ String Exception::getLongMessage() const
 
     msg(" (%1, %2)") << typeid(*this).name() << location.function;
 
+	String longMsg;
     if (reason != nil) {
-    	msg("%1\n%2") << str_because << reason->getLongMessage();
+		longMsg = reason->getLongMessage();
+    	msg("%1\n%2") << str_because << longMsg;
     }
 
     /* TODO

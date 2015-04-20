@@ -37,7 +37,7 @@ namespace LightSpeed
 
 
 
-	class ILinuxFileInfo: public IDirectoryIterator::IFileInformation {
+	class ILinuxFileInfo: public IFolderIterator::IFileInformation {
 	public:
 		virtual const struct stat64 &getFileStat() const = 0;
 	};

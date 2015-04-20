@@ -6,7 +6,6 @@
 
 namespace LightSpeed {
 
-	template<typename A,typename B> struct VarArg;
 
 
 	template<typename T, typename H, typename B>
@@ -28,22 +27,24 @@ namespace LightSpeed {
 		}
 
 		CArray(ConstItemT *arr, natural cnt) {
-			if (cnt > n) throwRangeException_To(THISLOCATION,n,cnt);
+			if (cnt > n) cnt = n;
 			for (natural i = 0; i < cnt; i++) array[i] = arr[i];
 		}
 
 		CArray(ConstStringT<T> arr) {
-			if (arr.length() > n) throwRangeException_To(THISLOCATION,n,arr.length());
-			for (natural i = 0; i < arr.length(); i++) array[i] = arr[i];
+			natural cnt = arr.length();
+			if (cnt > n) cnt = n;
+			for (natural i = 0; i < cnt; i++) array[i] = arr[i];
 
 		}
 
-
-		template<typename H,typename B>
-		CArray(const VarArg<H,B> &args) {
-			CArrayLoader<T,H,B> ldr;
-			ldr(array,args,n);
+		template<natural c>
+		CArray(const CArray<T,c> &arr) {
+			natural cnt = c;
+			if (cnt > n) cnt = n;
+			for (natural i = 0; i < cnt; i++) array[i] = arr[i];
 		}
+
 
 		static natural length()  {
 			return n;
@@ -61,11 +62,6 @@ namespace LightSpeed {
 
 		T array[n];
 
-/*
-		template<typename H,typename B>
-		natural loadArray(const VarArg<H,B> &args);
-		natural loadArray(const VarArg<void,void> &args);;
-*/
 
 
 	};

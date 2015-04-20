@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <poll.h>
+#include "linsocket.tcc"
 
 namespace LightSpeed {
 
@@ -30,94 +31,29 @@ struct timeval millisecToTimeval(natural millisec) {
 
 
 LinuxNetStream::LinuxNetStream(int socket, natural timeout)
-	:sres(socket,waitForInput),foundEof(false),outputClosed(false) {
-	sres.setTimeout(timeout);
+	:LinuxSocketResource<INetworkStream>(socket,waitForInput),foundEof(false),countReady(0),outputClosed(false) {
+	setTimeout(timeout);
 }
 
 LinuxNetStream::~LinuxNetStream() {
-	shutdown(sres.sock,SHUT_RDWR);
+	shutdown(sock,SHUT_RDWR);
 }
 
 
-LinuxSocketResource::~LinuxSocketResource() {
-	if (!noclose) {
-		if (handler != nil) handler->close();
-		close(sock);
-	}
-}
-
-Pointer<LinuxSocketResource::IWaitHandler> LinuxSocketResource::getWaitHandler() {
-	return handler;
-}
-
-natural LinuxSocketResource::getTimeout() const
-{
-	return timeout;
-}
-
-
-
-void LinuxSocketResource::setTimeout(natural time_in_ms)
-{
-	timeout = time_in_ms;
-}
-
-
-
-natural LinuxSocketResource::userWait(natural waitFor, natural timeout) const
-{
-	if (handler == nil) return wait(waitFor,timeout);
-	else return handler->wait(waitFor, timeout);
-}
-
-
-
-void LinuxSocketResource::setWaitHandler(IWaitHandler *handler)
-{
-	this->handler = handler;
-}
-
-
-
-
-
-
-
-natural LinuxSocketResource::wait(natural waitFor, natural timeout) const
-{
-	if (waitFor == 0) waitFor = waitForInput;
-
-	return safeSelect(sock,waitFor,timeout);
-}
-
-
-natural LinuxNetStream::wait(natural waitFor, natural timeout) const {
-	return sres.userWait(waitFor,timeout);
-}
-
-
-
- void LinuxNetStream::setWaitHandler(IWaitHandler *handler) {
-	return sres.setWaitHandler(handler);
-}
- void LinuxNetStream::setTimeout(natural time_in_ms) {
-	return sres.setTimeout(time_in_ms);
-}
- natural LinuxNetStream::getTimeout() const {
-	return sres.getTimeout();
-}
 
 natural LinuxNetStream::read( void *buffer, natural size )
 {
 	if (foundEof) return 0;
 	if (!wait(INetworkResource::waitForInput))
-		throw NetworkTimeoutException(THISLOCATION,sres.getTimeout(),
+		throw NetworkTimeoutException(THISLOCATION,getTimeout(),
 					NetworkTimeoutException::reading);
-	int res = recv(sres.sock,reinterpret_cast<char *>(buffer),(int)size,0);
+	int res = recv(sock,reinterpret_cast<char *>(buffer),(int)size,0);
 	if (res == -1)
 		throw NetworkIOError(THISLOCATION,errno,"recv failed");
 	if (res == 0) foundEof = true;;
-	return (natural)res;
+	natural rd = (natural)res;
+	if (rd > countReady) countReady = 0; else countReady -= rd;
+	return rd;
 
 }
 
@@ -126,9 +62,9 @@ natural LinuxNetStream::write( const void *buffer, natural size )
 	if (foundEof)
 		throw NetworkIOError(THISLOCATION,0,"send failed - connection closed");
 	if (!wait(INetworkResource::waitForOutput))
-		throw NetworkTimeoutException(THISLOCATION,sres.getTimeout(),
+		throw NetworkTimeoutException(THISLOCATION,getTimeout(),
 			NetworkTimeoutException::writing);
-	int res = send(sres.sock,reinterpret_cast<const char *>(buffer),(int)size,0);
+	int res = send(sock,reinterpret_cast<const char *>(buffer),(int)size,0);
 	if (res == -1)
 		throw NetworkIOError(THISLOCATION,errno,"send failed");
 	return (natural)res;
@@ -138,20 +74,17 @@ natural LinuxNetStream::write( const void *buffer, natural size )
 natural LinuxNetStream::peek( void *buffer, natural size ) const
 {
 	if (foundEof) return 0;
-	if (buffer == 0) {
-		u_long r = 0;
-		ioctl(sres.sock,FIONREAD,&r);
-		return (natural)r;
-	}
 
 	if (!wait(INetworkResource::waitForInput))
-		throw NetworkTimeoutException(THISLOCATION,sres.getTimeout(),
+		throw NetworkTimeoutException(THISLOCATION,getTimeout(),
 		NetworkTimeoutException::reading);
-	int res = recv(sres.sock,reinterpret_cast<char *>(buffer),(int)size,MSG_PEEK);
+	int res = recv(sock,reinterpret_cast<char *>(buffer),(int)size,MSG_PEEK);
 	if (res == -1)
 		throw NetworkIOError(THISLOCATION,errno,"recv failed");
 	if (res == 0) foundEof = true;
-	return (natural)res;
+	natural rd = (natural)res;
+	if (rd > countReady) countReady = rd;
+	return rd;
 }
 
 bool LinuxNetStream::canWrite() const
@@ -161,13 +94,20 @@ bool LinuxNetStream::canWrite() const
 
 bool LinuxNetStream::canRead() const {
 	if (foundEof) return false;
-	if (wait(INetworkResource::waitForInput,0) == 0)
-		return true;
-	return peek(0,0) > 0;
+	if (countReady > 0) return true;
+	if (wait(waitForInput) & waitForInput) {
+		u_long r = 0;
+		ioctl(sock,FIONREAD,&r);
+		countReady = (natural)r;
+		return countReady > 0;
+	} else {
+		throw NetworkTimeoutException(THISLOCATION,getTimeout(),NetworkTimeoutException::reading);
+	}
+
 }
 
 integer LinuxNetStream::getSocket(int idx) const {
-	if (idx == 0) return sres.sock;
+	if (idx == 0) return sock;
 	else return -1;
 }
 
@@ -177,13 +117,24 @@ natural LinuxNetStream::getDefaultWait() const {
 
 natural LinuxNetStream::dataReady() const {
 	if (foundEof) return 1;
-	return peek(0,0) > 0;
+	if (countReady > 0) return countReady;
+	u_long r = 0;
+	ioctl(sock,FIONREAD,&r);
+	countReady = (natural)r;
+	if (countReady > 0) return countReady;
+	if (wait(waitForInput,0) & waitForInput) {
+		ioctl(sock,FIONREAD,&r);
+		countReady = (natural)(r == 0?1:r);
+		return countReady;
+	} else {
+		return 0;
+	}
 }
 
 void LinuxNetStream::closeOutput() {
 	flush();
 	outputClosed = true;
-	shutdown(sres.sock,SHUT_WR);
+	shutdown(sock,SHUT_WR);
 }
 
 

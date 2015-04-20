@@ -9,6 +9,7 @@
 #include "../interface.h"
 #include "../text/textFormat.h"
 #include "../memory/smallAlloc.h"
+#include "../containers/string.h"
 
 namespace LightSpeed {
 
@@ -204,11 +205,11 @@ public:
 
 	void setThreadIdent(StringA ident) {this->ident = ident;}
 	StringA getThreadIdent() const {
-		if (ident.empty()) buildThreadIdent();
 		return ident;
 	}
 
 	virtual LogFormatter &flush() {
+		if (ident.empty()) buildThreadIdent();
 		output->logOutput(getThreadIdent(),logType,level,fmt.write(),loc);
 		return *this;
 	}
@@ -247,11 +248,11 @@ protected:
 	ILogOutput *output;
 	LogType logType;
 	natural level;
-	mutable StringA ident;
+	StringA ident;
 	ProgramLocation loc;
 	TextFormatBuff<char, SmallAlloc<1024> > fmt;
 
-	void buildThreadIdent() const;
+	void buildThreadIdent() ;
 
 };
 

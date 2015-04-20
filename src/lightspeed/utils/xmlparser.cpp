@@ -1,10 +1,11 @@
-#include "xmlparser.h"
-#include "../base/countof.h"
 #include "../base/memory/staticAlloc.h"
+#include "../base/countof.h"
 #include "../base/text/textIn.tcc"
 #include "../base/streams/utf.tcc"
 #include "../base/text/textstream.tcc"
 #include "../base/iter/iteratorFilter.tcc"
+#define LS_MSVC_SKIPEXTERN_XMLIterator
+#include "xmlparser.h"
 
 namespace LightSpeed {
 

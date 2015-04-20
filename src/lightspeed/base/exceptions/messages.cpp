@@ -29,6 +29,7 @@
 #include "stringException.h"
 #include "httpStatusException.h"
 #include "../exceptions/invalidNumberFormat.h"
+#include "canceledException.h"
 
 
 namespace LightSpeed {
@@ -92,6 +93,7 @@ namespace LightSpeed {
  const char *FolderNotEmptyException::msgText = "Folder '%1' is not empty, cannot be deleted. ";
  const char *FileDeletionException::msgText = "File or folder '%1' cannot be deleted: ";
  const char *HttpStatusException::msgText = "HTTP unexpected status: %2 %3 while trying to download: %1";
+ const char *CanceledException::msgText = "Request has been canceled";
 
 const char *Synchronized_TryLockFailedMsg = "Failed to lock object while non-blocking operation has been requested (trylock)";
 const char *InvalidNumberFormatException::msgText = "Invalid number format: %1";

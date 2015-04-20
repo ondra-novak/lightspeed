@@ -11,8 +11,9 @@ CPP_SRCS += \
 ../src/lightspeed/base/actions/msgQueue.cpp \
 ../src/lightspeed/base/actions/parallelExecutor.cpp \
 ../src/lightspeed/base/actions/parallelExecutor2.cpp \
+../src/lightspeed/base/actions/promise.cpp \
 ../src/lightspeed/base/actions/scheduler.cpp \
-../src/lightspeed/base/actions/vararg.cpp 
+../src/lightspeed/base/actions/simpleMsgQueue.cpp 
 
 OBJS += \
 ./src/lightspeed/base/actions/InfParallelExecutor.o \
@@ -22,8 +23,9 @@ OBJS += \
 ./src/lightspeed/base/actions/msgQueue.o \
 ./src/lightspeed/base/actions/parallelExecutor.o \
 ./src/lightspeed/base/actions/parallelExecutor2.o \
+./src/lightspeed/base/actions/promise.o \
 ./src/lightspeed/base/actions/scheduler.o \
-./src/lightspeed/base/actions/vararg.o 
+./src/lightspeed/base/actions/simpleMsgQueue.o 
 
 CPP_DEPS += \
 ./src/lightspeed/base/actions/InfParallelExecutor.d \
@@ -33,8 +35,9 @@ CPP_DEPS += \
 ./src/lightspeed/base/actions/msgQueue.d \
 ./src/lightspeed/base/actions/parallelExecutor.d \
 ./src/lightspeed/base/actions/parallelExecutor2.d \
+./src/lightspeed/base/actions/promise.d \
 ./src/lightspeed/base/actions/scheduler.d \
-./src/lightspeed/base/actions/vararg.d 
+./src/lightspeed/base/actions/simpleMsgQueue.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

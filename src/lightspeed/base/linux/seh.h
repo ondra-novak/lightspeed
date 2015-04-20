@@ -9,8 +9,14 @@
 
 namespace LightSpeed {
 
+typedef bool (*SignalFunction)(int sig, siginfo_t *i, void *p);
+
 ///begin of SEH try section - use similar to try-catch
 #define __seh_try for (::LightSpeed::LinuxSEH __sehContext;__sehContext.enter();) if (__sehContext.catchRes(sigsetjmp(__sehContext,1)))
+
+///begin of SEH try section - allows to define signal function
+#define __seh_try_fn(sigfn) for (::LightSpeed::LinuxSEH __sehContext(sigfn);__sehContext.enter();) if (__sehContext.catchRes(sigsetjmp(__sehContext,1)))
+
 ///begin of SEH except section.
 /**
  * @param x specify variable name (int) which receives signal number
@@ -29,6 +35,8 @@ public:
 
 	///constructor - prepares context
 	LinuxSEH();
+	///constructor - prepares context
+	LinuxSEH(SignalFunction fn);
 	///destructor - performs cleanup
 	~LinuxSEH();
 
@@ -47,7 +55,7 @@ public:
 	int except();
 
 	///signal handler
-	static void signalHandler(int sig);
+	static void signalHandler(int sig, siginfo_t *i, void *p);
 	///initializes LinuxSEH signal actions - SIGSEGV, SIGBUS and SIGILL
 	static void init();
 	///initializes LinuxSEH to catch specified signal
@@ -58,9 +66,13 @@ public:
 
 	static void throwf(int signum);
 
+
+	static void output_stack_trace();
+
 protected:
 
 	jmp_buf jmpbuf;
+	SignalFunction prevsignfn;
 	__jmp_buf_tag *prevjmpbuf;
 	mutable bool swp;
 	int signum;

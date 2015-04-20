@@ -19,6 +19,8 @@
 #include <signal.h>
 #include "../exceptions/threadException.h"
 #include <process.h>
+#include "../threadHook.h"
+#include "../../base/constructor.h"
 
 namespace LightSpeed {
 
@@ -112,7 +114,7 @@ void ThreadContext::bootstrap(void * data) {
 	//create allocator
 	AllocInBuffer fnbf(bk,bksize);
 	//allocate function
-	AllocPointer<ThreadFunction::Ifc> fn(bs->fn.clone(fnbf));
+	Message<void> fn(bs->fn.clone(fnbf));
 
 	//store owner from bootstrap
 	ctx->owner = bs->owner;
@@ -144,11 +146,22 @@ void ThreadContext::bootstrap(void * data) {
 
 	//start thread
 	try {
+		AbstractThreadHook::callOnThreadInitHooks(*ctx->owner);
+	
 		ctx->owner->getJoinObject().close();
 		//unblock caller - bootstrap data vanished
 		bs->unblockCaller.wakeUp();
-		//call function
-		fn->operator ()();
+			//wrap function call to catch exceptions by thread hooks
+			try {
+				//call function
+				fn.deliver();
+
+			} catch (...) {
+				AbstractThreadHook::callOnThreadExceptionHooks(*ctx->owner);
+				throw;
+			}
+
+			AbstractThreadHook::callOnThreadExitHooks(*ctx->owner);
 
 		ctx->finishThread();
 
@@ -257,7 +270,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	getMaster();
 
 	//initialize sleeper
-	if (!sleeper.isSet()) sleeper.init();
+	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
 
 	//create bootstrap informations
 	ThreadBootstrap bootstrap(fn,this);
@@ -319,7 +332,7 @@ void Thread::deepSleep(const Timeout &timeout) {
 }
 
 void Thread::wakeUp(natural reason) throw() {
-	if (sleeper.isSet()) sleeper->wakeUp(reason);
+	if (sleeper != nil) sleeper->wakeUp(reason);
 }
 
 ///Retrieves ID of thread
@@ -414,6 +427,7 @@ ThreadAttachContext::ThreadAttachContext( bool keepContext )
 void ThreadAttachContext::handleCleanup()
 {
 	if (owner) {
+		AbstractThreadHook::callOnThreadExitHooks(*owner);
 		finishThread();
 		owner = 0;
 	}
@@ -440,7 +454,7 @@ public:
 	MasterThread() {
 		threadContext = &context;
 
-		if (!sleeper.isSet()) sleeper.init();
+		if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
 		id = GetCurrentThreadId();
 
 		//store reference to master thread
@@ -471,6 +485,8 @@ public:
 		threaded = true;
 
 		setCurrentContext(&context);
+
+		AbstractThreadHook::callOnThreadInitHooks(*this);
 	}
 
 	void updatePointers() {
@@ -483,6 +499,7 @@ public:
 	///Destructor - should be called at exit only
 	virtual ~MasterThread() {
 		removeAllContexts();
+		AbstractThreadHook::callOnThreadExitHooks(*this);
 		//restore old pointers
 		ITLSAllocator::setTLSFunction(oldAllocInstance);
 		ITLSTable::setTLSFunction(oldTableInstance);
@@ -583,7 +600,7 @@ bool Thread::isThreaded() {
 bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 {
 	//initialize sleeper
-	if (!sleeper.isSet()) sleeper.init();
+	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
 
 
 	ThreadContext *ctx = getCurrentContext();
@@ -593,6 +610,7 @@ bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 		threadContext = ctx;
 		flags = flagAttached;
 		joinObject.close();
+		AbstractThreadHook::callOnThreadInitHooks(*this);
 		return true;
 	}
 
@@ -614,6 +632,7 @@ bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 	}
 	setCurrentContext(ctx);
 	joinObject.close();
+	AbstractThreadHook::callOnThreadInitHooks(*this);
 	return true;
 }
 

@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <string>
+#include "..\..\base\containers\constStr.h"
 
 namespace LightSpeed {
 

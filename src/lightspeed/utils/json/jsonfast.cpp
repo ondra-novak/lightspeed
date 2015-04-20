@@ -78,6 +78,26 @@ natural FRawValueW_t::getUInt() const {
 		throw InvalidNumberFormatException(THISLOCATION, ConstStrA(value));
 }
 
+linteger FRawValueW_t::getLongInt() const  {
+	TextParser<char, SmallAlloc<256> > parser;
+	if (parser("%d1",value)) {
+		return (linteger)parser[1];
+	} else if (parser("%f1",value)) {
+		return (linteger)round(parser[1]);
+	} else
+		throw InvalidNumberFormatException(THISLOCATION, ConstStrA(value));
+}
+
+lnatural FRawValueW_t::getLongUInt() const {
+	TextParser<char, SmallAlloc<256> > parser;
+	if (parser("%u1",value)) {
+		return (lnatural)parser[1];
+	} else if (parser("%f1",value)) {
+		return (lnatural)round(parser[1]);
+	} else
+		throw InvalidNumberFormatException(THISLOCATION, ConstStrA(value));
+}
+
 double FRawValueW_t::getFloat() const {
 	TextParser<char, SmallAlloc<256> > parser;
 	if (parser("%f1",value)) {
@@ -253,6 +273,9 @@ Iterator FRawValueW_t::getFwIter() const {
 }
 
 natural FObject_t::getUInt() const {
+	return 0;
+}
+lnatural FObject_t::getLongUInt() const {
 	return 0;
 }
 INode *FObject_t::getVariable(ConstStrA s) const {

@@ -21,6 +21,8 @@
 #include "../../mt/linux/systime.h"
 #include <sys/mman.h>
 #include "linuxhttp.h"
+#include "../streams/tcpHandler.h"
+#include "../streams/abstractFileIOService.h"
 
 
 
@@ -61,16 +63,23 @@ namespace LightSpeed {
 
     };
     
-    class LinuxFileServices: public IFileIOServices {
+    class LinuxFileServices: public AbstractFileIOService {
     public:
-        virtual PSeqFileHandle openSeqFile(ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags);
-        virtual PSeqFileHandle openStdFile(StdFile stdfile);
-        virtual void createPipe(PSeqFileHandle &readEnd, PSeqFileHandle &writeEnd);
+    	LinuxFileServices() {
+    		this->setHandler(L"http://",&http);
+    		this->setHandler(L"https://",&https);
+    		this->setHandler(L"tcp://",&tcp);
+
+    	}
+
+        virtual PInOutStream openSeqFile(ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags);
+        virtual PInOutStream openStdFile(StdFile stdfile);
+        virtual void createPipe(PInputStream &readEnd, POutputStream &writeEnd);
         virtual PRndFileHandle openRndFile(ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags);
         virtual bool canOpenFile(ConstStrW name, FileOpenMode mode) const;
-        virtual PSeqFileHandle openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode);
+        virtual PInOutStream openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode);
         virtual PRndFileHandle openRndFile(const void *handle, size_t handleSize, FileOpenMode mode);
-        virtual PDirectoryIterator openDirectory(ConstStrW pathname) ;
+        virtual PFolderIterator openFolder(ConstStrW pathname) ;
         virtual void createFolder(ConstStrW folderName, bool parents);
         virtual void removeFolder(ConstStrW folderName, bool recursive);
         virtual void copy(ConstStrW from, ConstStrW to, bool overwrite);
@@ -82,10 +91,11 @@ namespace LightSpeed {
         virtual String findFile(ConstStrW filename, ConstStrW pathList,natural position, bool executable);
         virtual String findExec(ConstStrW execName);
         virtual PTemporaryFile createTempFile(ConstStrW prefix, bool rndfile = true) ;
-        virtual PDirectoryIterator getFileInfo(ConstStrW pathname) ;
+        virtual PFolderIterator getFileInfo(ConstStrW pathname) ;
 
 
-        HTTPSettings httpSettings,httpsSettings;
+        LinuxHttpHandler http,https;
+        TcpHandler tcp;
     };
 
 	class PipeDescriptor: public FileDescriptorSeq {
@@ -439,16 +449,11 @@ namespace LightSpeed {
         
     }
 
-    PSeqFileHandle LinuxFileServices::openSeqFile(
+    PInOutStream LinuxFileServices::openSeqFile(
                     ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags)
     {
-    	if (ofn.head(7) == ConstStrW(L"http://")) {
-    		return new LinuxHttpStream(ofn,httpSettings);
-    	}
-    	if (ofn.head(8) == ConstStrW(L"https://")) {
-    		return new LinuxHttpStream(ofn,httpsSettings);
-    	}
-
+    	IFileIOHandler *h = findHandler(ofn);
+    	if (h) return h->openSeqFile(ofn,mode,flags);
 
         if (mode == fileOpenRead) {
         	if (ofn == ConstStrW('-')) return openStdFile(stdInput);
@@ -465,6 +470,9 @@ namespace LightSpeed {
                     ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags) {
     	PSeqFileHandle sh;
 
+    	IFileIOHandler *h = findHandler(ofn);
+    	if (h) return h->openRndFile(ofn,mode,flags);
+
         if (mode == fileOpenRead)
             sh = safeOpenFile(ofn,O_RDONLY, flags);
         else if (mode == fileOpenWrite)
@@ -480,7 +488,7 @@ namespace LightSpeed {
 
 
 
-    PSeqFileHandle LinuxFileServices::openStdFile(StdFile stdfile) {
+    PInOutStream LinuxFileServices::openStdFile(StdFile stdfile) {
         switch(stdfile) {
             case stdInput:return new PipeDescriptor(0,"#0 stdInput",false,true);
             case stdOutput:return new PipeDescriptor(1,"#1 stdOutput",true,false);
@@ -507,8 +515,7 @@ namespace LightSpeed {
         return res;
     }
     
-    void LinuxFileServices::createPipe(PSeqFileHandle &readEnd, 
-                        PSeqFileHandle &writeEnd){
+    void LinuxFileServices::createPipe(PInputStream &readEnd, POutputStream &writeEnd){
         
         int fds[2];
         int res = pipeCloseOnExec(fds);
@@ -600,6 +607,11 @@ namespace LightSpeed {
 	}
 
 	bool LinuxFileServices::canOpenFile(ConstStrW name, FileOpenMode mode) const {
+
+    	IFileIOHandler *h = findHandler(name);
+    	if (h) return h->canOpenFile(name,mode);
+
+
 		StringA fname = wideToUtf8(name);
 		switch (mode) {
 		case IFileIOServices::fileAccessible: return ::access(fname.c_str(),F_OK) == 0;
@@ -611,7 +623,7 @@ namespace LightSpeed {
 		}
 	}
 
-	PSeqFileHandle LinuxFileServices::openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode) {
+	PInOutStream LinuxFileServices::openSeqFile(const void *handle, size_t handleSize, FileOpenMode mode) {
 		if (handleSize != sizeof(int)) throw InvalidParamException(THISLOCATION,2,"This is not handle");
 		int fd = *(int *)handle;
 		char buff[256];
@@ -647,7 +659,7 @@ namespace LightSpeed {
 		::fdatasync(fd);
 	}
 
-	class DirState: public IDirectoryIterator {
+	class DirState: public IFolderIterator {
 
 		typedef struct stat64 LinuxStat;
 		class StatInfo: public LinuxStat, public ILinuxFileInfo {
@@ -795,7 +807,7 @@ namespace LightSpeed {
         		statLoaded = true;
         	}
 
-        	virtual PDirectoryIterator openDirectory() const {
+        	virtual PFolderIterator openFolder() const {
         		if (type != directory) throw FileMsgException(THISLOCATION,0,wbuffer,ConstStrW(L"Directory not found"));
         		size_t maxpath = pathconf(srcpath, _PC_NAME_MAX) + 1;
         		return new(maxpath,strlen(srcpath)) DirState(svc,srcpath,maxpath);
@@ -805,7 +817,7 @@ namespace LightSpeed {
         		return wsrcpath;
         	}
 
-            virtual PSeqFileHandle openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
+            virtual PInOutStream openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
     		virtual PRndFileHandle openRndFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
     		virtual void remove(bool recursive = false);
     		virtual PMappedFile mapFile(IFileIOServices::FileOpenMode mode);
@@ -815,9 +827,15 @@ namespace LightSpeed {
 };
 
 
-    PDirectoryIterator LinuxFileServices::openDirectory(ConstStrW pathname)  {
+    PFolderIterator LinuxFileServices::openFolder(ConstStrW pathname)  {
+
+    	IFileIOHandler *h = findHandler(pathname);
+    	if (h) return h->openFolder(pathname);
+
+
     	StringA c = wideToUtf8(pathname);
     	if (c.empty()) c=".";
+    	if (c.tail(1)[0] == '/') c = c + ConstStrA(".");
 		size_t maxpath = pathconf(c.c_str(), _PC_NAME_MAX) + 1;
 		return new(maxpath,c.length()) DirState(*this,c,maxpath);
 
@@ -826,6 +844,11 @@ namespace LightSpeed {
 
 
     void LinuxFileServices::createFolder(ConstStrW folderName, bool parents) {
+
+    	IFileIOHandler *h = findHandler(folderName);
+    	if (h) return h->createFolder(folderName,parents);
+
+
     	StringA fn = wideToUtf8(folderName);
     	if (parents) createFolders(fn);
     	else {
@@ -837,6 +860,10 @@ namespace LightSpeed {
     }
     void LinuxFileServices::removeFolder(ConstStrW folderName, bool recursive) {
 
+    	IFileIOHandler *h = findHandler(folderName);
+    	if (h) return h->removeFolder(folderName,recursive);
+
+
     	StringA fn = wideToUtf8(folderName);
     	if (::rmdir(fn.c_str()) == -1) {
     		int err = errno;
@@ -844,7 +871,7 @@ namespace LightSpeed {
     				&& folderName!=ConstStrW(L"/") ) {
 
     			try {
-					PDirectoryIterator iter = openDirectory(folderName);
+					PFolderIterator iter = openFolder(folderName);
 					while (iter->getNext()) {
 						if (!iter->link && iter->type == iter->directory) {
 							removeFolder(iter->getFullPath(),true);
@@ -864,6 +891,12 @@ namespace LightSpeed {
 
     }
     void LinuxFileServices::copy(ConstStrW from, ConstStrW to, bool overwrite) {
+
+    	IFileIOHandler *h1 = findHandler(from);
+    	IFileIOHandler *h2 = findHandler(to);
+    	if (h1 != h2) throwUnsupportedFeature(THISLOCATION, this, "Cannot copy files between various filesystems");
+    	if (h1) return h1->copy(from,to,overwrite);
+
     	StringA f = wideToUtf8(from);
     	StringA t = wideToUtf8(to);
     	int ifd = open(f.cStr(),O_RDONLY|O_LARGEFILE|O_CLOEXEC);
@@ -879,17 +912,26 @@ namespace LightSpeed {
     			int e = errno;close(ifd);close(ofd);
     			throw FileIOError(THISLOCATION,e,from);
     		}
-    		ssize_t s = write(ofd,buffer,sizeof(buffer));
+    		ssize_t s = write(ofd,buffer,r);
     		if (s != r) {
     			int e = errno;close(ifd);close(ofd);
     			throw FileIOError(THISLOCATION,e,to);
     		}
+    		r = read(ifd,buffer,sizeof(buffer));
+
     	}
     	close(ifd);
     	close(ofd);
     }
     void LinuxFileServices::move(ConstStrW from, ConstStrW to, bool overwrite) {
     	if (from == to) return;
+
+    	IFileIOHandler *h1 = findHandler(from);
+    	IFileIOHandler *h2 = findHandler(to);
+    	if (h1 != h2) throwUnsupportedFeature(THISLOCATION, this, "Cannot move files between various filesystems");
+    	if (h1) return h1->move(from,to,overwrite);
+
+
     	if (::rename(wideToUtf8(from).cStr(),wideToUtf8(to).cStr()) == -1) {
 
     		int e = errno;
@@ -901,7 +943,7 @@ namespace LightSpeed {
     		} } else if (e == EXDEV) {try {
 
     			copy(from,to,overwrite);
-    			remove(to);
+    			remove(from);
     		}
     		catch (const Exception &e) {
     			throw FileMsgException(THISLOCATION,EFAULT,to,ConstStrA("Exception while trying to move using copying")) << e;
@@ -909,7 +951,15 @@ namespace LightSpeed {
     		} else throw FileIOError(THISLOCATION, e, from);
     	}
     }
+
     void LinuxFileServices::link(ConstStrW linkName, ConstStrW target, bool overwrite) {
+
+    	IFileIOHandler *h1 = findHandler(linkName);
+    	IFileIOHandler *h2 = findHandler(target);
+    	if (h1 != h2) throwUnsupportedFeature(THISLOCATION, this, "Cannot link files between various filesystems");
+    	if (h1) return h1->link(linkName,target,overwrite);
+
+
     	if (::symlink(wideToUtf8(target).cStr(),wideToUtf8(linkName).cStr()) == -1) {
     		int e = errno;
     		if (e == EEXIST && overwrite) {
@@ -925,6 +975,10 @@ namespace LightSpeed {
     	}
     }
     void LinuxFileServices::remove(ConstStrW what) {
+
+    	IFileIOHandler *h1 = findHandler(what);
+    	if (h1) return h1->remove(what);
+
     	if (::remove(wideToUtf8(what).cStr()) == -1) {
     		int e = errno;
     		throw FileIOError(THISLOCATION, e, what);
@@ -932,6 +986,10 @@ namespace LightSpeed {
 
     }
     PMappedFile LinuxFileServices::mapFile(ConstStrW filename, FileOpenMode mode) {
+
+    	IFileIOHandler *h1 = findHandler(filename);
+    	if (h1) return h1->mapFile(filename,mode);
+
 
     	class Mapped: public IMappedFile {
     	public:
@@ -1051,7 +1109,7 @@ namespace LightSpeed {
 			atomic lc = lockInc(counter);
 			fmt("/tmp/%1~%2~%3") << prefix << (natural)getpid() << (natural)lc;
 			String filename(fmt.write());
-			PSeqFileHandle hnd = openSeqFile(filename,fileOpenWrite,
+			PInOutStream hnd = openSeqFile(filename,fileOpenWrite,
 					OpenFlags::create|OpenFlags::truncate|OpenFlags::temporary|OpenFlags::shareRead|OpenFlags::shareWrite|OpenFlags::shareDelete);
 			return new TemporaryFile(*this,hnd,filename);
 		} else {
@@ -1059,7 +1117,7 @@ namespace LightSpeed {
 			fmt("/tmp/%1") << prefix;
 			String filename(fmt.write());
 			try {
-				PSeqFileHandle hnd = openSeqFile(filename,fileOpenWrite,
+				PInOutStream hnd = openSeqFile(filename,fileOpenWrite,
 					OpenFlags::create|OpenFlags::temporary|OpenFlags::shareRead|OpenFlags::shareWrite);
 				return new TemporaryFile(*this,hnd,filename);
 			} catch (FileOpenError &e) {
@@ -1073,7 +1131,7 @@ namespace LightSpeed {
 
     typedef struct stat64 FileStat;
 
-    	class FileInfo: public IDirectoryIterator, public ILinuxFileInfo {
+    	class FileInfo: public IFolderIterator, public ILinuxFileInfo {
     	public:
     		FileInfo(IFileIOServices &svc, ConstStrW pathname, const FileStat &statinfo)
     			:svc(svc),statinfo(statinfo),fullname(pathname) {
@@ -1111,7 +1169,7 @@ namespace LightSpeed {
         	virtual lnatural getSize() const {
         		return statinfo.st_size;
         	}
-        	virtual const IDirectoryIterator::IFileInformation &getInfo() const {
+        	virtual const IFolderIterator::IFileInformation &getInfo() const {
         		return *this;
         	}
         	virtual TimeStamp getModifiedTime() const {
@@ -1126,8 +1184,8 @@ namespace LightSpeed {
         			return IFileIOServices::fileOpenWrite;
         		return IFileIOServices::fileAccessible;
         	}
-        	virtual PDirectoryIterator openDirectory() const {
-        		return svc.openDirectory(fullname);
+        	virtual PFolderIterator openFolder() const {
+        		return svc.openFolder(fullname);
         	}
 
         	virtual String getFullPath() const {return fullname;}
@@ -1136,7 +1194,7 @@ namespace LightSpeed {
     			return statinfo;
     		}
 
-        virtual PSeqFileHandle openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
+        virtual PInOutStream openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
 		virtual PRndFileHandle openRndFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags);
 		virtual void remove(bool recursive = false);
 		virtual PMappedFile mapFile(IFileIOServices::FileOpenMode mode);
@@ -1152,7 +1210,7 @@ namespace LightSpeed {
     	};
 
 
-    PDirectoryIterator LinuxFileServices::getFileInfo(ConstStrW pathname)  {
+    PFolderIterator LinuxFileServices::getFileInfo(ConstStrW pathname)  {
     	StringA cname = String::getUtf8(pathname);
     	FileStat fst;
     	if (stat64(cname.c_str(),&fst)) {
@@ -1163,7 +1221,7 @@ namespace LightSpeed {
     }
 
 
-    LightSpeed::PSeqFileHandle DirState::openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags)
+    LightSpeed::PInOutStream DirState::openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags)
     {
     	return svc.openSeqFile(getFullPath(),mode,flags);
     }
@@ -1197,7 +1255,7 @@ namespace LightSpeed {
 
 
 
-    LightSpeed::PSeqFileHandle FileInfo::openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags)
+    LightSpeed::PInOutStream FileInfo::openSeqFile(IFileIOServices::FileOpenMode mode, OpenFlags::Type flags)
     {
     	return svc.openSeqFile(getFullPath(),mode,flags);
     }

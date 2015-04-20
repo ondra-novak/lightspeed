@@ -13,35 +13,16 @@
 namespace LightSpeed {
 
 
-const ITCPServerContext *ITCPServerConnection::reject =
-	(ITCPServerContext  *)0x1;
-
-
-TCPServer::TCPServer(ITCPServerConnection &handler,natural maxThreads)
-:internalExecutor(new ParallelExecutor(maxThreads))
-,handler(&handler),handler2(0),shutdown(1)
-{
-	executor = internalExecutor;
-}
-
-TCPServer::TCPServer(ITCPServerConnection &handler, TCPSharedThreadPool *connExecutor)
-:executor(connExecutor)
-,handler(&handler),handler2(0),shutdown(1)
-{
-
-
-}
-
 TCPServer::TCPServer(ITCPServerConnHandler &handler,natural maxThreads)
 :internalExecutor(new ParallelExecutor(maxThreads))
-,handler(0),handler2(&handler),shutdown(1)
+,handler2(&handler),shutdown(1)
 {
 	executor = internalExecutor;
 }
 
 TCPServer::TCPServer(ITCPServerConnHandler &handler, TCPSharedThreadPool *connExecutor)
 :executor(connExecutor)
-,handler(),handler2(&handler),shutdown(1)
+,handler2(&handler),shutdown(1)
 {
 
 
@@ -160,39 +141,9 @@ void TCPServer::acceptConn(NetworkStreamSource& listenSock, natural sourceId) th
 		ITCPServerConnHandler::Command cmd =  handler2->onAccept(conn,ctx);
 		//carry out the action
 		reuse(conn,cmd);
-
-	} else {
-		//call handler
-		ITCPServerContext *ctx = handler->onConnect(remoteAddr);
-
-		//if connection is rejected
-		if (ctx == ITCPServerConnection::reject) {
-			//return from wakeUp - connection will be closed
-			return;
-		}
-
-		//create connection object
-		PConnection conn(new Connection(this,stream,ctx,sourceId));
-		//register connection
-		connList.insert(conn.getMT());
-
-		//register connection on event listened
-		eventListener(stream,conn).forInput();
 	}
 }
 
-class TCPServer::RunWorker: public IExecutor::ExecAction::Ifc {
-public:
-	LIGHTSPEED_CLONEABLECLASS;
-
-	RunWorker(TCPServer &server, Connection *conn):server(server),conn(conn) {}
-	void operator()() const {
-		server.worker(conn);
-	}
-protected:
-	 TCPServer &server;
-	mutable Connection *conn;
-};
 
 
 class TCPServer::RunWorkerEx: public IExecutor::ExecAction::Ifc {
@@ -208,6 +159,20 @@ protected:
 	mutable Connection *conn;
 	natural eventId;
 };
+
+class TCPServer::RunWorkerCompletion: public IExecutor::ExecAction::Ifc {
+public:
+	LIGHTSPEED_CLONEABLECLASS;
+
+	RunWorkerCompletion(TCPServer &server, Connection *conn):server(server),conn(conn) {}
+	void operator()() const {
+		server.checkUserWakeup(conn);
+	}
+protected:
+	TCPServer &server;
+	mutable Connection *conn;
+};
+
 
 class TCPServer::RunDisconnect: public IExecutor::ExecAction::Ifc {
 public:
@@ -227,57 +192,43 @@ void TCPServer::Connection::wakeUp(natural reason) throw() {
 
 	//if shutdown - reject request
 	if (owner.shutdown) return;
-	try {
-		if (owner.handler2 != 0) {
+		try {
+			if (owner.handler2 != 0) {
 
-			if (reason & INetworkResource::waitForInput) {
-				bool canread  = stream->canRead();
-				if (!canread) { //connection closed
-					//interface states, that disconnect is called in the control thread
-					//so let it be
-					owner.workerDisconnect(this);
-//					owner.executor->execute(RunDisconnect(owner,this));
+				if (reason & INetworkResource::waitForInput) {
+					bool canread  = stream->canRead();
+					if (!canread) { //connection closed
+						//interface states, that disconnect is called in the control thread
+						//so let it be
+						//disconnect it now
+						owner.workerDisconnect(this);
+					} else {
+						owner.executor->execute(RunWorkerEx(owner,this,reason));
+					}
+				} else if (reason & INetworkResource::waitForOutput){
+					owner.executor->execute(RunWorkerEx(owner,this,INetworkResource::waitForOutput));
+				} else if (reason == INetworkResource::waitTimeout){
+					owner.executor->execute(RunWorkerEx(owner,this,INetworkResource::waitTimeout));
 				} else {
-					owner.executor->execute(RunWorkerEx(owner,this,reason));
+					owner.close(this);
 				}
-			} else if (reason & INetworkResource::waitForOutput){
-				owner.executor->execute(RunWorkerEx(owner,this,INetworkResource::waitForOutput));
-			} else if (reason == INetworkResource::waitTimeout){
-				owner.executor->execute(RunWorkerEx(owner,this,INetworkResource::waitTimeout));
+
+
 			} else {
 				owner.close(this);
 			}
 
-
-		} else {
-			//compatible mode
-			//peak count of bytes on the stream
-			bool canread  = stream->canRead();
-		//zero means that connection has been closed
-			if (!canread) { //connection closed
-
-				owner.close(this);
-			} else {
-		//		Sync _(owner.lock); //NOTE lock here causing deadlock
-				owner.executor->execute(RunWorker(owner,this));
-			}
-		}
-	} catch (...) {
-		owner.close(this);
-	}
+		} catch (...) {
+			owner.close(this);
+		} 
 }
 
 
 
-void TCPServer::worker(Connection *conn) {
-	while (handler->onData(conn->getStream(), conn->getContext()) && !Thread::canFinish()) {
-		if (!conn->getStream()->dataReady()) {
-			reuse(conn);
-			return;
-		}
+void TCPServer::Connection::userWakeup( natural )
+{
+	owner.executor->execute(RunWorkerCompletion(owner,this));
 
-	}
-	close(conn);
 }
 
 
@@ -310,6 +261,9 @@ void TCPServer::reuse(Connection *k, ITCPServerConnHandler::Command command) {
 		if (tmm == naturalNull) eventListener(k->getStream(),k).forOutput().forInput();
 		else eventListener(k->getStream(),k).forOutput().forInput().timeout(tmm);
 		break;
+	case ITCPServerConnHandler::cmdWaitUserWakeup:
+		break;
+
 	default: close(k);break;
 	}
 
@@ -340,21 +294,28 @@ bool TCPSharedThreadPool::stopAll( natural timeout /*= 0*/ )
 
 
 void TCPServer::workerEx(Connection *owner, natural eventId) {
-	ITCPServerConnHandler::Command cmdout;
-	switch (eventId) {
-	case INetworkResource::waitForInput:
-		cmdout = handler2->onDataReady(owner->getStream(),owner->getContext());break;
-	case INetworkResource::waitForOutput:
-		cmdout = handler2->onWriteReady(owner->getStream(),owner->getContext());break;
-	case INetworkResource::waitTimeout:
-		cmdout = handler2->onTimeout(owner->getStream(),owner->getContext());break;
-	default:
-		cmdout = ITCPServerConnHandler::cmdRemove;
-	}
 
-	reuse(owner,cmdout);
+		ITCPServerConnHandler::Command cmdout;
+		switch (eventId) {
+		case INetworkResource::waitForInput:
+			cmdout = handler2->onDataReady(owner->getStream(),owner->getContext());break;
+		case INetworkResource::waitForOutput:
+			cmdout = handler2->onWriteReady(owner->getStream(),owner->getContext());break;
+		case INetworkResource::waitTimeout:
+			cmdout = handler2->onTimeout(owner->getStream(),owner->getContext());break;
+		default:
+			cmdout = ITCPServerConnHandler::cmdRemove;
+		}
 
+
+		reuse(owner,cmdout);
+
+		if (cmdout == ITCPServerConnHandler::cmdWaitUserWakeup) {
+			owner->setUserWakeupState(owner->userWakeupEnabled);
+			checkUserWakeup(owner);
+		}
 }
+
 void TCPServer::workerDisconnect(Connection *owner) {
 	handler2->onDisconnectByPeer(owner->getContext());
 	close(owner);
@@ -404,6 +365,35 @@ void TCPSharedThreadPool::finish() {
 bool TCPSharedThreadPool::isRunning() const {
 	Sync _(lock);
 	return executor.isRunning();
+}
+
+
+void TCPServer::checkUserWakeup(Connection *k) {
+	ITCPServerConnHandler::Command cmd = ITCPServerConnHandler::cmdWaitUserWakeup;
+	while (lockCompareExchange(k->userWakeupState,k->userWakeupEnabledEvent,0) == k->userWakeupEnabledEvent) {
+		cmd = handler2->onUserWakeup(k->stream,k->getContext());
+		if (cmd == ITCPServerConnHandler::cmdWaitUserWakeup) {
+			k->setUserWakeupState(k->userWakeupEnabled);
+		}
+	}
+	if (cmd != ITCPServerConnHandler::cmdWaitReadOrWrite)
+		reuse(k,cmd);
+}
+
+atomicValue TCPServer::Connection::setUserWakeupState(atomicValue flag) {
+	atomicValue v = userWakeupState;
+	atomicValue nv;
+	do {
+		nv = v | flag;
+	} while (lockCompareExchange(userWakeupState,v,nv) != v);
+	return v;
+
+}
+
+void TCPServer::Connection::CompletionWakeUp::wakeUp( natural reason /*= 0 */ ) throw()
+{
+	atomicValue v = owner.setUserWakeupState(userWakeupEvent);
+	if (v & userWakeupEnabled) owner.userWakeup(reason);
 }
 
 }

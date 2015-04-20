@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "../exceptions/outofmemory.h"
+#include "linsocket.tcc"
 
 namespace LightSpeed {
 
@@ -26,29 +27,14 @@ ConstStringT<byte> LinuxNetDatagram::peekOutputBuffer() const {
 }
 
 LinuxNetDgamSource::LinuxNetDgamSource(natural port, natural timeout, natural startDID)
-	:sres(createDatagramSocket(port),timeout),dgrId(startDID)
+	:LinuxSocketResource<INetworkDatagramSource>(createDatagramSocket(port),timeout),dgrId(startDID)
 {
 
 }
 
-natural LinuxNetDgamSource::wait(natural waitFor, natural timeout) const {
-	return sres.userWait(waitFor,timeout);
-}
- void LinuxNetDgamSource::setWaitHandler(IWaitHandler *handler) {
-	sres.setWaitHandler(handler);
-}
-
-void LinuxNetDgamSource::setTimeout(natural time_in_ms) {
-	sres.setTimeout(time_in_ms);
-}
-
-natural LinuxNetDgamSource::getTimeout() const {
-	return sres.getTimeout();
-}
-
 PNetworkDatagram LinuxNetDgamSource::receive() {
 
-	sres.wait();
+	wait();
 
 	RefCntPtr<LinuxNetDatagram> dgr = new(dgmpool) LinuxNetDatagram(this);
 
@@ -56,11 +42,11 @@ PNetworkDatagram LinuxNetDgamSource::receive() {
 	socklen_t len = sizeof(dgr->addrbuff);
 
 	u_long res = 0;
-	ioctl(sres.sock,FIONREAD,&res);
+	ioctl(sock,FIONREAD,&res);
 	dgr->inputData.setSize(res);
 	void *buff = dgr->inputData.getBuffer().data();
 
-	int r = ::recvfrom(sres.sock,buff,res,0,saddr,&len);
+	int r = ::recvfrom(sock,buff,res,0,saddr,&len);
 	if (r == -1) {
 		int err = errno; throw NetworkIOError(THISLOCATION,err,"recvfrom failed");
 	}
@@ -101,7 +87,7 @@ PNetworkDatagram LinuxNetDgamSource :: create(PNetworkAddress adr) {
 
 
 integer LinuxNetDgamSource ::getSocket(int index) const {
-	return index?-1:sres.sock;
+	return index?-1:sock;
 }
 
 static void localfreeaddrinfo(struct addrinfo *a) {
@@ -146,7 +132,7 @@ void LinuxNetDatagram::send() {
 	if (addrlen == 0)
 		throw NetworkInvalidAddressException(THISLOCATION,nil);
 	else {
-		int r = ::sendto(owner->sres.sock,outputData.getBuffer().data(),
+		int r = ::sendto(owner->sock,outputData.getBuffer().data(),
 				outputData.getBuffer().length(),0,
 				(struct sockaddr *)addrbuff, addrlen);
 		if (r == -1) {
@@ -163,7 +149,7 @@ void LinuxNetDatagram::sendTo(PNetworkAddress target) {
 		LinuxNetAddress *a = dynamic_cast<LinuxNetAddress *>(target.get());
 		if (a == 0)
 			throw NetworkInvalidAddressException(THISLOCATION,target);
-		int r = ::sendto(owner->sres.sock,outputData.getBuffer().data(),
+		int r = ::sendto(owner->sock,outputData.getBuffer().data(),
 				outputData.getBuffer().length(),0,
 				a->getAddrInfo()->ai_addr, a->getAddrInfo()->ai_addrlen);
 		if (r == -1) {

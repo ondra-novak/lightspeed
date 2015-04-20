@@ -1,24 +1,18 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lightspeed", "lightspeed.vcxproj", "{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}"
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lightspeed-11.12", "lightspeed.vcproj", "{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug_sharedLibs|Win32 = Debug_sharedLibs|Win32
 		Debug|Win32 = Debug|Win32
-		Release_sharedLibs|Win32 = Release_sharedLibs|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Debug_sharedLibs|Win32.ActiveCfg = Debug_sharedLibs|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Debug_sharedLibs|Win32.Build.0 = Debug_sharedLibs|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Debug|Win32.ActiveCfg = Debug|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Debug|Win32.Build.0 = Debug|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Release_sharedLibs|Win32.ActiveCfg = Release_sharedLibs|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Release_sharedLibs|Win32.Build.0 = Release_sharedLibs|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Release|Win32.ActiveCfg = Release|Win32
-		{2CFFB60B-E51A-4659-B0BB-4B1FC385BC33}.Release|Win32.Build.0 = Release|Win32
+		{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}.Debug|Win32.Build.0 = Debug|Win32
+		{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}.Release|Win32.ActiveCfg = Release|Win32
+		{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

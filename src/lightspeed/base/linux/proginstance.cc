@@ -30,6 +30,8 @@
 #include <signal.h>
 #include <sys/signal.h>
 #include "../debug/dbglog.h"
+#include "../streams/fileio.h"
+#include "../streams/fileiobuff.tcc"
 
 
 namespace LightSpeed {
@@ -383,14 +385,17 @@ void ProgInstance::NotInitialized::message(ExceptionMsg &msg) const {
 	msg("Not initialized");
 }
 
+static void waitForTerminateSt(natural timeout, pid_t pid);
+
 void ProgInstance::terminate() {
 	if (buffer == 0) throw NotInitialized(THISLOCATION);
 	pid_t pid = buffer->pid;
 	kill(pid,SIGTERM);
 	try {
-		waitForTerminate(10000);
+		waitForTerminateSt(3000,pid);
 	} catch (const TimeoutException &e) {
 		kill(pid,SIGKILL);
+		waitForTerminateSt(3000,pid);
 	}
 }
 
@@ -399,12 +404,18 @@ void ProgInstance::waitForTerminate(natural timeout) {
 	if (buffer == 0) throw NotInitialized(THISLOCATION);
 	pid_t pid = buffer->pid;
 	close();
+	waitForTerminateSt(timeout,pid);
+}
+
+static void waitForTerminateSt(natural timeout, pid_t pid) {
 	natural waits = 0;
+	timeout *=2;
 	while (waits < timeout) {
-		sleep(1);
-		waits+=1000;
 		if (kill(pid,0) != 0) return;
+		usleep(500000);
+		waits+=500;
 	}
+	if (kill(pid,0) != 0) return;
 	throw ProgInstance::TimeoutException(THISLOCATION);
 }
 
@@ -443,6 +454,46 @@ natural ProgInstance::getUpTime(bool resetOnRestart) {
 	else return curTime - startTime;
 }
 
+class ForkAndForwardIO {
+public:
+
+	ForkAndForwardIO() {}
+
+	int doFork() {
+
+		Pipe p;
+		inp = Constructor1<SeqFileInBuff<>, SeqFileInput>(p.getReadEnd());
+		SeqFileOutput oup = p.getWriteEnd();
+		int forkRes = fork();
+
+		if (forkRes == -1) throw ErrNoException(THISLOCATION,errno);;
+		if (forkRes == 0) {
+			int fd;
+			oup.getStream()->getIfc<IFileExtractHandle>().getHandle(&fd,sizeof(fd));
+			dup2(fd,1);
+			dup2(fd,2);
+		}
+		return forkRes;
+	}
+
+	ConstStrA readLine() {
+		linebuff.clear();
+		byte b;
+		while (inp->hasItems()) {
+			b = inp->getNext();
+			if (b == '\n') break;
+			linebuff.write((char)b);
+		}
+		return linebuff.getArray();
+	}
+
+	bool hasItems() const {return inp->hasItems();}
+
+
+protected:
+	Optional<SeqFileInBuff<> > inp;
+	AutoArrayStream<char> linebuff;
+};
 
 void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 	LogObject lg(THISLOCATION);
@@ -459,13 +510,45 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 	    lg.note("Entering daemon with restarting feature enabled - delay: %1") << restartOnErrorSec;
 	    restartCount = 0;
 	    time_t curTime;
-	    int k = fork();
+
+	    ForkAndForwardIO fafio;
+
+	    int k = fafio.doFork();
 	    while (k != 0) {
 	    	DbgLog::setThreadName("watchdog",false);
 			if (k == -1) throw ErrNoException(THISLOCATION,errno);
 			int status;
-			err = waitpid(k,&status,0);
+			//wait pid no hang
+			err = waitpid(k,&status,WNOHANG);
+			while(err == 0) {
+				//if still running, read input blocking (should close on exit or crash)
+				ConstStrA line = fafio.readLine();
+				//test running status again
+				err = waitpid(k,&status,WNOHANG);
+				//if line is empty and there are no items...
+				if (line.empty() && !fafio.hasItems()) {
+					//if no exit yet caught
+					if (err == 0) {
+						//input has been probably closed, we need to block on waiting
+						err = waitpid(k,&status,0);
+					}
+					//in case on other result of wait cycle should stop here
+				} else {
+					//rotate logs (because we don't have information about rotation, reopen log for every line
+					DbgLog::logRotate();
+					//put line to log
+					lg.warning("%1") << line;
+					//repeat cycle and continue waiting
+				}
+			}
+			//read any unprocessed output resides in the buffer
+			while (fafio.hasItems()) {
+				ConstStrA line = fafio.readLine();
+				lg.warning("%1") << line;
+			}
+			//finnaly, rotate logs
 			DbgLog::logRotate();
+			//measure time
 			time(&curTime);
 			if (err == -1) throw ErrNoException(THISLOCATION,errno);
 			int sig = 0;
@@ -481,13 +564,15 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 					lg.error("Process exited with signal %1 - will no restarted, because it crashed too soon") << sig;
 					_exit(sig);
 				}
+				//perform some logging
 				lg.error("Process crashed with signal %1, restarting (after delay)") << sig;
 				natural runTm = curTime - restartTime;
 				if (runTm < restartOnErrorSec) sleep(restartOnErrorSec - runTm);
 			}
 			restartCount++;
 			time(&restartTime);
-			k = fork();
+			//restart service
+			k = fafio.doFork();
 	    }
 	}
 	DbgLog::setThreadName("main",false);

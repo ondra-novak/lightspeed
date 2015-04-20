@@ -92,6 +92,15 @@ public:
 	 */
 	virtual IExecutor *getServerExecutor() const = 0;
 
+	///Retrurns object that can be used to wake connection while it has been put into inactive state
+	/**
+	 *
+	 *
+	 */
+
+	virtual ISleepingObject *getUserSleeper() throw() = 0;
+	
+
 };
 
 ///Brand new handler which can be used instead old ITCPServerConnection.
@@ -128,7 +137,22 @@ public:
 		 * is called. TCP Server always trigger only one event at once and disables monitoring until
 		 * handler returns
 		 */
-		cmdWaitReadOrWrite = 3
+		cmdWaitReadOrWrite = 3,
+		/**
+		 * Stops monitoring and enables user wakeup. In this state, connection's handler can
+		 * be activated through the "User-wakeup". This can be achieved through an object
+		 * returned by the function getUserSleeper() on the ITCPServerConnControl. Invoking
+		 * the function wakeUp() brings connection back to the live through the function onUserWakeup.
+		 *
+		 * Note that this feature is available only when connection is in this state. Invoking the
+		 * function wakeUp other time will not wake the connection, but the request is recorded
+		 * and once the connection is later put into this state, it is immediatelly woken back. The
+		 * same behaviour happen, when somebody calls wakeUp during handler is executed.
+		 *
+		 *
+		*/
+
+		cmdWaitUserWakeup = 4 
 	};
 
 	///Called when there are data ready
@@ -155,11 +179,23 @@ public:
 	 * Most common action for this event is cmdRemove causing disconnecting timeouted connections
 	 */
 	virtual Command onTimeout(const PNetworkStream &stream, ITCPServerContext *context) throw () = 0;
+	///Called when user sleeper is waken up using ITCPServerConnControl::getSleeperObject when connection is in apropriate state
+	/**
+	 * Function will executed when something calls wakeUp on the UserSleeper and connection is
+	 * in the state waitUserWakeup.
+	 *
+	 * @param stream connected stream
+	 * @param context user context created during onConnect()
+	 * @return command to TCP server. To continue waiting to userWakeup, you can return waitUserWakeup command
+	 * otherwise return correct command.
+	 *
+	 *
+	 */
+	virtual Command onUserWakeup(const PNetworkStream &stream, ITCPServerContext *context) throw() = 0;
 	///Called when peer connection has been closed
-	/** This is difference from ITCPServerConnection, when disconnected streams are reported
-	 * through onData while read() will return zero. If disconnection is detected during waiting,
+	/**If disconnection is detected during waiting,
 	 * function onDisconnectByPeer is called. Function is not called, when disconnection is detected
-	 * by handler while reading. When function read() returns 0, handler should return cmdRemove in reaction.
+	 * by handler while reading. When function read() returns 0, handler should return cmdRemove as reaction.
 	 *
 	 * @param context associated context. Because stream has been disconnected, you cannot access it.
 	 *
@@ -198,7 +234,7 @@ public:
 	 * @return command to TCP server
 	 *
 	 * @note function is called in control thread. You should not perform long task, because this blocks
-	 * processing other connections. Function should only configure connection and return command to TCPServer
+	 * processing other connections. Function should only configure connection and return command to allow TCPServer to
 	 * insert connection into connection-pool. At this point, stream is not available. To send welcome
 	 * message, return cmdWaitWrite and function onWriteReady() will be called immediately with the stream.
 	 *
@@ -215,57 +251,6 @@ public:
 	AbstractTCPServerContext(const NetworkAddress &addr,ITCPServerConnControl *concontrol)
 		:addr(addr),concontrol(concontrol) {}
 };
-
-///Abstract TCP Server connection - you need implement onDataReady only
-class AbstractTCPServerConnHandler: public ITCPServerConnHandler {
-public:
-
-
-	virtual Command onWriteReady(const PNetworkStream &, ITCPServerContext *) throw() {return cmdWaitRead;}
-	virtual Command onTimeout(const PNetworkStream &, ITCPServerContext *) throw() {return cmdRemove;}
-	virtual void onDisconnectByPeer(ITCPServerContext *) throw() {}
-	virtual ITCPServerContext *onConnect(const NetworkAddress &addr, ITCPServerConnControl *controlObject) throw() {
-		return new AbstractTCPServerContext(addr,controlObject);
-	}
-
-
-};
-class ITCPServerConnection: public IInterface {
-public:
-	///called, when data available on connection
-	/**
-	 * @param stream network stream containing the arrived data
-	 * @param context object associated with the connection
-	 * @retval true continue waiting for new data
-	 * @retval false close the connection instantly
-	 */
-	virtual bool onData(const PNetworkStream &stream, ITCPServerContext *context)  throw() = 0;
-	///called on new connection
-	/**
-	 * @param addr address from connection arrived
-	 * @return function can return pointer to user object which is associated with
-	 * the connection. This object is later passed in function onData to identify
-	 * the connection. When connection is closed, object is deleted (using
-	 * delete operator). Function can return NULL then no context is associated with
-	 * the connection. Function can return value of "reject" const if it don't
-	 * want to accept connection from the specified address
-	 *
-	 */
-	virtual ITCPServerContext *onConnect(const NetworkAddress &addr) throw() = 0;
-	virtual ~ITCPServerConnection() {}
-
-
-	class ConnectionAddress: public ITCPServerContext {
-	public:
-		ConnectionAddress(const NetworkAddress addr):clientAddr(addr) {}
-
-		NetworkAddress clientAddr;
-	};
-
-	///use as return value of onConnect() to reject this connection;
-	static const ITCPServerContext *reject;
-};
-
 }
 
 

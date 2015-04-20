@@ -10,6 +10,8 @@
 #include "../base/sync/synchronize.h"
 #include "atomic.h"
 #include "threadMinimal.h"
+#include "sleepingobject.h"
+
 
 namespace LightSpeed {
 
@@ -32,6 +34,8 @@ namespace LightSpeed {
 		MicroLockData *owner;
 
 		friend class Synchronized<MicroLock>;
+	public:
+		MicroLock():owner(0) {}
 	};
 
 	template<>
@@ -70,10 +74,10 @@ namespace LightSpeed {
 		void unlock() {
 			//next must be zero for owned lock
 			if (next == 0) {
-				//try to unlock the lock complette
+				//try to unlock the lock complete
 				MicroLockData *k = lockCompareExchangePtr<MicroLockData>(&lk.owner,this,0);
-				//whe need to have this in the k.
-				//if not - the lock cannot be unlock, we have to give ownership
+				//We need to have "this" in the k.
+				//if not - the lock cannot be unlocked, we have to give ownership
 				if (k != this) {
 					//find next object in the queue
 					while (k->next != this) k = k -> next;

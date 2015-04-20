@@ -61,30 +61,30 @@ public:
 	 * @return object builder, it carries building node and can be used to append additional values
 	 */
 	template<typename T>
-	Object operator()(ConstStrA name, const T &value);
+	Object operator()(ConstStrA name, const T &value) const;
 	///Creates new object with initial value which is another object or array
 	/**
 	 * @param name key name
 	 * @param value value as PNode
 	 * @return object builder, it carries building node and can be used to append additional values
 	 */
-	Object operator()(ConstStrA name, PNode nd);
+	Object operator()(ConstStrA name, PNode nd) const;
 	///Attachs builder to existing object
 	/**
 	 * @param nd object stored as node. Function creates builder, so you are able to append new values
 	 * using the builder
 	 * @return new object nuilder
 	 */
-	Object operator()(PNode nd);
+	Object operator()(PNode nd) const;
 	///Creates empty object
-	Object operator()();
+	Object operator()() const;
 	///Creates empty object
-	Object operator()(Empty_t);
+	Object operator()(Empty_t) const;
 	///Creates empty object
-	PNode operator()(NullType);
+	PNode operator()(NullType) const;
 
 	template<typename T>
-	JSON::PNode operator()(const T &val);
+	PNode operator()(const T &val) const;
 
 	///Creates a new array and enters first value into it
 	/**
@@ -92,7 +92,9 @@ public:
 	 * @return array builder
 	 */
 	template<typename T>
-	Array operator[](const T &);
+	Array operator[](const T &) const;
+	template<typename T>
+	Array operator,(const T &x) const {return operator[](x);}
 	///Attachs builder to existing array
 	/**
 	 * @param nd array stored as node. Function creates builder, so you are able to append new values
@@ -102,13 +104,13 @@ public:
 	 * @note There is no function to create new array with appended PNode as Object supports. If you
 	 * with to do such operation, simply create empty array and append the PNode.
 	 */
-	Array operator[](PNode nd);
+	Array operator[](PNode nd) const;
 	///Creates empty array
-	Array operator[](Empty_t);
+	Array operator[](Empty_t) const;
 
-	Array array();
+	Array array() const;
 
-	Object object();
+	Object object() const;
 
 	class Common: public PNode {
 	public:
@@ -143,6 +145,8 @@ public:
 
 		template<typename T>
 		Array operator[](const T &);
+		template<typename T>
+		Array operator,(const T &x) {return operator[](x);}
 		Array operator[](PNode nd);
 	protected:
 		template<typename T>
@@ -157,27 +161,27 @@ public:
 
 protected:
 	template<typename T>
-	JSON::PNode convVal(const T &t, MTrue) { return t; }
+	JSON::PNode convVal(const T &t, MTrue) const { return t; }
 	template<typename T>
-	JSON::PNode convVal(const T &t, MFalse) { return factory->newValue(t); }
+	JSON::PNode convVal(const T &t, MFalse) const { return factory->newValue(t); }
 };
 
 template<typename T>
-JSON::PNode LightSpeed::JSON::Builder::operator()(const T &val)
+JSON::PNode LightSpeed::JSON::Builder::operator()(const T &val) const
 {
 	return convVal(val, typename MIsConvertible<T, PNode>::MValue());
 }
 
 
 template<typename T>
-inline Builder::Object Builder::operator ()(ConstStrA name, const T& value) {
+inline Builder::Object Builder::operator ()(ConstStrA name, const T& value) const {
 	Object nd(factory);
 	nd(name, value);
 	return nd;
 }
 
 template<typename T>
-inline Builder::Array Builder::operator [](const T&value) {
+inline Builder::Array Builder::operator [](const T&value) const {
 	Array nd(factory);
 	nd[value];
 	return nd;

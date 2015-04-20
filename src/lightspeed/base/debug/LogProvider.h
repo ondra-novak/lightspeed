@@ -9,7 +9,7 @@
 #define LIGHTSPEED_BASE_LOGPROVIDER_H_
 #include "dbglog.h"
 #include "../text/textFormat.h"
-#include "../sync/threadObject.h"
+#include "../../base/sync/threadVar.h"
 
 namespace LightSpeed {
 
@@ -84,7 +84,7 @@ protected:
 
 
 	typedef TextFormatBuff<char> Buffer;
-	typedef ThreadObj<Buffer> TLSBuffer;
+	typedef ThreadVarInitDefault<Buffer> TLSBuffer;
 
 	TLSBuffer buffer;
 	natural maxLevels[8];

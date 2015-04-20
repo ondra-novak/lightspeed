@@ -95,8 +95,9 @@ namespace LightSpeed {
 	typedef XMLIteratorT<ScanTextW> XMLIterator;
 	typedef XMLIteratorT<ScanTextWW> XMLIteratorW;
 
+#ifndef LS_MSVC_SKIPEXTERN_XMLIterator
 	extern template class XMLIteratorT < ScanTextW > ;
 	extern template class XMLIteratorT < ScanTextWW > ;
-
+#endif
 
 }

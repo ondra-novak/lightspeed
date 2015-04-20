@@ -33,7 +33,7 @@ namespace LightSpeed {
 			app.init();
 			//        sleep(30);
 			char* cwdp = getcwd(0, 0);
-			FilePath cwd = FilePath(String(cwdp));
+			FilePath cwd = FilePath(String(cwdp),true);
 			cwd = cwd / ConstStrA(argv[0]);
 			free(cwdp);
 			res = app.main_entry(argc, argv, cwd);

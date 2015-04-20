@@ -451,6 +451,7 @@ bool TextParser<T,Alloc,Cmp>::parseAsterix(PatternIter &patiter, SourceIter &src
 		data.add(srciter.getNext());
 		cnt++;
 	}
+	if (cnt < state.range.first) return false;
 
 	return parseArg(patiter,srciter,state);
 }

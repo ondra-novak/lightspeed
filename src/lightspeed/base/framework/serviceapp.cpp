@@ -59,7 +59,7 @@ namespace LightSpeed {
 		String instanceName = args[1];
 		if (instanceName == defaultInstanceName)  instanceName = getDefaultInstanceName(appname);
 		StringA command = String::getUtf8(args[2]);;
-		instance.set(ProgInstance(instanceName));
+		instance = ProgInstance(instanceName);
 		Args rmargs(const_cast<ConstStrW *>(args.data()+3),args.length()-3);
 		stopCommand = false;
 		return startCommand(command,rmargs,serr);
@@ -109,7 +109,6 @@ namespace LightSpeed {
 				return res;
 			} catch (ProgInstance::TimeoutException &) {
 				instance->terminate();
-				instance->waitForTerminate(timeout);
 				return 0;
 			}
 		} else if (command == ConstStrA(waitCmd)) {

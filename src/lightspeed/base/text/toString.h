@@ -56,19 +56,17 @@ namespace LightSpeed {
 
 	};
 
-	template<typename ChT>
-	class ToString<natural,ChT>: public ToStringBase<ChT,22>{
+	template<typename NumType, typename ChT, natural bufsize>
+	class ToStringUnsigned: public ToStringBase<ChT,bufsize>{
 	public:
-		ToString(natural val, natural base, bool up = false) {extractFirst(val,base,up);}
-		ToString(natural val) {extractFirst(val,10,false);}
+		ToStringUnsigned(NumType val, natural base, bool up) {extractFirst(val,base,up);}
 	protected:
-		ToString() {}
-		void extractFirst(natural val, natural base, bool up) {
+		void extractFirst(NumType val, natural base, bool up) {
 			if (val == 0) this->buffer.write(ChT('0'));
 			else extract(val,base,up);
 			this->commitBuffer();
 		}
-		void extract(natural val, natural base, bool up) {
+		void extract(NumType val, natural base, bool up) {
 			if (val >= base) extract(val/base,base,up);
 			natural x = val % base;
 			if (x > 9) this->buffer.write(ChT((up?'A':'a')+x - 10));
@@ -76,13 +74,12 @@ namespace LightSpeed {
 		}
 	};
 
-	template<typename ChT>
-	class ToString<integer,ChT>: public ToString<natural,ChT>{
+	template<typename NumType, typename ChT, natural bufsize>
+	class ToStringSigned: public ToStringUnsigned<NumType,ChT,bufsize>{
 	public:
-		ToString(integer val, natural base, bool up = false) {extractFirst(val,base,up);}
-		ToString(integer val) {extractFirst(val,10,false);}
+		ToStringSigned(NumType val, natural base, bool up) {extractFirst(val,base,up);}
 	protected:
-		void extractFirst(integer val, natural base, bool up) {
+		void extractFirst(NumType val, natural base, bool up) {
 			if (val == 0) this->buffer.write(ChT('0'));
 			else {
 				if (val < 0) {
@@ -95,7 +92,36 @@ namespace LightSpeed {
 			this->commitBuffer();
 		}
 	};
+	template<typename ChT>
+	class ToString<natural,ChT>: public ToStringUnsigned<natural,ChT,23> {
+	public:
+		 ToString(natural val, natural base=10, bool up = false)
+			:ToStringUnsigned<natural,ChT,23>(val,base,up) {}
+	};
 
+	template<typename ChT>
+	class ToString<integer,ChT>: public ToStringSigned<integer,ChT,23> {
+	public:
+		 ToString(integer val, natural base=10, bool up = false)
+			:ToStringSigned<integer,ChT,23>(val,base,up) {}
+	};
+#ifdef LIGHTSPEED_ENV_32BIT
+
+	template<typename ChT>
+	class ToString<lnatural,ChT>: public ToStringUnsigned<lnatural,ChT,23> {
+	public:
+		 ToString(lnatural val, natural base=10, bool up = false)
+			:ToStringUnsigned<lnatural,ChT,23>(val,base,up) {}
+	};
+
+	template<typename ChT>
+	class ToString<linteger,ChT>: public ToStringSigned<linteger,ChT,23> {
+	public:
+		 ToString(linteger val, natural base=10, bool up = false)
+			:ToStringSigned<linteger,ChT,23>(val,base,up) {}
+	};
+
+#endif
 
 	template<>
 	class ToString<float,char>: public ToStringBase<char,50> {

@@ -8,7 +8,7 @@
 #ifndef LIGHTSPEED_MT_FASTLOCK_H_
 #define LIGHTSPEED_MT_FASTLOCK_H_
 
-#include "notifier.h"
+#include "fastlock.h"
 #include "atomic.h"
 #include "threadMinimal.h"
 #include "microlock.h"
@@ -180,6 +180,7 @@ protected:
 ///Recursive fastLock
 class FastLockR: private FastLock {
 public:
+	FastLockR():ownerThread(0),recursiveCount(0) {}
 
 	///Lock FastLock 
 	/** Function also takes care on recursive locking which causes deadlock on standard FastLock.
@@ -308,109 +309,14 @@ public:
 
 protected:
 	atomic ownerThread;
-	natural recursiveCount;
+	atomic recursiveCount;
+
 
 };
 
-class FastLockEx: private FastLock {
-public:
-
-	///Slot to receive notification about locking process
-	class Slot: public FastLock::Slot {
-	public:
-		Slot():FastLock::Slot(getCurThreadSleepingObj()) {}
-		Slot(ISleepingObject *thread):FastLock::Slot(thread) {}
-	};
-
-	///Subscribe slot into the queue
-	/**Asynchronous locking starts with creation of the slot and
-	 * subscribing it into the queue
-	 *
-	 * @param slot slot to subscribe
-	 * @retval true lock successful, you are owner. Slot object is no longer needed and can be destroyed
-	 * @retval false lock unsuccessful. In this case, slot object is subscribed and you needn't to
-	 *                        destroy it until lock becomes owned by this thread or until
-	 *                        cancelLockAsync is called. To check, whether ownership has
-	 *                        been granted use method isOwned. Thread can perform Thread::sleep during
-	 *                        waiting on lock because thread performing unlock will issue wakeUp call
-	 *                        to break the sleep
-	 */
-	bool lockAsync(Slot &slot) {
-		bool res = addToQueue(&slot);
-		if (!res) owner = &slot;
-		return !res;
-	}
-
-	///Tests, whether lock is owned by thread which subscribed the specified slot
-	/**
-	 * @param slot subscribed slot (see lockAsync)
-	 * @retval true lock ownership is granted, thread can continue into guarded area. Slot object is no longer
-	 *  needed and can  be destroyed
-	 * @retval false lock ownership is not granted, thread have to wait or call cancelLockAsync to cancel
-	 *  waiting
-	 */
-	bool isOwned(Slot &slot) {
-		return owner == &slot;
-	}
-
-	///Signs off waiting slot when thread wants to giving up waiting
-	/**
-	 * Use this function to give up waiting. When thread subscribes the slot, it isn't allowed to destroy this
-	 * slot until ownership of lock is granted or until this function is called. After function returns, slot can
-	 * be destroyed. Current thread also loose its position in the queue. You can call this function even if
-	 * lock is already granted to the thread. In this case, function works as unlock() and slot is used to check
-	 * ownership
-	 *
-	 *
-	 * @param slot slot
-	 */
-	void cancelLockAsync(Slot &slot) {
-		do {
-			Synchronized<MicroLock> lk(lockForRemove);
-			if (owner == &slot) break;
-			FastLock::Slot *k = lockCompareExchangePtr<FastLock::Slot>(&queue,&slot,slot.next);
-			if (k != &slot) {
-				while (k->next != &slot) k = k -> next;
-				k -> next = slot.next;
-			}
-			return;
-		} while (true);
-		unlock();
-	}
-
-	///Unlocks the lock
-	/** Note that you should always call this version of the unlock and not FastLock::unlock.
-	 * This implementation have to handle situation when one thread unlocking and another
-	 * giving up waiting at the same time
-	 */
-	void unlock() {
-		Synchronized<MicroLock> lk(lockForRemove);
-		FastLock::unlock();
-	}
 
 
-	bool lock(const Timeout &tm) {
-		if (tryLock()) return true;
-
-		Slot s;
-		if (lockAsync(s)) return true;
-
-		while (threadSleep(tm) == false) {
-			if (isOwned(s)) return true;
-		}
-		cancelLockAsync(s);
-		return false;
-	}
-
-	using FastLock::lock;
-	using FastLock::tryLock;
-
-protected:
-	//ensures that critical remove/unlock parts will be proceed mutually exclusive
-	MicroLock lockForRemove;
-};
 
 }
-
 
 #endif /* LIGHTSPEED_MT_FASTLOCK_H_ */

@@ -4,6 +4,7 @@
 #include <time.h>
 #include "compare.h"
 #include "../base/containers/string.h"
+#include "containers/carray.h"
 #include "exceptions/genexcept.h"
 
 namespace LightSpeed {
@@ -93,6 +94,7 @@ namespace LightSpeed {
 				return TimeStamp((integer)(time64 / dayMillis - daysFrom1601), time64 % dayMillis);
 		}
 
+
 		///Creates timestamp from Y-M-D h:m:s format
 		/**
 		 * @param Y Absolute year (example: 2012). If Y is set to 0, function uses remain arguments to create time-offset
@@ -108,7 +110,11 @@ namespace LightSpeed {
 		 */
 		static TimeStamp fromYMDhms(natural Y, natural M, natural D, natural h, natural m, natural s);
 
-		static TimeStamp fromDBDate(ConstStrA dbdate);
+		static TimeStamp fromDBDate(ConstStrA dbdate) {return fromDBTime(dbdate);}
+		static TimeStamp fromDBTime(ConstStrA dbdate);
+
+		static TimeStamp fromISO8601Time(ConstStrA isotime);
+
 
 		///retrieves current day number
 		natural getDay() const {return day;}
@@ -157,10 +163,49 @@ namespace LightSpeed {
 		 * @param hintBuffer allows to specify buffer used to format result. Default value is will cause
 		 *        determining buffer size dynamically from the format.
 		 * @return formatted string
+		 *
+		 * @note because strftime is buggy on linux platform, function tries to expand
+		 * buffer up to 4 times to initial hintBuffer. If strfprint still doesn't produces
+		 * the output, function throws an exception. Don't call this function with arguments that
+		 * doesn't produces any output
 		 */
 		StringA formatTime(ConstStrA format, natural hintBuffer = 0) const;
 		
-		StringA asDBTime() const;
+		///Format time using strftime posix function
+		/**
+		 * @param targetBuffer target buffer that will receive the output
+		 * @param format format
+		 * @return reference to output in the buffer
+		 *
+		 * @note function can return empty string if buffer is too small. Note that due buggy
+		 * implementation of the function strftime, empty buffer needn't always appear on
+		 * this kind of the failure
+		 */
+		ConstStrA formatTime(ArrayRef<char> targetBuffer, ConstStrA format) const;
+
+		///Fixed string contains time in RFC1123 
+		typedef CArray<char,29> RFC1123Time;
+
+		///Format time to RFC1123 - for example http date field
+		/**
+
+		 * @return Returns RFC1123Time object, which is string with exact length returned directly
+		 * from the function without need any allocation. You should store it in it original type or
+		 * convert it to StringA.
+		 */
+		RFC1123Time asRFC1123Time() const;
+
+		///Fixed string contains time as MySQL time
+		typedef CArray<char,19> DBTime;
+
+		///Format time as database time YYYY-MM-DD HH:MM:SS
+		DBTime asDBTime() const;
+
+		typedef CArray<char,20> ISO8601Time;
+
+		///Format time as database time YYYY-MM-DD HH:MM:SS
+		ISO8601Time asISO8601Time() const;
+
 
 		static TimeStamp intervalMSec(natural msec) {
 			return TimeStamp(0,msec);
@@ -204,6 +249,12 @@ namespace LightSpeed {
 
 
 		bool isNull() const {return day == 0 && time == 0 ;}
+
+		static const char *message_InvalidDateTimeFormat;
+
+		typedef LightSpeed::GenException1<message_InvalidDateTimeFormat, ConstStrA> InvalidDateTimeFormat;
+
+
 	protected:
 
 		static integer fixOverflow( Bin::natural32 &time )
@@ -253,9 +304,7 @@ namespace LightSpeed {
 #endif
 
 
-		static const char *message_InvalidDateTimeFormat;
 
-		typedef LightSpeed::GenException1<message_InvalidDateTimeFormat, ConstStrA> InvalidDateTimeFormat;
 
 	protected:
 		///day relative time_t base

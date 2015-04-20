@@ -280,14 +280,20 @@ namespace LightSpeed {
 		typedef typename FastParam<A>::T ArrRef;
 		typedef ArrayTBase<typename OriginT<A>::T::ItemT,ArrTrn<A,Fn> > Super;
 		typedef typename Super::ConstRef ConstRef;
+		typedef typename Super::NoConstItemT NoConstItemT;
 		typedef ArrTrn Impl;
 		typedef typename Super::Ref Ref;
 
-		ArrTrn(ArrRef a, Fn fn):a(a),fn(fn) {}
+		ArrTrn(ArrRef a, Fn fn):a(a),fn(fn),p(0) {}
+		~ArrTrn() {
+			if (p) p->~NoConstItemT();
+		}
 
 		natural length() const {return a._invoke().length();}
 		ConstRef at(natural index) const {
-			return fn(a._invoke().at(index));
+			if (p) p->~NoConstItemT();
+			p = new(buff)NoConstItemT(fn(a._invoke().at(index)));
+			return *p;
 		}
 
 		template<typename FFn>
@@ -306,6 +312,10 @@ namespace LightSpeed {
 
 		A a;
 		Fn fn;
+	protected:
+		mutable char buff[sizeof(NoConstItemT)];
+		NoConstItemT *p;
+
 	};
 
 	template<typename A, typename NewT>

@@ -13,6 +13,7 @@
 #include "../memory/smallAlloc.h"
 #include <netdb.h>
 #include "../memory/poolalloc.h"
+#include "linsocket.h"
 
 namespace LightSpeed {
 
@@ -70,19 +71,11 @@ protected:
 };
 
 
-class LinuxNetDgamSource: public INetworkDatagramSource, public INetworkSocket {
+class LinuxNetDgamSource: public LinuxSocketResource<INetworkDatagramSource>, public INetworkSocket {
 public:
 	LinuxNetDgamSource(natural port, natural timeout, natural startDID);
 
 	virtual natural getDefaultWait() const {return waitForInput;}
-
-	virtual void setWaitHandler(IWaitHandler *handler);
-
-	virtual void setTimeout(natural time_in_ms);
-
-	virtual natural getTimeout() const;
-
-	virtual natural wait(natural waitFor, natural timeout) const;
 
 	virtual PNetworkDatagram receive();
 
@@ -96,12 +89,13 @@ public:
 
 
 protected:
-	LinuxSocketResource sres;
 	static int createDatagramSocket(natural port);
 	friend class LinuxNetDatagram;
 	PoolAlloc dgmpool;
 
 	natural dgrId;
+
+
 };
 
 }

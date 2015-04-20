@@ -39,11 +39,11 @@ inline bool SortFilter<T,Order,Allocator>::needItems() const
 template<typename T, typename Order, typename Allocator>
 inline void SortFilter<T,Order,Allocator>::input(const T & x)
 {
-    if (extraItem.isSet()) {
+    if (extraItem != nil) {
         try {
-            buffer.add(extraItem.get());
+            buffer.add(extraItem);
             heap.push();
-            extraItem.unset();
+            extraItem = nil;
         } catch (AllocatorLimitException &e) {
             throw WriteIteratorNoSpace(THISLOCATION,typeid(T)) << e;
         }
@@ -53,7 +53,7 @@ inline void SortFilter<T,Order,Allocator>::input(const T & x)
         buffer.add(x);
         heap.push();
     } catch (AllocatorLimitException &) {
-        extraItem.set(x);
+        extraItem = x;
     }
 }
 
@@ -94,18 +94,18 @@ inline T SortFilter<T,Order,Allocator>::output()
     public:
         Optional<T> &extraItem;
         AutoUnset(Optional<T> &extraItem):extraItem(extraItem) {}
-        ~AutoUnset() {extraItem.unset();}
+        ~AutoUnset() {extraItem = nil;}
     };
 
-    if (extraItem.isSet()) {
-        if (heap.isBetter(extraItem.get())) {
+    if (extraItem != nil) {
+        if (heap.isBetter(extraItem)) {
             AutoUnset unset(extraItem);
-            return extraItem.get();
+            return extraItem;
         } else {
-            std::swap(extraItem.get(),buffer(0));
+            std::swap<T>(extraItem,buffer(0));
             heap.shiftDown();
             AutoUnset unset(extraItem);
-            return extraItem.get();
+            return extraItem;
         }
     } else {
         if (buffer.empty())

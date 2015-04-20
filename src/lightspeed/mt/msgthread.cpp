@@ -1,6 +1,6 @@
 #include "msgthread.h"
 #include "exceptions/threadException.h"
-
+#include "rwlock.h"
 
 namespace LightSpeed {
 

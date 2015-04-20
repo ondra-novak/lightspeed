@@ -68,69 +68,21 @@ namespace LightSpeed {
 		}
 	}
 
-	LightSpeed::StringA internalFormatTime(natural day, natural time, ConstStrA format, natural buffSize) {
+	ConstStrA TimeStamp::formatTime(ArrayRef<char> targetBuffer, ConstStrA format) const {
+		StringA fmthld;
+		const char *cfmt = cStr(format,fmthld);
 
 		time_t unixTime = day;
 		unixTime *= TimeStamp::daySecs;
 		unixTime += (time+500) / 1000;
 		struct tm timeinfo;
 		gmtime_r(&unixTime,&timeinfo);
-		char *buffer = (char * )alloca(buffSize);
-		buffer[0] = 'x';
-		natural r = strftime(buffer,buffSize,format.data(),&timeinfo);
-		if (r == 0 && buffer[0] != 0) {
-			buffSize = buffSize * 3 / 2;
-			return internalFormatTime(day,time,format,buffSize);
-		} else {
-			return buffer;
-		}
-	}
-
-	LightSpeed::StringA LightSpeed::TimeStamp::formatTime(ConstStrA format,natural hintBuffer) const {
-		if (hintBuffer == 0) hintBuffer = format.length() * 3 + 10;
-		if (format.data()[format.length()] != 0) {
-			//HACK: watch out, pointer can be unaccessible
-			char *buff = (char *)alloca(format.length()+1);
-			strncpy(buff,format.data(),format.length());
-			buff[format.length()] = 0;
-			return formatTime(buff,hintBuffer);
-		}
-		return internalFormatTime(this->day,this->time,format,hintBuffer);
-	}
-
-	StringA TimeStamp::asDBTime() const {
-		return formatTime("%Y-%m-%d %H:%M:%S",20);
-	}
-
-	const char *TimeStamp::message_InvalidDateTimeFormat = "Invalid date/time: %1";
-
-
-	TimeStamp TimeStamp::fromDBDate(ConstStrA dbdate) {
-		using namespace LightSpeed;
-		TextParser<char, StaticAlloc<256> > parser;
-		if (parser(" %u1-%u2-%u3 %u4:%u5:%u6 ",dbdate)) {
-			natural yr = parser[1],
-					mh = parser[2],
-					dy = parser[3],
-					hh = parser[4],
-					mn = parser[5],
-					sc = parser[6];
-				return TimeStamp::fromYMDhms(yr,mh,dy,hh,mn,sc);
-		} else if (parser(" %u1-%u2-%u3 " ,dbdate)) {
-			natural yr = parser[1],
-					mh = parser[2],
-					dy = parser[3];
-			return TimeStamp::fromYMDhms(yr,mh,dy,0,0,0);
-		} else if (parser(" %u1:%u2:%u3 ",dbdate)) {
-			natural hh = parser[1],
-					mn = parser[2],
-					sc = parser[3];
-			return TimeStamp::fromYMDhms(0,0,0,hh,mn,sc);
-		} else {
-			throw InvalidDateTimeFormat(THISLOCATION, dbdate);
-		}
+		natural r = strftime(targetBuffer.data(),targetBuffer.length(),cfmt,&timeinfo);
+		return targetBuffer.head(r);
 
 	}
+
+
 
 }
 

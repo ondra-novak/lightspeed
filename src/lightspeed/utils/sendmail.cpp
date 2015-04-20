@@ -108,7 +108,7 @@ void LightSpeed::SendMail::send(SendMailConnection &stream, natural resetMode) {
 		if (!netscan("250 %0\n%")) {
 				handleError(netscan,netprint, state);
 		}
-	} catch (SendMailError &e) {
+	} catch (SendMailError &) {
 		throw;
 	} catch (Exception &e) {
 		throw SendMailError(THISLOCATION,state,"Network I/O error") << e;
@@ -154,7 +154,7 @@ void SendMailConnection::welcome(ConstStrA heloText) {
 			handleError(netscan,netprint,"helo failed");
 		}
 
-	} catch (SendMailError &e) {
+	} catch (SendMailError &) {
 		throw;
 	} catch (Exception &e) {
 		throw SendMailError(THISLOCATION,"Negotiation error","Network I/O error") << e;

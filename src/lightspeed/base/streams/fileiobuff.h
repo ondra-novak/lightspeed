@@ -84,6 +84,13 @@ namespace LightSpeed {
 		virtual bool canRead() const;
 		virtual bool canWrite() const;
 		virtual void flush();
+		///Returns count of bytes can be read without blocking
+		/** Currently, function returns count of bytes available in the buffer.
+		 * It doesn't ask source stream for the value unless buffer is empty.
+		 * This results to better performance reducing count of possible syscalls
+		 *
+		 * @return
+		 */
 		virtual natural dataReady() const;
 		virtual void closeOutput();
 

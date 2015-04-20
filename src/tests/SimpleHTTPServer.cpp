@@ -41,8 +41,8 @@ void SimpleHTTPServer::methodGET(ConstStrA vpath, const Header& ,SeqFileOutput& 
 
 		String path = rootPath + String(vpath);
 		if (vpath.tail(1) != ConstStrA("/")) {
-				PDirectoryIterator finfo = IFileIOServices::getIOServices().getFileInfo(path);
-				if (finfo->type & IDirectoryIterator::directory) {
+				PFolderIterator finfo = IFileIOServices::getIOServices().getFileInfo(path);
+				if (finfo->type & IFolderIterator::directory) {
 					Header hdr;
 					hdr.insert("Location",StringA(vpath) + ConstStrA("/"));
 					sendHeader(out,301,"Redirect",hdr);
@@ -102,10 +102,10 @@ void SimpleHTTPServer::methodPOST(ConstStrA, const Header& ,natural contentLengt
 }
 
 
-class DumpStream: public ISeqFileHandle {
+class DumpStream: public IOutputStream {
 public:
-	DumpStream(ISeqFileHandle &bkgHandle):bkgHandle(bkgHandle) {}
-	ISeqFileHandle &getBkgHandle() {return bkgHandle;}
+	DumpStream(IOutputStream &bkgHandle):bkgHandle(bkgHandle) {}
+	IOutputStream &getBkgHandle() {return bkgHandle;}
 
     virtual natural read(void *,  natural ) {return 0;}
     virtual natural write(const void *,  natural size) {return size;}
@@ -119,7 +119,7 @@ public:
 
 
 protected:
-	ISeqFileHandle &bkgHandle;
+	IOutputStream &bkgHandle;
 
 
 };
@@ -144,7 +144,7 @@ bool SimpleHTTPServer::onData(const PNetworkStream& stream, ITCPServerContext* )
 			} else if (method == ConstStrA("GET")) {
 				methodGET(vpath,header,mystream);
 			} else if (method == ConstStrA("HEAD")) {
-				DumpStream dump(*mystream.getBufferHandle());dump.setStaticObj();
+				DumpStream dump(*mystream.getBufferedOutputStream());dump.setStaticObj();
 				SeqFileOutput dumpout(&dump);
 				methodGET(vpath,header,dumpout);
 			} else if (method == ConstStrA("POST")) {
