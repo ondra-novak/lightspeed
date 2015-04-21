@@ -173,8 +173,14 @@ namespace LightSpeed {
 		byte buffer[sizeof(T)];
 		bool engaged;
 
-		T &get() {return *reinterpret_cast<T *>(buffer);}
-		const T &get() const {return *reinterpret_cast<const T *>(buffer);}
+		T &get() {
+			byte *c = buffer;
+			return *reinterpret_cast<T *>(c);
+		}
+		const T &get() const {
+			const byte *c = buffer;
+			return *reinterpret_cast<const T *>(c);
+		}
 
 		void destruct() {
 			get().~T();

@@ -301,7 +301,7 @@ namespace LightSpeed {
 	class SyncPtT: public SyncPt {
 	public:
 		SyncPtT() {}
-		SyncPtT(Order order):SyncPtT(order) {}
+		SyncPtT(Order order):SyncPt(order) {}
 
 
 		///always use this slot

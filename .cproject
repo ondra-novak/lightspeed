@@ -65,18 +65,8 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.420479983" name="bmake" rcbsApplicability="disable" resourcePath="bmake" toolsToInvoke=""/>
-					<folderInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.630783858" name="/" resourcePath="src/tests">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.lib.debug.1291496496" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.lib.debug" unusedChildren="">
-							<tool id="cdt.managedbuild.tool.gnu.archiver.lib.debug.1587710034" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.lib.debug.1300063569"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.1822210842" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.1012285901"/>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.lib.debug.294104236" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.lib.debug.1315582036"/>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.783302757" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base.1054864853"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.1102777559" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base.432384086"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.lib.debug.724770243" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.lib.debug.1531083607"/>
-						</toolChain>
-					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1740631768" name="FilePath.h" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/FilePath.h" toolsToInvoke=""/>
+					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.420479983" name="bmake" rcbsApplicability="disable" resourcePath="bmake" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="lightspeed/utils/impl/sha1.cpp|lightspeed/utils/json/bsjson.cpp|lightspeed/utils/dims.cpp|lightspeed/utils/json/jsonbin.cpp|lightspeed/base/linux/MemCheck.cpp|lightspeed/base/actions/scheduler.new.cpp|lightspeed/base/actions/msgQueue.new.cpp|lightspeed/mt/windows|lightspeed/base/streams/netio_sockets.cpp|lightspeed/uiapp|lightspeed/base/memory/shortAlloc.cpp|lightspeed/base/windows|lightspeed/uiapp_old|lightspeed/utils/windows|lightspeed/gc/gcmt.cpp|lightspeed/rpc|lightspeed/base/linux/netio.cpp|lightspeed/mt/linux/threadEngine.cpp|lightspeed/base/containers/dictionary.cpp|lightspeed/mt/masterThread.cpp|lightspeed/mt/linux/threadEngine.h|lightspeed/gc_old|lightspeed/base/memory/extendedClusterFactory.cpp|lightspeed/gc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
