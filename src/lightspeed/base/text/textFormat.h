@@ -64,6 +64,13 @@ enum SimpleManipulators {
 		Impl &operator <<(natural num);
 		Impl &operator <<(integer num);
 
+#if _MSC_VER == 1800
+		//HACK functions must exist, but should never called
+		Impl &operator()(ConstStringT<Empty_t> pattern) { throw; }
+		Impl &operator()(const Empty_t *pattern) { throw; }
+#endif
+
+
 	};
 
 
@@ -94,9 +101,19 @@ enum SimpleManipulators {
 	class TextFormat: public TextFormatBase<TextFormat<T,Alloc> > {
 
 	public:
+		typedef TextFormatBase<TextFormat<T, Alloc> > Super;
 
 		using TextFormatBase<TextFormat<T,Alloc> >::operator <<;
-		using TextFormatBase<TextFormat<T,Alloc> >::operator ();
+
+#if _MSC_VER == 1800
+		//HACK - bug in VS2013 - we generate fake operator() when T == char 
+		typedef typename MIf<MIsSame<T, char>::value, Empty_t, char>::T CloakT;
+		TextFormat &operator()(ConstStringT<CloakT> pattern){ return Super::operator ()(pattern); }
+		TextFormat &operator()(const CloakT *pattern) { return Super::operator ()(pattern); }
+#else
+		//official behavior - function will be replaced if T == char
+		using TextFormatBase<TextFormat<T, Alloc> >::operator ();
+#endif
 
 		TextFormat():base(10),decimals(6),sciFormat(false),newline(DefaultNLString<T>()) {}
 		TextFormat(const Alloc &alloc):buff(alloc),patternBuffer(alloc)

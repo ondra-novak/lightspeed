@@ -380,7 +380,7 @@ namespace LightSpeed {
 
 	};
 
-	template<typename T> struct ObjManip: public MIf<IsPrimitiveType<T>::value,ObjManipPOD<T>,ObjManipNonPOD<T> > {};
+	template<typename T> struct ObjManip: public  MIf<IsPrimitiveType<T>::value,ObjManipPOD<T>,ObjManipNonPOD<T> >::T {};
 	
 
 }

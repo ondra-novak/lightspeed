@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "../../base/windows/winpch.h"
 #include "../process.h"
 #include "../../base/containers/autoArray.tcc"

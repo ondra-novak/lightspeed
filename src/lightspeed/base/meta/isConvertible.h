@@ -14,6 +14,10 @@
 namespace LightSpeed {
 
 
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4244 )
+#endif
     template<class From, class To>
     struct MIsConvertible {
 
@@ -25,6 +29,11 @@ namespace LightSpeed {
 
         typedef MBool<value> MValue;
     };
+
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
 
     template<class From>
     struct MIsConvertible<From,void> {

@@ -12,10 +12,6 @@
 #include "../exceptions/stringException.h"
 #include <memory>
 
-#undef min
-#undef max
-
-using std::min;
 
 
 namespace LightSpeed {
