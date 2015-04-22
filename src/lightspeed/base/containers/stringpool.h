@@ -19,7 +19,9 @@ namespace LightSpeed {
  * be easy reached. If this is the problem, use multiple pools.
 
 
- */
+ */	
+	extern void *ptrStringPoolNull;
+
 	template<typename T>
 	class StringPoolStrRef: public FlatArrayBase<const T, StringPoolStrRef<T> >  {
 	public:
@@ -41,14 +43,14 @@ namespace LightSpeed {
 		 */
 		StringPoolStrRef(const T *const *anchor, Bin::natural32 offset, Bin::natural32  len)
 			:anchor(anchor),offset(offset),len(len) {}
-		StringPoolStrRef():anchor(reinterpret_cast<const T *const *>(this)),offset(0),len(0) {}
+		StringPoolStrRef():anchor(reinterpret_cast<const T *const *>(&ptrStringPoolNull)),offset(0),len(0) {}
 		const T *data() const {return *anchor + offset;}
 		natural length() const {return len;}
 
 	protected:
 		const T *const * anchor;
 		Bin::natural32 offset;
-		Bin::natural32 len;
+		Bin::natural32 len;	
 
 
 		static const T *const * getPtrToData(const ConstStringT<T> &x) {

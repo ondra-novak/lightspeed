@@ -22,7 +22,7 @@ namespace LightSpeed {
 	{
 		using namespace OpenFlags;
 		logFilename = fname;
-		outFile = SeqFileOutput(logFilename,append|createFolder|create|shareRead);
+		outFile = SeqFileOutput(logFilename,append|createFolder|create|shareRead|shareWrite);
 	}
 
 

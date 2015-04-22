@@ -12,3 +12,6 @@
 
 template class LightSpeed::StringPool<char>;
 template class LightSpeed::StringPool<wchar_t>;
+
+
+void *LightSpeed::ptrStringPoolNull = 0;
