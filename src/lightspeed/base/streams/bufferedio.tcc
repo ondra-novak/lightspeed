@@ -53,9 +53,13 @@ const byte &StreamBuffer<bufsz>::getByte() const {
 
 template<natural bufsz>
 ConstBin StreamBuffer<bufsz>::getData() const {
-	if (isempty) return ConstBin();
-	else if (wrpos <= rdpos) return ConstBin(buffdata+rdpos, bufsz-rdpos);
-	else return ConstBin(buffdata+rdpos, wrpos - rdpos);
+	if (isempty) {
+		return ConstBin();
+	} else if (wrpos <= rdpos) {
+		return ConstBin(buffdata+rdpos, bufsz-rdpos);
+	} else {
+		return ConstBin(buffdata+rdpos, wrpos - rdpos);
+	}
 }
 
 
@@ -220,7 +224,12 @@ template<typename BufferImpl>
 
 template<typename BufferImpl>
  bool BufferedInputStream<BufferImpl>::canRead() const {
-	if (buffer.isEmpty()) return !eof && source->canRead();
+	if (buffer.isEmpty()) {
+		if (eof) return false;
+		if (source->dataReady()) return true;
+		if (autoFlush != nil) autoFlush->flush();
+		return !eof && source->canRead();
+	}
 	else return true;
 }
 

@@ -76,9 +76,13 @@ const byte& StreamBuffer<0>::getByte() const
 
 ConstBin StreamBuffer<0>::getData() const
 {
-	if (empty) return ConstBin();
-	else if (wrpos < rdpos) return ConstBin(buffdata.data()+rdpos,  buffdata.length()-rdpos);
-	else return ConstBin(buffdata.data()+rdpos, wrpos - rdpos);
+	if (empty) {
+		return ConstBin();
+	} else if (wrpos <= rdpos) {
+		return ConstBin(buffdata.data()+rdpos,  buffdata.length()-rdpos);
+	} else {
+		return ConstBin(buffdata.data()+rdpos, wrpos - rdpos);
+	}
 
 }
 

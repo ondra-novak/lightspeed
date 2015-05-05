@@ -207,7 +207,7 @@ namespace LightSpeed {
 
 
 	///Buffered bidirectional stream object.
-	template<natural inputBufferSize = 0, natural outputBufferSize = inputBufferSize>
+	template<natural inputBufferSize = 4096, natural outputBufferSize = inputBufferSize>
 	class NetworkStream: public SeqFileInput, public SeqFileOutput {
 	public:
 
