@@ -182,7 +182,7 @@ LightSpeed::natural WinHttpStream::readInternal( void * buffer, natural size )
 LightSpeed::natural WinHttpStream::write( const void *buffer, natural size )
 {
 	postBuffer.append(ArrayRef<const byte>(reinterpret_cast<const byte *>(buffer),size));
-	if (method == ConstStrA("GET")) method == ConstStrA("POST");
+	if (method == ConstStrA("GET")) method = ConstStrA("POST");
 /*
 
 
