@@ -135,6 +135,14 @@ public:
 	PSeqFileHandle getHandle() const {return dynamic_cast<ISeqFileHandle *>(fhnd.get());}
 	PInputStream getStream() const {return fhnd;}
 
+	///Get output part of this stream is available
+	/** Function returns pointer to output stream. If stream is not available,
+	function throws an exception
+
+	@exception InterfaceNotImplementedException Object doesn't support the output stream
+	*/
+	IOutputStream *getOutput() ;
+
 	natural dataReady() const {return fhnd->dataReady();}
 
 protected:
@@ -186,6 +194,18 @@ public:
 	void reserve(natural itemCount) {
 		for (natural i = 0; i <itemCount; i++) write((unsigned char)0);
 	}
+
+	
+	///Get input part of this stream
+	/** Function returns pointer to input stream. If stream is not available,
+	function throws an exception
+
+	@exception InterfaceNotImplementedException Object doesn't support the input stream
+	*/
+	IInputStream *getInput() ;
+
+	
+
 protected:
 	mutable POutputStream fhnd;
 };

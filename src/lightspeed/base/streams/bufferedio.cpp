@@ -140,7 +140,7 @@ void StreamBuffer<0>::checkResize() {
 		if ((natural)tm == tmmark) {
 			tryExpand();
 		} else {
-			tmmark = tm;
+			tmmark = (natural)tm;
 		}
 		wasFull = false;
 	}

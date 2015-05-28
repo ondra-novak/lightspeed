@@ -11,13 +11,16 @@ namespace LightSpeed {
 	struct HTTPSettings {
 		IHTTPSettings::ProxyMode proxyMode;
 		bool cookiesEnabled;
+		bool allowUntrustedCert; //allow untrusted certificates
+
 		String proxyAddr;
 		natural proxyPort;
 		String userAgent;
 		natural defaultTimeout;
 		natural ipver;
 
-		HTTPSettings():proxyMode(IHTTPSettings::pmAuto),cookiesEnabled(false),defaultTimeout(naturalNull),ipver(0) {}
+		HTTPSettings():proxyMode(IHTTPSettings::pmAuto)
+			,cookiesEnabled(false),allowUntrustedCert(false),defaultTimeout(naturalNull),ipver(0) {}
 	};
 
     class LinuxHTTPSettings: public IHTTPSettings {
@@ -62,6 +65,8 @@ namespace LightSpeed {
 		virtual void setIOTimeout(natural timeout) {settings.defaultTimeout = timeout;}
 		virtual natural getIOTimeout() const {return settings.defaultTimeout;}
 		virtual void forceIPVersion(natural ver)  {settings.ipver = ver;}
+		virtual void allowUntrustedCerts( bool allow ) {settings.allowUntrustedCert = allow;}
+
     protected:
 		HTTPSettings &settings;
     };
@@ -254,6 +259,7 @@ namespace LightSpeed {
 		virtual void setIOTimeout(natural timeout) {return LinuxHTTPSettings::setIOTimeout(timeout);}
 		virtual void forceIPVersion(natural ver)  {LinuxHTTPSettings::forceIPVersion(ver);}
 		virtual size_t getHandle(void *buffer, size_t bufferSize);
+		virtual void allowUntrustedCerts( bool allow ) {WinHTTPSettings::allowUntrustedCerts(allow);}
 
 
 		///Closes the output and send request to the other side

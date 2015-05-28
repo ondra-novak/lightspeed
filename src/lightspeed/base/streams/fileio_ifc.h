@@ -1062,6 +1062,11 @@ namespace LightSpeed {
 		 * If you forces to IPv6 on system without IPv6 support, exception can occur during the request.
 		 */
 		virtual void forceIPVersion(natural ver) = 0;
+		///Allows untrusted and self signed certificates
+		/**
+		 * @param allow set true to allow untrusted certificates
+		 */
+		virtual void allowUntrustedCerts(bool allow) = 0;
     };
 
 	///This interface is available,when resource is received from HTTP source

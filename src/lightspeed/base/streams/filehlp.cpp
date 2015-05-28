@@ -9,6 +9,8 @@
 #include "fileio_ifc.h"
 #include "../../base/text/textParser.tcc"
 #include "../exceptions/invalidParamException.h"
+#include "fileio.h"
+#include "../interface.tcc"
 
 namespace LightSpeed {
 
@@ -27,6 +29,18 @@ void IHTTPSettings::setProxy(ProxyMode md, ConstStrA addrport) {
 
 
 }
+
+
+IInputStream *SeqFileOutput::getInput() {
+	IInputStream &in = this->fhnd->getIfc<IInputStream>();
+	return &in;
+}
+
+IOutputStream *SeqFileInput::getOutput() {
+	IOutputStream &out = this->fhnd->getIfc<IOutputStream>();
+	return &out;
+}
+
 
 
 }

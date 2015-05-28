@@ -225,7 +225,7 @@ natural WinHttpStream::dataReady() const
 void WinHttpStream::initRequest()
 {
 	TextParser<wchar_t> parser;
-	if (!parser(L"%1://%[*-_.a-zA-Z0-9:@]2%%[/]*3",url))
+	if (!parser(L"%1://%[*-_.a-zA-Z0-9:@]2%%[/](*)*3",url))
 		throw FileOpenError(THISLOCATION,ERROR_FILE_NOT_FOUND,url);
 
 	String protocol = parser[1].str();
@@ -242,14 +242,17 @@ void WinHttpStream::initRequest()
 	natural port;
 	String username;
 	String password;
+	bool secure;
 
 	if (parser( L"%1:%u2",domain)) {
 		domain = parser[1].str();
 		port = parser[2];
 	} else if (protocol == ConstStrW(L"http")) {
 		port = INTERNET_DEFAULT_HTTP_PORT;
+		secure = false;
 	} else if (protocol == ConstStrW(L"https")) {
 		port = INTERNET_DEFAULT_HTTPS_PORT;
+		secure = true;
 	} else
 		throw FileOpenError(THISLOCATION,ERROR_NOT_FOUND,url);
 
@@ -289,10 +292,10 @@ void WinHttpStream::initRequest()
 	if (hConnect == 0) 
 		throw FileMsgException(THISLOCATION,GetLastError(),url,"Cannot connect remote site");
 	
-	DWORD reqFlags = INTERNET_FLAG_NO_UI 
-			|INTERNET_FLAG_HYPERLINK ;
+	DWORD reqFlags = INTERNET_FLAG_NO_UI |INTERNET_FLAG_HYPERLINK ;
 	if (redirDisabled) reqFlags|=INTERNET_FLAG_NO_AUTO_REDIRECT ;
 	if (!settings.cookiesEnabled) reqFlags|=INTERNET_FLAG_NO_COOKIES;
+	if (secure) reqFlags|=INTERNET_FLAG_SECURE;
 	
 
 	hHTTPConn = HttpOpenRequestW(hConnect,String(method).cStr(),path.cStr(),
@@ -309,9 +312,26 @@ void WinHttpStream::initRequest()
 	if (!hdrall.empty() &&
 		!HttpAddRequestHeadersW(hHTTPConn,hdrall.data(),(DWORD)hdrall.length(),HTTP_ADDREQ_FLAG_REPLACE|HTTP_ADDREQ_FLAG_ADD))
 		throw FileMsgException(THISLOCATION,GetLastError(),url,"AddRequest failed");
+	
+	if (!HttpSendRequestW(hHTTPConn,0,0,postBuffer.data(),(DWORD)postBuffer.length())) {
+		bool stillError = true;
+		DWORD dwError = GetLastError();	
+		if (dwError == ERROR_INTERNET_INVALID_CA && settings.allowUntrustedCert) {
+			DWORD dwFlags;
+			DWORD dwBuffLen = sizeof(dwFlags);
 
-	if (!HttpSendRequestW(hHTTPConn,0,0,postBuffer.data(),(DWORD)postBuffer.length()))
-		throw FileMsgException(THISLOCATION,GetLastError(),url,"Failed to SendRequest");
+			InternetQueryOption (hHTTPConn, INTERNET_OPTION_SECURITY_FLAGS,
+				(LPVOID)&dwFlags, &dwBuffLen);
+
+			dwFlags |= SECURITY_FLAG_IGNORE_UNKNOWN_CA;
+			InternetSetOption (hHTTPConn, INTERNET_OPTION_SECURITY_FLAGS,
+				&dwFlags, sizeof (dwFlags) );
+			if (HttpSendRequestW(hHTTPConn,0,0,postBuffer.data(),(DWORD)postBuffer.length()))
+				stillError = false;			
+		}
+		if (stillError)
+			throw FileMsgException(THISLOCATION,GetLastError(),url,"Failed to SendRequest");
+	}
 	postBuffer.clear();
 }
 
