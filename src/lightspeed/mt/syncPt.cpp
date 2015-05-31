@@ -81,6 +81,20 @@ SyncPt::SyncPt():curQueue(0),order(queue) {}
 SyncPt::SyncPt(Order order):curQueue(0),order(order) {}
 
 
+SyncPt::~SyncPt()
+{
+	//acquire lock to ensure that internal state of object is stable
+	queueLock.lock();
+	//lock is kept till destroy. Because it is fastlock, it is allowed to destroy owned lock
+	//no resource is left behind. 
+	//
+	//Using SyncPt during destroying is forbidden and may lead to unpredictable result.
+	//we will not handle this situation anyway
+	//
+	//But SyncPt can be destroyed before it finishes its internal operation
+	//acquiring the lock handles this situation.
+}
+
 bool SyncPt::notifyOne() {
 	Synchronized<FastLock> _(queueLock);
 	Slot *p = popSlot_lk();

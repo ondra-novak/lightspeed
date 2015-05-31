@@ -152,6 +152,7 @@ namespace LightSpeed {
 
 		SyncPt();
 		SyncPt(Order order);
+		~SyncPt();
 
 		enum WaitInterruptMode {
 
