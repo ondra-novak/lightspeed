@@ -342,11 +342,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\atomic.h"
+				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
+				RelativePath=".\src\lightspeed\mt\atomic.h"
 				>
 			</File>
 			<File
@@ -430,11 +430,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\cloneable.h"
+				RelativePath=".\src\lightspeed\base\memory\cloneable.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\cloneable.h"
+				RelativePath=".\src\lightspeed\base\cloneable.h"
 				>
 			</File>
 			<File
@@ -444,26 +444,6 @@
 			<File
 				RelativePath=".\src\lightspeed\base\memory\clusterAllocFactory.h"
 				>
-			</File>
-			<File
-				RelativePath=".\src\tests\ClusterAllocTest.h"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug Static|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\framework\cmdLineIterator.h"
@@ -742,11 +722,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
+				RelativePath=".\src\lightspeed\base\iter\iterator.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\iterator.h"
+				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
 				>
 			</File>
 			<File
@@ -1014,15 +994,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\platform.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\windows\platform.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\platform.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\mt\platform.h"
 				>
 			</File>
 			<File
@@ -1063,6 +1043,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\debug\progress.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\promise.h"
 				>
 			</File>
 			<File
@@ -1195,6 +1179,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\sharept.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\simpleMsgQueue.h"
 				>
 			</File>
 			<File
@@ -1398,11 +1386,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
+				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
+				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
 				>
 			</File>
 			<File
@@ -1502,11 +1490,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\winpch.h"
+				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				RelativePath=".\src\lightspeed\base\windows\winpch.h"
 				>
 			</File>
 			<File
@@ -1766,6 +1754,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\actions\promise.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\tests\PromiseTest.cpp"
 				>
 			</File>
@@ -1807,6 +1799,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\shareExclusiveLock.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\simpleMsgQueue.cpp"
 				>
 			</File>
 			<File
@@ -2036,6 +2032,10 @@
 		</File>
 		<File
 			RelativePath=".\src\lightspeed\base\iter\placeholders.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\actions\promise.tcc"
 			>
 		</File>
 		<File

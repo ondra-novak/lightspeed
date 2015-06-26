@@ -69,12 +69,12 @@
     <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Static|Win32'">
-    <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Static|Win32'">
-    <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -146,7 +146,9 @@
     <ClInclude Include="src\lightspeed\base\actions\msgQueue.h" />
     <ClInclude Include="src\lightspeed\base\actions\parallelExecutor.h" />
     <ClInclude Include="src\lightspeed\base\actions\parallelExecutor2.h" />
+    <ClInclude Include="src\lightspeed\base\actions\promise.h" />
     <ClInclude Include="src\lightspeed\base\actions\scheduler.h" />
+    <ClInclude Include="src\lightspeed\base\actions\simpleMsgQueue.h" />
     <ClInclude Include="src\lightspeed\base\align.h" />
     <ClInclude Include="src\lightspeed\base\cloneable.h" />
     <ClInclude Include="src\lightspeed\base\compare.h" />
@@ -439,10 +441,6 @@
     <ClInclude Include="src\lightspeed\utils\sendmail.h" />
     <ClInclude Include="src\lightspeed\utils\urlencode.h" />
     <ClInclude Include="src\lightspeed\utils\xmlparser.h" />
-    <CustomBuild Include="src\tests\ClusterAllocTest.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug Static|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lightspeed\base\actions\distributor.cpp" />
@@ -452,7 +450,9 @@
     <ClCompile Include="src\lightspeed\base\actions\msgQueue.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\parallelExecutor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\parallelExecutor2.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\promise.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\scheduler.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\simpleMsgQueue.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\arrayref.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\arrayt.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\avltreenode.cpp" />
@@ -550,6 +550,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lightspeed\base\actions\distrubutor.tcc" />
+    <None Include="src\lightspeed\base\actions\promise.tcc" />
     <None Include="src\lightspeed\base\containers\arraySet.tcc" />
     <None Include="src\lightspeed\base\containers\arrayt.tcc" />
     <None Include="src\lightspeed\base\containers\autoArray.tcc" />

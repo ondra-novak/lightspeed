@@ -280,6 +280,8 @@ namespace LightSpeed {
 
 		bool operator==(NullType) const {return msg == null;}
 		bool operator!=(NullType) const {return msg != null;}
+		bool operator==(const MessageBase &other) const {return msg == other.msg;}
+		bool operator!=(const MessageBase &other) const {return msg != other.msg;}
 
 	protected:
 

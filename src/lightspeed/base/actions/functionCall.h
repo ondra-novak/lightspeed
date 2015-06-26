@@ -98,8 +98,8 @@ namespace LightSpeed {
 	};
 
 #ifdef LIGHTSPEED_PLATFORM_WINDOWS
-#if _MSC_VER < 1600 
-	//Windows includes exception specification to function type. This is workaround for this behaviour
+#if _MSC_VER < 1800 
+	//Windows includes exception specification to function type. This is workaround for this behavior
 	template<typename A, typename B>
 	struct FunctionCall<A (B::*)()  throw()> {
 		typedef MemberFunctionCall<A (B::*)()  throw(),A> T;

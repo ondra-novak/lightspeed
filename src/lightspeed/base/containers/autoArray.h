@@ -336,7 +336,7 @@ namespace LightSpeed {
         	return *this;
         }
 
-        AutoArray(MoveConstruct,AutoArray &obj);
+     //   AutoArray(MoveConstruct,AutoArray &obj);
 
     protected:
 

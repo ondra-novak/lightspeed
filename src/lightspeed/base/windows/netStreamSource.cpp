@@ -109,7 +109,7 @@ PNetworkStream WindowsNetAccept::getNext()
 	WindowsNetStream *stream = new WindowsNetStream(s,streamDefTimeout);
 	stream->setTimeout(streamDefTimeout);
 
-	remoteAddr = INetworkServices::getNetServices().createAddr(&saddr,socklen);
+	remoteAddr = INetworkServices::getNetServices().createAddr(saddr,socklen);
 
 	if (count != naturalNull) count--;
 	return stream;
