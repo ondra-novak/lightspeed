@@ -233,6 +233,26 @@ StdLogOutput* DbgLog::getStdLog() {
 void DbgLog::logRotate() {
 	getLogOutput().logRotate();
 }
+
+static atomic stRtCounter = 0;
+const atomic &DbgLog::rotateCounter = stRtCounter;
+
+void DbgLog::logRotateAll() {
+	lockInc(stRtCounter);
+}
+
+bool DbgLog::needRotateLogs(atomic &internalcounter) {
+	atomicValue curValue = internalcounter;
+	atomicValue curGlobValue = stRtCounter;
+	if (curGlobValue != curValue) {
+		if (lockCompareExchange(internalcounter,curValue,curGlobValue) == curValue) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
 class NoLogProvider: public ILogOutput {
 public:
 	virtual void logOutput(ConstStrA ,

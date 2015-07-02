@@ -136,9 +136,34 @@ namespace LightSpeed {
 		///Rotates current log (log for current thread)
 		/** @copydoc ILogOutput::logRotate */
 		void logRotate();
-		///Rotates current log (log for current thread)
-		/** @copydoc ILogOutput::logRotate */
-		void logRotate();
+
+
+		///Rotates all logs (all threads)
+		/** Actualy, this function only increases internal counter that will later allow to
+		 *  log-object to determine that log should be rotated. Logs are rotate before next output to the log
+		 */
+		void logRotateAll();
+
+		///Tests and updates internal counter if log rotation is needed
+		/**
+		 * Function compares internal counter with global counter. If they differ the function
+		 * sets the value of the global counter to the internal counter and returns true. Otherwise
+		 * it returns false. Function performs operation atomically, so if two or more
+		 * threads call this function, only one of them receives true, other receive false.
+		 * @param internalcounter reference to internal counter
+		 * @retval true need rotate
+		 * @retval false don't rotate
+		 *
+		 * @note to make things faster, you can compare your internal counter with global counter "rotateCounter"
+		 * and call this function only if they differ
+		 */
+		bool needRotateLogs(atomic &internalcounter);
+
+		///contains pointer to global rotate counter
+		/** If the rotateCounter differs from internal rotate counter of the log object, the log object
+		 * must rotate its logs and update the counter
+		 */
+		extern LIGHTSPEED_EXPORT const atomic &rotateCounter;
 
 
 		///temporary redirect logs to different provider.

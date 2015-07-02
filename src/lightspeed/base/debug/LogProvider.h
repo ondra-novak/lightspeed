@@ -89,6 +89,9 @@ protected:
 	TLSBuffer buffer;
 	natural maxLevels[8];
 	const char *format;
+	atomic rotateCounter;
+
+	void checkLogRotate();
 
 };
 

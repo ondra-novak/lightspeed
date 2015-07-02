@@ -122,7 +122,8 @@ namespace LightSpeed {
 		template<typename Ifc>
 		class IfcProxy;
 
-		///Calles to proxy request into delegated object
+	public:
+		///Calls to proxy request into delegated object
 		/**
 		 * @param p reference to request
 		 * @return pointer to interface, or NULL when impossible
@@ -132,7 +133,7 @@ namespace LightSpeed {
 		virtual void *proxyInterface(IInterfaceRequest &p) {
 			return p.getInterface(this);
 		}
-		///Calles to proxy request into delegated object
+		///Calls to proxy request into delegated object
 		/**
 		 * @param p reference to request
 		 * @return pointer to interface, or NULL when impossible

@@ -8,6 +8,7 @@
 #include "LogProvider.h"
 #include <string.h>
 
+#include "../../mt/atomic.h"
 #ifdef LIGHTSPEED_PLATFORM_WINDOWS
 #include <time.h>
 inline int localtime_r(const time_t *tmt, struct tm *tminfo) {
@@ -29,6 +30,8 @@ void AbstractLogProvider::logOutput(ConstStrA ident, LogType type,
 		const char* format) {
 
 	if (checkLogLevel(type,level) ) {
+
+		checkLogRotate();
 
 		ITLSTable &tls = ITLSTable::getInstance();
 		Buffer &curbuf = buffer[tls];
@@ -72,6 +75,7 @@ void AbstractLogProvider::setFormat(const char* format) {
 AbstractLogProvider::AbstractLogProvider() {
 	memset(maxLevels,0xFF,sizeof(maxLevels));
 	format  = __logMsgFormat;
+	DbgLog::needRotateLogs(rotateCounter);
 }
 
 
@@ -89,6 +93,12 @@ AbstractLogProvider::LogTimestamp::LogTimestamp() {
 	sec = tminfo.tm_sec;
 }
 
+void AbstractLogProvider::checkLogRotate() {
+	if (rotateCounter != DbgLog::rotateCounter)
+		if (DbgLog::needRotateLogs(rotateCounter)) {
+			logRotate();
+		}
+}
 
 } /* namespace LightSpeed */
 
