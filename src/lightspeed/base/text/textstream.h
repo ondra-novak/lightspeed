@@ -1,4 +1,4 @@
-// $Id: textstream.h 5443 2014-09-12 15:51:50Z ondrej.novak $
+// $Id: textstream.h 573 2014-09-12 15:51:50Z ondrej.novak $
 
 #include "../iter/iteratorFilter.h"
 #include "../streams/utf.h"

@@ -1,6 +1,6 @@
 /** @file
  * 
- * $Id: textIn.cpp 2495 2012-05-24 06:48:26Z ondrej.novak $
+ * $Id: textIn.cpp 300 2012-05-24 06:48:26Z ondrej.novak $
  *
  */
 

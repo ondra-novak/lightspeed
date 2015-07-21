@@ -1,6 +1,6 @@
 /** @file
  * 
- * $Id: arrayref.h 4572 2014-02-08 21:55:48Z ondrej.novak $
+ * $Id: arrayref.h 707 2015-05-18 08:12:36Z bredysoft $
  *
  * DESCRIPTION
  * Short description
@@ -35,7 +35,7 @@ namespace LightSpeed {
 		ArrayRef():refdata(0),len(0) {}
 
 		template<typename Y>
-		ArrayRef(const FlatArray<MutableItemT,Y> &other):refdata(other._invoke().refData(other._invoke().data())),len(other._invoke().length()) {
+		ArrayRef(const FlatArray<MutableItemT,Y> &other):refdata(other._invoke().refData((T *)0)),len(other._invoke().length()) {
 		}
 
 		template< typename Y>
@@ -79,6 +79,7 @@ namespace LightSpeed {
 		natural len;
 
 		friend class ArrayRef<typename ConstObject<T>::Invert>;
+
 
 
 	};

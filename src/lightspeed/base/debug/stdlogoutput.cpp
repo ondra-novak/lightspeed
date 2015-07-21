@@ -3,27 +3,24 @@
 
 namespace LightSpeed {
 
-	void StdLogOutput::setFile(SeqFileOutput out)
+	void StdLogOutput::setFile(SeqFileOutput out, ConstStrW fname)
 	{
 		Sync _(lock);
 		outFile = out;
-		logFilename.clear();
+		logFilename = fname;
 	}
 
 
 
 	void StdLogOutput::setFile(ConstStrW fname)
 	{
-		Sync _(lock);
-		setFileLk(fname);
+		using namespace OpenFlags;
+		SeqFileOutput newlog(fname,append|createFolder|create|shareRead|shareWrite);
+		setFile(newlog,fname);
+
+
 	}
 
-	void StdLogOutput::setFileLk(ConstStrW fname)
-	{
-		using namespace OpenFlags;
-		logFilename = fname;
-		outFile = SeqFileOutput(logFilename,append|createFolder|create|shareRead|shareWrite);
-	}
 
 
 
@@ -37,10 +34,9 @@ namespace LightSpeed {
 
 
 	void StdLogOutput::logRotate() {
+		String x = logFilename;
 		if (logFilename.empty()) throw ErrorMessageException(THISLOCATION, "Cannot rotate logfile, because log is not opened using filename");
-		Sync _(lock);
-		outFile = nil;
-		setFileLk(logFilename);
+		setFile(logFilename);
 	}
 
 

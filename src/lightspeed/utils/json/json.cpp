@@ -18,6 +18,7 @@
 #include "jsonfast.tcc"
 #include "../../base/text/textParser.tcc"
 #include "../../base/exceptions/throws.h"
+#include "../../base/exceptions/invalidParamException.h"
 
 namespace LightSpeed {
 
@@ -66,6 +67,7 @@ void Object_t::insertField(const StringA &name, PNode nd) {
 
 INode *Object_t::add(PNode nd) {
 	if (nd == nil) nd = getNullNode();
+	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	natural l = fields.length();
 	TextFormatBuff<char,StaticAlloc<50> > fmt;
 	fmt("unnamed%l") << l;
@@ -74,6 +76,7 @@ INode *Object_t::add(PNode nd) {
 
 INode *Object_t::add(ConstStrA name, PNode nd) {
 	if (nd == nil) nd = getNullNode();
+	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	insertField(name,nd);
 	return this;
 }
@@ -124,6 +127,7 @@ bool Array_t::enumEntries(const IEntryEnum &fn) const {
 
 INode *Array_t::add(PNode nd) {
 	if (nd == nil) nd = getNullNode();
+	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	if (isMTAccessEnabled()) list.add(nd.getMT());
 	else list.add(nd);
 	return this;
@@ -490,12 +494,12 @@ PNode Factory_t::newValue(ConstStrA v) {return new TextFieldA_t(v);}
 
 
 
-class FastFactory_t: public FactoryAlloc_t {
+class FastFactory_t: public FactoryAlloc_t<> {
 public:
 
 	ClusterAlloc alloc;
 
-	FastFactory_t():FactoryAlloc_t(alloc) {}
+	FastFactory_t():FactoryAlloc_t<>(alloc) {}
 	virtual IFactory *clone() {return new FastFactory_t;}
 };
 
@@ -509,7 +513,7 @@ PFactory create()
 
 PFactory create(IRuntimeAlloc &alloc)
 {
-	return new FactoryAlloc_t(alloc);
+	return new FactoryAlloc_t<>(alloc);
 }
 
 PFactory createFast()
@@ -768,24 +772,15 @@ bool Iterator::isNextKey(ConstStrA fieldName) const {
 	return hasItems() && peek().key->getString() == fieldName;
 }
 
-LightSpeed::JSON::PFactory::Builder PFactory::array()
+PNode PFactory::array()
 {
-	return Builder((*this)->array(),*(*this));
+	return (*this)->array();
 }
 
-PFactory::Builder PFactory::array( PNode itm )
-{
-	return Builder(itm,*(*this));
-}
 
-LightSpeed::JSON::PFactory::Builder PFactory::object()
+PNode  PFactory::object()
 {
-	return Builder((*this)->object(),*(*this));
-}
-
-PFactory::Builder PFactory::object( PNode itm )
-{
-	return Builder(itm,*(*this));
+	return (*this)->object();
 }
 
 

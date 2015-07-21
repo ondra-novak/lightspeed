@@ -91,7 +91,12 @@ natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
 
 template<natural bufferSize>
 bool IOBuffer<bufferSize>::canRead() const {
-	return rdpos < rdend || targetIn->canRead();
+	if ( rdpos < rdend ) return true;
+	if (wrpos > wrbeg) {
+		const_cast<IOBuffer<bufferSize> *>(this)->flush();
+		if (autoflush != nil) autoflush->flush();
+	}
+	return targetIn->canRead();
 }
 
 template<natural bufferSize>

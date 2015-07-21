@@ -20,7 +20,7 @@ namespace LightSpeed {
 		natural ipver;
 
 		HTTPSettings():proxyMode(IHTTPSettings::pmAuto)
-			,cookiesEnabled(false),allowUntrustedCert(false),defaultTimeout(naturalNull),ipver(0) {}
+			,cookiesEnabled(false),allowUntrustedCert(false),defaultTimeout(30000),ipver(0) {}
 	};
 
     class LinuxHTTPSettings: public IHTTPSettings {

@@ -8,6 +8,9 @@
 #ifndef LIGHTSPEED_BASE_CONTAINERS_INDEXMAP_H_
 #define LIGHTSPEED_BASE_CONTAINERS_INDEXMAP_H_
 
+#include "../containers/map.h"
+#include "../containers/optional.h"
+
 namespace LightSpeed {
 
 
@@ -56,7 +59,7 @@ public:
 	const T *find(const ID &id) const {
 		const T *x = IndexMap<T,ID,F>::find(id);
 		if (x == 0) {
-			if (erased.isSet() && id == erasedID) return erased.data();
+			if (erased != nil && id == erasedID) return &((T &)erased);
 		}
 		return x;
 	}
@@ -67,7 +70,7 @@ public:
 		typename IndexMap<T,ID,F>::Iterator iter = IndexMap<T,ID,F>::seek(id,&found);
 		if (found) {
 			erasedID = id;
-			erased.set(iter.peek().value);
+			erased = iter.peek().value;
 			IndexMap<T,ID,F>::erase(iter);
 		}
 	}

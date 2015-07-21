@@ -20,6 +20,8 @@
 #include "../containers/string.tcc"
 #include "../text/textParser.tcc"
 #include "../text/textstream.h"
+#include "../streams/standardIO.tcc"
+#include "../../utils/FilePath.tcc"
 
 namespace LightSpeed {
 
@@ -30,6 +32,7 @@ namespace LightSpeed {
 		const char *grestartCmd = "restart";
 		const char *gwaitCmd = "wait";
 		const char *gstatusCmd = "status";
+		const char *gtestCmd = "test";
 		const wchar_t *gdefaultInstanceName = L"default";
 
 	}
@@ -40,6 +43,7 @@ namespace LightSpeed {
 	const char * ServiceAppBase::startForeCmd=gstartForeCmd;
 	const char * ServiceAppBase::waitCmd=gwaitCmd;
 	const char * ServiceAppBase::statusCmd=gstatusCmd;
+	const char * ServiceAppBase::testCmd=gtestCmd;
 	const wchar_t *ServiceAppBase::defaultInstanceName=gdefaultInstanceName;
 
 
@@ -54,22 +58,39 @@ namespace LightSpeed {
 	{
 		StdError serr;
 
-		if (args.length() < 3) return onCommandLineError();
-		appname = args[0];
-		String instanceName = args[1];
-		if (instanceName == defaultInstanceName)  instanceName = getDefaultInstanceName(appname);
-		StringA command = String::getUtf8(args[2]);;
-		instance = ProgInstance(instanceName);
-		Args rmargs(const_cast<ConstStrW *>(args.data()+3),args.length()-3);
-		stopCommand = false;
-		return startCommand(command,rmargs,serr);
+		
+		if (args.length() < 3) return onCommandLineError(args);
+		try {
+			appname = args[0];
+			String instanceName = args[1];
+			if (instanceName == defaultInstanceName)  instanceName = getDefaultInstanceName(appname);
+			StringA command = String::getUtf8(args[2]);;
+			instance = ProgInstance(instanceName);
+			Args rmargs(const_cast<ConstStrW *>(args.data()+3),args.length()-3);
+			stopCommand = false;
+			return startCommand(command,rmargs,serr);
+		} catch (...) {
+			return onStartError(serr);
+		}
 	}
 
 
+	LightSpeed::integer ServiceApp::validateService(const Args & , SeqFileOutput )
+	{
+		if (instance->check()) {
+			return 0;
+		} else {
+			throw ErrorMessageException(THISLOCATION,"ServiceApp: Invalid instance file/name");
+		}
+		
+	}
+
 	integer ServiceApp::startCommand(ConstStrA command, const Args & args, SeqFileOutput &serr) {
 		if (command == ConstStrA(startCmd)) {
+			integer x = validateService(args,serr);
+			if (x) return x;
 			createInstanceFile();
-			integer x = onMessage(command,args,serr);
+			x = onMessage(command,args,serr);
 			if (x) return x;
 			x = initService(args,serr);
 			if (x) return x;
@@ -77,13 +98,17 @@ namespace LightSpeed {
 			instance->enterDaemonMode(restartDelaySec);
 			return startService();
 		} else if (command == ConstStrA(startForeCmd)) {
+			integer x = validateService(args,serr);
+			if (x) return x;
 			createInstanceFile();
-			integer x = onMessage(command,args,serr);
+			x = onMessage(command,args,serr);
 			if (x) return x;
 			x = initService(args,serr);
 			if (x) return x;
 			return startService();
 		} else if (command == ConstStrA(restartCmd)){
+			integer x = validateService(args,serr);
+			if (x) return x;
 			try {
 				instance->open();
 				postMessage(stopCmd,Args(), serr);
@@ -94,7 +119,7 @@ namespace LightSpeed {
 				instance->waitForTerminate(timeout);
 			}
 			createInstanceFile();
-			integer x = onMessage(command,args,serr);
+			x = onMessage(command,args,serr);
 			if (x) return x;
 			x = initService(args,serr);
 			if (x) return x;
@@ -119,6 +144,9 @@ namespace LightSpeed {
 			}
 			instance->open();
 			instance->waitForTerminate(timeout);
+		} else if (command == ConstStrA(testCmd)) {
+			integer x = validateService(args,serr);
+			return x;
 		} else {
 			instance->open();
 			return postMessage(command,args, serr);
@@ -174,7 +202,7 @@ namespace LightSpeed {
 		if (instance->imOwner()) return onMessage(command,args,output);
 
 		AutoArrayStream<char, StaticAlloc<65536> > buffer;
-		if (args.length() > 127) return onCommandLineError();
+		if (args.length() > 127) return onCommandLineError(args);
 		buffer.write((char)(args.length()));
 		buffer.copy(command.getFwIter());
 		buffer.write(0);
@@ -325,9 +353,26 @@ namespace LightSpeed {
 			instance->create(instanceFileSize);
 
 	}
-	integer ServiceApp::onCommandLineError()
+	integer ServiceApp::onCommandLineError(const Args &)
 	{
-		throw ErrorMessageException(THISLOCATION, "Error in command line. Need two parameters. Instance file and operation name");
+		ConsoleA console;
+		FilePath p(appPathname);
+
+		console.print("ERROR: Argument required\n\n"
+			"Usage: \"%1\" <instance> %2|%3|%4|%5|%6|%7|%8 [args...]\n"
+			"\n"
+			"<instance> - a PID file or instance file or instance object name\n"
+			"%2\tstart inactive service (create instance)\n"
+			"%3\tstop running service (destroy instance)\n"
+			"%4\trestart running service (recreate instance)\n"
+			"%5\tstart service on foreground (create instance)\n"
+			"%6\twait for service finish (optional argument, timeout in milliseconds)\n"
+			"%7\treport status of the service\n"
+			"%8\ttest configuration, do not run service\n"
+			"args...\t optional arguments related to service (this is general help)\n")
+			<< p.getFilename() << startCmd << stopCmd <<restartCmd << startForeCmd << waitCmd << statusCmd << testCmd;
+
+		return 1;
 	}
 
 	integer ServiceApp::onOperationUnknown(ConstStrA opname)
@@ -351,6 +396,21 @@ namespace LightSpeed {
 	}
 
 
+	integer ServiceApp::onStartError(SeqFileOutput output) {
+		PrintTextA prn(output);
+		try {
+			throw;
+		} catch (LightSpeed::Exception &e) {
+			prn("FATAL ERROR: %1\n") << e.getMessageWithReason();
+		} catch (std::exception &e) {
+			prn("FATAL ERROR: %1\n") << e.what();
+		} catch (...) {
+			prn("FATAL ERROR: unknown reason\n");
+		}
+		return 100;
+	}
+
 }
+
 
 #endif /* LIGHTSPEED_FRAMEWORK_SERVICEAPP_TCC_ */

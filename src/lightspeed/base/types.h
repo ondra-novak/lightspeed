@@ -60,12 +60,17 @@ namespace LightSpeed
 #endif
 
 
+
     
     static const natural naturalNull = (natural)-1;
     static const lnatural lnaturalNull = (lnatural)-1;
     static const integer integerNull = integer(~(naturalNull>>1));
     static const linteger lintegerNull = linteger(~(lnaturalNull>>1));
-    
+
+#ifdef LIGHTSPEED_ENV_32BIT
+#define LIGHTSPEED_HAS_LONG_TYPES
+#endif
+
     ///declaration nil typu
     enum Null_t {
         nil = 0,

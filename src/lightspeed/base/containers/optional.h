@@ -174,12 +174,12 @@ namespace LightSpeed {
 		bool engaged;
 
 		T &get() {
-			byte *c = buffer;
-			return *reinterpret_cast<T *>(c);
+			void *buff = buffer; //need to break strict aliasing - compiler cannot optimize here
+			return *reinterpret_cast<T *>(buff);
 		}
 		const T &get() const {
-			const byte *c = buffer;
-			return *reinterpret_cast<const T *>(c);
+			const void *buff = buffer; //need to break strict aliasing - compiler cannot optimize here
+			return *reinterpret_cast<const T *>(buff);
 		}
 
 		void destruct() {

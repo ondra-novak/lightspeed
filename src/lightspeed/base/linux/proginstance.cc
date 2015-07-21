@@ -2,7 +2,7 @@
  * Copyright (c) 2006, Seznam.cz, a.s.
  * All Rights Reserved.
  * 
- * $Id: proginstance.cc 4458 2014-01-15 16:38:58Z ondrej.novak $
+ * $Id: proginstance.cc 722 2015-07-13 13:05:40Z bredysoft $
  *
  * DESCRIPTION
  * Short description
@@ -123,6 +123,16 @@ bool ProgInstance::anyRequest()
 	sem_post(&buffer->semRequest);
 	return true;
 
+}
+
+bool ProgInstance::check() const {
+	IFileIOServices &svc = IFileIOServices::getIOServices();
+	if (svc.canOpenFile(name,IFileIOServices::fileAccessible))
+		return svc.canOpenFile(name,IFileIOServices::fileOpenReadWrite);
+	natural lastSlash = name.findLast('/');
+	if (lastSlash == naturalNull) return !name.empty() && svc.canOpenFile('.',IFileIOServices::fileOpenReadWrite);
+	ConstStrW path = name.head(lastSlash);
+	return svc.canOpenFile(path,IFileIOServices::fileOpenReadWrite);
 }
 
 static void sem_throwException(const ProgramLocation &loc, int err) {
@@ -366,7 +376,7 @@ bool ProgInstance::takeOwnership() {
 }
 
 void ProgInstance::TimeoutException::message(ExceptionMsg &msg) const {
-	msg("Timeout exception");
+	msg("Service response timeout");
 }
 void ProgInstance::RequestTooLarge::message(ExceptionMsg &msg) const {
 	msg("Request too large");
@@ -375,14 +385,14 @@ void ProgInstance::ReplyTooLarge::message(ExceptionMsg &msg) const {
 	msg("Reply too large");
 }
 void ProgInstance::AlreadyRunningException::message(ExceptionMsg &msg) const {
-	msg("Process is already running under pid: %1") << pid;
+	msg("Service is already running under pid: %1") << pid;
 }
 void ProgInstance::NotRunningException::message(ExceptionMsg &msg) const {
-	msg("Process is not running");
+	msg("Service is not running");
 }
 
 void ProgInstance::NotInitialized::message(ExceptionMsg &msg) const {
-	msg("Not initialized");
+	msg("Service is not initialized");
 }
 
 static void waitForTerminateSt(natural timeout, pid_t pid);

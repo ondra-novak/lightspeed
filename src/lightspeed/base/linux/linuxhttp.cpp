@@ -123,6 +123,7 @@ void LinuxHttpStream::cropLine(ConstStrA& hdrline) {
 void LinuxHttpStream::parseReplyHeader() {
 //	LogObject lg(THISLOCATION);
 	TextParser<char, StaticAlloc<4096> > parser;
+	statusCode = naturalNull;
 	for (AutoArray<char>::SplitIterator iter = replyHdrPool.split('\n');
 			iter.hasItems();) {
 		ConstStrA hdrline = iter.getNext();
@@ -142,8 +143,9 @@ void LinuxHttpStream::parseReplyHeader() {
 				replyHeader.replace(hdr, value);
 			}
 		}
-
 	}
+	if (statusCode == naturalNull)
+		throw FileMsgException(THISLOCATION,0,url,"Corrupted http header (corrupted status line)");
 
 }
 
@@ -249,6 +251,7 @@ void LinuxHttpStream::sendRequest() {
 		fmt("%1: %2") << ent.key << ent.value;
 		wgetProc.arg(ConstStrW(fmt.write()));
 	}
+	wgetProc.arg("--header").arg("Connection: close");
 
 	//specify timeout
 	if (settings.defaultTimeout != naturalNull) {

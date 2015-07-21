@@ -2,7 +2,7 @@
  * Copyright (c) 2006, Seznam.cz, a.s.
  * All Rights Reserved.
  * 
- * $Id: proginstance.h 4644 2014-02-24 15:50:12Z ondrej.novak $
+ * $Id: proginstance.h 721 2015-07-13 10:57:39Z bredysoft $
  *
  * DESCRIPTION
  * Short description
@@ -82,6 +82,13 @@ public:
 	 */
 	void open();
 
+
+	///checks instance file without opening the instance
+	/** 
+	 @retval true checked OK
+	 @retval false instance file is invalid or cannot be  opened
+	 */
+	bool check() const;
 
 	///Requests running processes
 	/**

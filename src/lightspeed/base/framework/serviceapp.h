@@ -44,7 +44,7 @@ public:
 
 	///Name of wait for completion command
 	/** command is used to stop execution of script until service exits.
-	 * You can specify timeout as optional argument. Timeout is in miliseconds.
+	 * You can specify timeout as optional argument. Timeout is in milliseconds.
 	 * If timeout is not specified, command will wait infinitely
 	 */
 	static LIGHTSPEED_EXPORT const char * waitCmd;
@@ -54,6 +54,9 @@ public:
 	 * Command exits with exitCode 0 when service is running and with exitCode 1 when not
 	 */
 	static LIGHTSPEED_EXPORT const char * statusCmd;
+
+
+	static LIGHTSPEED_EXPORT const char * testCmd;
 
 	///keyword uses instead name of instance (as first parameter on the command line)
 	/**
@@ -183,7 +186,12 @@ public:
     }
 
     ///Invoked when error at command line
-    virtual integer onCommandLineError();
+	/**
+	 @param args arguments on command line
+	 @return function returns exit code. Regardless on result, program
+	 is going to exit
+	 */
+    virtual integer onCommandLineError(const Args & args);
     ///Invoked when unknown operation
     virtual integer onOperationUnknown(ConstStrA opname);
 
@@ -249,6 +257,14 @@ protected:
     virtual integer onMessage(ConstStrA command, const Args & args, SeqFileOutput output);
 
 
+    ///Called if exception during start happened.
+    /**
+     * Function such send error message to the stdError
+     * @param output handle to error console
+     * @return application's exit code
+     */
+    virtual integer onStartError(SeqFileOutput output);
+
 
     Optional<ProgInstance> instance;
     natural timeout;
@@ -291,6 +307,21 @@ protected:
      */
     integer start(const Args & args);
 
+	///Function called on start before instance file is opened
+	/** This is the right place to validate service - for example to load config
+	and prepare components to initialize and start. Note that in this state,
+	another service still can run, so function should not acquire resources, because
+	they still can be in use. On the other hand, program can perform configuration
+	check without interrupting the currently running service. In
+	case of failure, currently running service is not affected 
+	
+	@note function is also called for command "test". If zero returned, 
+	program exits with zero status.
+	*/
+
+	virtual integer validateService(const Args & , SeqFileOutput );
+
+
 
     ProgInstance::InstanceStage getStage() const {return instance->getInstanceStage();}
 
@@ -302,6 +333,7 @@ protected:
 private:
     void createInstanceFile();
 
+	///Overwrite default instance name
 	virtual String getDefaultInstanceName(const ConstStrW arg0) const;
 };
 

@@ -75,7 +75,11 @@ namespace LightSpeed {
 			PNode operator[](int i) const;
 			PNode operator[](natural i) const;
 
+
 		};
+
+		typedef PNode Value;
+
 		//Smart pointer to factory
 		/**Automatically tracks reference counts for factories allowing free unused factories as required */
 //		typedef ::LightSpeed::RefCntPtr<IFactory> PFactory;
@@ -92,46 +96,14 @@ namespace LightSpeed {
 				Super::operator=(other);return *this;
 			}
 
-			class Builder;
 
 
 			///Syntax helper
 			/** factory(x) -> factory->newValue(x) */
 			template<typename T>
 			PNode operator()(const T &val);
-			
-			///Syntax helper - builder of array
-			/** 
-				factory.array(),10,20,30,40,50;
-			*/
-			Builder array();
-			///Syntax helper - create empty object
-			Builder object();
-			///Syntax helper - bulder of object
-			/**
-			    PNode x = ....;
-			    factory.object(x)("aaa",123)("ccc",585)("bbb",true);
-		    */
-			Builder object(PNode itm);
-			///Syntax helper - builder of array
-			/**
-			    PNode x = ....;
-				factory.array(x),10,20,30,true,"ahoj";
-				factory.array(x)(10)(20)(30)(true)("ahoj");
-			*/
-			Builder array(PNode itm);
-			///Syntax helper - builder of array
-			/**
-				factory.array(10)(20)(30)(true)("ahoj");
-			*/
-			template<typename T>
-			Builder array(const T x);
-			///Syntax helper - builder of object
-			/**
-			factory.object("aaa",123)("ccc",585)("bbb",true);
-			*/
-			template<typename T>
-			Builder object(ConstStrA name, const T &x);
+			PNode array();
+			PNode object();
 
 		};
 
@@ -188,20 +160,31 @@ namespace LightSpeed {
 		
 
 		///Information about node retrieved through Iterator
-		struct NodeInfo {
+		class KeyValue {
+		public:
 			///Name of node
 			/** Field is used only when iterator processing through object. Otherwise it is not used */
 			const IKey *key;
 			/// Pointer to node
 			INode *node;
+
+			operator Value() const {return node;}
+			INode *operator->() const {return node;}
+			INode &operator*() const {return *node;}
+
+			IKey::Type getKeyType() const {return key->getType();}
+			natural getIndex() const {return key->getIndex();}
+			ConstStrA getStringKey() const {return key->getString();}
 		};
+
+		typedef KeyValue NodeInfo;
 
 		///Iterator through containers in JSON
 		/**
 		 * This allows to enumerate members of objects or values in arrays. To retrieve this object
 		 * call INode::getFwIter()
 		 */
-		class Iterator: public IteratorBase<NodeInfo, Iterator> {
+		class Iterator: public IteratorBase<KeyValue, Iterator> {
 		public:
 
 			class IIntIter;
@@ -693,68 +676,8 @@ namespace LightSpeed {
 			return (*this)->operator ()(val);
 		}
 
-		class PFactory::Builder: public PNode {
-			IFactory &factory;
-		public:
-			Builder(PNode nd, IFactory &f):PNode(nd),factory(f) {}
-			template<typename T>
-			Builder &operator()(ConstStrA name, const T &value) {
-				(*this)->add(name,factory(value));
-				return *this;
-			}
-			template<typename T>
-			Builder &operator()(const T &value) {
-				(*this)->add(factory(value));
-				return *this;
-			}
-
-			template<typename T>
-			Builder &operator,(const T &value) {
-				(*this)->add(factory(value));
-				return *this;
-			}
-
-			template<typename T>
-			Builder object(ConstStrA name, const T &value) const;
-			template<typename T>
-			Builder array(const T &value) const;
-			Builder object() const;
-			Builder array() const;
-		};
 
 
-
-		template<typename T>
-		PFactory::Builder PFactory::array(const T x) {
-			return Builder((*this)->array()->add((*this)(x)),*(*this));
-		}
-		template<typename T>
-		PFactory::Builder PFactory::object(ConstStrA name, const T &x) {
-			return Builder((*this)->object()->add(name, (*this)(x)),*(*this));
-		}
-
-		template<typename T>
-		inline PFactory::Builder PFactory::Builder::object(ConstStrA name, const T &value) const
-		{
-			return Builder(factory.object()->add(name,factory(value)),factory);
-		}
-
-		inline PFactory::Builder PFactory::Builder::object() const
-		{
-			return Builder(factory.object(),factory);
-		}
-
-		template<typename T>
-		inline PFactory::Builder PFactory::Builder::array(const T &value) const
-		{
-			return Builder(factory.array()->add(factory(value)),factory);
-		}
-
-
-		inline PFactory::Builder PFactory::Builder::array() const
-		{
-			return Builder(factory.array(),factory);
-		}
 
 
 		template<typename A,typename B>

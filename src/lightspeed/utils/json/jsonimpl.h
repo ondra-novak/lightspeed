@@ -246,26 +246,27 @@ public:
 	DynNode_t(const X &x):T(x) {}
 };
 
+template<template<typename> class T = DynNode_t>
 class FactoryAlloc_t: public Factory_t {
 public:
 
 	FactoryAlloc_t(IRuntimeAlloc  &alloc):alloc(alloc) {}
 
-	virtual PNode newClass() {return new(alloc) DynNode_t<Object_t>;}
-	virtual PNode newArray() {return new(alloc) DynNode_t<Array_t>;}
-	virtual PNode newValue(natural v) {return new(alloc) DynNode_t<IntField_t>(v);}
-	virtual PNode newValue(integer v) {return new(alloc) DynNode_t<IntField_t>(v);}
+	virtual PNode newClass() {return new(alloc) T<Object_t>;}
+	virtual PNode newArray() {return new(alloc) T<Array_t>;}
+	virtual PNode newValue(natural v) {return new(alloc) T<IntField_t>(v);}
+	virtual PNode newValue(integer v) {return new(alloc) T<IntField_t>(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
-	virtual PNode newValue(lnatural v) {return new(alloc) DynNode_t<IntField64_t>(v);}
-	virtual PNode newValue(linteger v) {return new(alloc) DynNode_t<IntField64_t>(v);}
+	virtual PNode newValue(lnatural v) {return new(alloc) T<IntField64_t>(v);}
+	virtual PNode newValue(linteger v) {return new(alloc) T<IntField64_t>(v);}
 #endif
-	virtual PNode newValue(float v) {return new(alloc) DynNode_t<FloatField_t>(v);}
-	virtual PNode newValue(double v) {return new(alloc) DynNode_t<FloatField_t>(v);}
-	virtual PNode newValue(bool v) {return new(alloc) DynNode_t<Bool_t>(v);}
-	virtual PNode newValue(ConstStrW v) {return new(alloc) DynNode_t<TextField_t>(v);}
-	virtual PNode newValue(ConstStrA v) {return new(alloc) DynNode_t<TextFieldA_t>(v);}
-	virtual PNode newValue(const String &v) {return new(alloc) DynNode_t<TextField_t>(v);}
-	virtual PNode newValue(const StringA &v) {return new(alloc) DynNode_t<TextField_t>(v);}
+	virtual PNode newValue(float v) {return new(alloc) T<FloatField_t>(v);}
+	virtual PNode newValue(double v) {return new(alloc) T<FloatField_t>(v);}
+	virtual PNode newValue(bool v) {return new(alloc) T<Bool_t>(v);}
+	virtual PNode newValue(ConstStrW v) {return new(alloc) T<TextField_t>(v);}
+	virtual PNode newValue(ConstStrA v) {return new(alloc) T<TextFieldA_t>(v);}
+	virtual PNode newValue(const String &v) {return new(alloc) T<TextField_t>(v);}
+	virtual PNode newValue(const StringA &v) {return new(alloc) T<TextField_t>(v);}
 	virtual IRuntimeAlloc *getAllocator() const {return &alloc;}
 
 	virtual IFactory *clone() {return new FactoryAlloc_t(alloc);}

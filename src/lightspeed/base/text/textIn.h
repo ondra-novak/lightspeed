@@ -1,5 +1,5 @@
 /** @file
-  * $Id: textIn.h 2554 2012-07-16 14:59:40Z ondrej.novak $
+  * $Id: textIn.h 311 2012-07-16 14:59:40Z ondrej.novak $
  *
  * 
  *

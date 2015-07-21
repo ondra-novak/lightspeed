@@ -88,11 +88,11 @@ namespace LightSpeed {
  *  integrity of the log file. First record has predefined value and it is used as magic value
  * @b eventType user defined type of event stored in this record. There can be
  *     65535 event types. Event 0xFFFF is reserved and should not be used
- * @b length length of the data section. Length is stored in 8b granuality. Value 0 means
+ * @b length length of the data section. Length is stored in 8b granulate. Value 0 means
  *    that the event has no data. Value 1 means, that there are 8 bytes of the data. Value 2 means
  *    that the event has 16 bytes, and so on.
- * @b timeDiff count of seconds ellapsed from previous event. Field is used to
- *    store time when event was recorded. Time is stored in seconds (EventLog cannot to
+ * @b timeDiff count of seconds elapsed from previous event. Field is used to
+ *    store time when event was recorded. Time is stored in seconds (EventLog cannot
  *    handle shorter interval. If there is more then 65535 seconds between two
  *    events, special event 0xFFFF is put between and timeDiff contains high two bytes
  *    of the difference. First event put into log file is always put with 0xFFFF prefix,

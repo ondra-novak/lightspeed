@@ -16,40 +16,15 @@ Builder::Builder(IRuntimeAlloc& alloc) {
 	this->factory = JSON::create(alloc);
 }
 
-Builder::Object Builder::operator ()(ConstStrA name, PNode nd) const {
-	PNode nd2 = factory->newObject();
-	nd2->add(name,nd);
-	return Object(factory,nd2);
-}
-
-Builder::Object Builder::operator ()(PNode nd) const {
-	return Object(factory,nd);
-}
-
-Builder::Object Builder::operator ()() const {
-	return Object(factory,factory->newObject());
-}
-
-Builder::Object Builder::operator ()(Empty_t ) const {
-	return Object(factory,factory->newObject());
-}
-
-Builder::Array Builder::operator [](PNode nd) const {
+Builder::Array Builder::array(PNode nd) const {
 	return Array(factory,nd);
+}
+Builder::Object Builder::object(PNode nd) const {
+	return Object(factory,nd);
 }
 
 Builder::Array Builder::operator [](Empty_t ) const {
 	return Array(factory,factory->newArray());
-}
-
-Builder::Object Builder::Object::operator ()(ConstStrA name,	PNode nd) {
-	(*this)->add(name,nd);
-	return *this;
-}
-
-Builder::Array Builder::Array::operator [](PNode nd) {
-	(*this)->add(nd);
-	return *this;
 }
 
 Builder::Array LightSpeed::JSON::Builder::array() const {

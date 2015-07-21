@@ -16,7 +16,7 @@ public:
 
 	void setFile(ConstStrW fname);
 	void enableStderr(bool enable);
-	void setFile(SeqFileOutput out);
+	void setFile(SeqFileOutput out, ConstStrW fname);
 	//void onTextOut();
 	void logRotate();
 	void logLine(ConstStrA line, ILogOutput::LogType logType, natural level) ;
@@ -28,8 +28,6 @@ protected:
 	SeqFileOutput stdErr;
 	bool stdErrEnabled;
 	String logFilename;
-
-	void setFileLk(ConstStrW fname);
 
 	FastLock lock;
 	typedef Synchronized<FastLock> Sync;

@@ -4,7 +4,7 @@
  * 
  * @see LightSpeed::Any, LightSpeed::AnyCpy
  * 
- * $Id: any.h 2097 2011-10-18 12:51:20Z ondrej.novak $
+ * $Id: any.h 240 2011-10-18 12:51:20Z ondrej.novak $
  */
 
 #ifndef ANY_H_

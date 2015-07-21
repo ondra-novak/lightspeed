@@ -2,7 +2,7 @@
  * Copyright (c) 2006, Seznam.cz, a.s.
  * All Rights Reserved.
  * 
- * $Id: assert.h 2190 2011-12-05 13:31:13Z ondrej.novak $
+ * $Id: assert.h 265 2011-12-05 13:31:13Z ondrej.novak $
  *
  * DESCRIPTION
  * Short description

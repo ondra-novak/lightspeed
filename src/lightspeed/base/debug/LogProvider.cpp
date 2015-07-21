@@ -96,7 +96,11 @@ AbstractLogProvider::LogTimestamp::LogTimestamp() {
 void AbstractLogProvider::checkLogRotate() {
 	if (rotateCounter != DbgLog::rotateCounter)
 		if (DbgLog::needRotateLogs(rotateCounter)) {
-			logRotate();
+			try {
+				logRotate();
+			} catch (std::exception &e) {
+				logOutput("logrotate",logFatal,1,StringA(ConstStrA("Exception during logRotate(): ")+ConstStrA(e.what())),THISLOCATION);
+			}
 		}
 }
 

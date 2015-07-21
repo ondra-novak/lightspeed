@@ -47,6 +47,7 @@ protected:
 
 public:
 
+
 	FastLock():queue(0),owner(0) {}
 
 	///Lock the object
@@ -70,7 +71,6 @@ public:
 		}
 
 	}
-
 
 	///Unlocks the object
 	/**Because lock is not bound to thread-id, it is valid operation
@@ -125,6 +125,31 @@ public:
 		}
 
 	}
+
+	///Allows asynchronous acquire of the lock
+	/** Object defines section where program can perform any action during waiting for ownership.
+	 *
+	 * The ownership can be granted any-time the program running inside of the section. You
+	 * can for example release an another lock and implement effective way to unlock-and-lock
+	 * atomically.
+	 *
+	 * @note you cannot leave section without acquiring the lock. State of
+	 * object is checked in the destructor and may block if the ownership of the lock
+	 * is not yet granted. This is done even if the destructor is called through the
+	 * exception's stack unwind.
+	 */
+	class Async {
+		FastLock &lk;
+		Slot sl;
+	public:
+		Async(FastLock &lk):lk(lk),sl(getCurThreadSleepingObj()) {
+			lk.addToQueue(&sl);
+		}
+		~Async() {
+			while (lk.owner != &sl) threadHalt();
+		}
+	};
+
 
 
 protected:

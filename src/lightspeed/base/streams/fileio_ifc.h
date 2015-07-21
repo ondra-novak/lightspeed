@@ -1050,6 +1050,7 @@ namespace LightSpeed {
 		virtual void enableCookies(bool enable) = 0;
 		virtual bool areCookiesEnabled() const = 0;
 		virtual natural getIOTimeout() const = 0;
+		///sets I/O timeout in
 		virtual void setIOTimeout(natural timeout)= 0;
 		///Forces connection to use specific IP protocol
 		/**

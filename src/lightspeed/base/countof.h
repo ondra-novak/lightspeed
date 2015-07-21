@@ -3,7 +3,7 @@
  * Simple implementation of countof operator
  * It returns count of items in array
  * 
- * $Id: countof.h 3065 2013-04-04 13:15:58Z ondrej.novak $
+ * $Id: countof.h 369 2013-04-04 13:15:58Z ondrej.novak $
  */
 
 #ifndef COUNTOF_H_

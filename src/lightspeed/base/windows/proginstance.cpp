@@ -211,6 +211,18 @@ void ProgInstance::open()
 }
 
 
+bool ProgInstance::check() const
+{
+	DWORD pid = findRunningInstance(name);
+	if (pid == 0) {
+		return true;
+	} else {
+		HANDLE hProcess = OpenProcess(SYNCHRONIZE|PROCESS_TERMINATE,FALSE,pid);
+		if (hProcess == 0) return false;
+		CloseHandle(hProcess);
+		return true;
+	}
+}
 
 natural ProgInstance::request( const void *req, natural reqsize, void *reply, natural replySize, natural timeout )
 {

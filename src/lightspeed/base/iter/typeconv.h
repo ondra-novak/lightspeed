@@ -2,7 +2,7 @@
  * Copyright (c) 2006, Seznam.cz, a.s.
  * All Rights Reserved.
  * 
- * $Id: typeconv.h 2097 2011-10-18 12:51:20Z ondrej.novak $
+ * $Id: typeconv.h 240 2011-10-18 12:51:20Z ondrej.novak $
  *
  *
  * DESCRIPTION
