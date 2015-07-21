@@ -259,7 +259,7 @@ namespace LightSpeed {
 		virtual void setIOTimeout(natural timeout) {return LinuxHTTPSettings::setIOTimeout(timeout);}
 		virtual void forceIPVersion(natural ver)  {LinuxHTTPSettings::forceIPVersion(ver);}
 		virtual size_t getHandle(void *buffer, size_t bufferSize);
-		virtual void allowUntrustedCerts( bool allow ) {WinHTTPSettings::allowUntrustedCerts(allow);}
+		virtual void allowUntrustedCerts( bool allow ) {LinuxHTTPSettings::allowUntrustedCerts(allow);}
 
 
 		///Closes the output and send request to the other side
