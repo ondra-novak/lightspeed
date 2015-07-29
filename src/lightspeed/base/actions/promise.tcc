@@ -334,6 +334,17 @@ void Promise<T>::Resolution::reject( const Exception &e ) throw() {
 
 }
 
+template<typename T>
+void Promise<T>::Future::cancel( const PException &e ) throw() {
+	Sleepers cpy;
+	{
+		Synchronized<FastLock> _(lock);
+		cpy.swap(sleepers);
+	}
+	for (natural i = 0; i < cpy.length();i++)
+		cpy[i]->reject(e);
+}
+
 #if 0
 template<typename T, typename Fn>
 class PromisePackedFunction {
@@ -450,10 +461,77 @@ Promise<T>::Promise(PromiseResolution<T> &resolution, IRuntimeAlloc &alloc) {
 
 }
 
+template<typename T>
+const T &Promise<T>::isolateHelper(const T &value) {
+	return value;
+}
 
 template<typename T>
 inline FastLock* Promise<T>::Future::getLockPtr() {
 	return &lock;
+}
+
+template<typename T>
+void Promise<T>::cancel(const Exception &exception) throw() {
+	future->cancel(exception.clone());
+}
+
+template<typename T>
+void Promise<T>::cancel(PException exception) throw()  {
+	future->cancel(exception);
+
+}
+
+template<typename T>
+Promise<T> Promise<T>::isolate() {
+	return then(&isolateHelper);
+}
+
+template<typename T>
+template<typename X>
+X Promise<T>::transformHelper(const T &value) {
+	return X(value);
+}
+
+
+template<typename T>
+template<typename X>
+Promise<T> Promise<T>::transform(Promise<X> original) {
+	return transform(original,&transformHelper<X>);
+}
+
+template<typename T>
+template<typename X, typename Fn>
+Promise<T> Promise<T>::transform(Promise<X> original, Fn fn) {
+
+	class A:public Promise<X>::Resolution, public DynObject {
+	public:
+		A(Fn fn, PromiseResolution<T> rptr):fn(fn),rptr(rptr) {}
+		virtual void resolve(const X &result) throw() {
+			try {
+				rptr.resolve(fn(result));
+			} catch (Exception &e) {
+				rptr.reject(e);
+			} catch (std::exception &e) {
+				rptr.reject(StdException(THISLOCATION,e));
+			} catch (...) {
+				rptr.reject(UnknownException(THISLOCATION));
+			}
+			delete this;
+		}
+		virtual void reject(const PException &oe) throw() {
+			//deleted exception handler - error in reject is probihited
+			rptr.reject(oe);
+			delete this;
+		}
+
+	protected:
+		Fn fn; PromiseResolution<T> rptr;
+	};
+	PromiseResolution<T> rptr;
+	Promise<T> p(rptr,original.future->alloc);
+	original.registerCb(new(original.future->alloc) A(fn,rptr));
+	return p;
 }
 
 }

@@ -38,6 +38,7 @@ public:
 	Promise(PromiseResolution<T> &resolution);
 	Promise(PromiseResolution<T> &resolution, IRuntimeAlloc &alloc);
 
+
 	///Reads value from the promise
 	/**
 	  Function waits for resolution
@@ -151,7 +152,76 @@ public:
 	/** This allows to handle resolution by specific way */
 	Promise unregisterCb(Resolution *ifc);
 
+	///Cancels the promise
+	/**
+	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * promise is not resolved, so owner of the resolution object still able to resolve promise. This
+	 * also mean, that you are still able to attach callback after cancelation. Function only
+	 * affects all currently registered callbacks.
+	 *
+	 * @param exception exception to use for cancelation.
+	 */
+	void cancel(const Exception &exception) throw();
 
+	///Cancels the promise
+	/**
+	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * promise is not resolved, so owner of the resolution object still able to resolve promise. This
+	 * also mean, that you are still able to attach callback after cancelation. Function only
+	 * affects all currently registered callbacks.
+	 *
+	 * @param pointer to exception to use for cancelation
+	 */
+	void cancel(PException exception) throw();
+
+
+	///Isolates this promise object
+	/**
+	 * By default, promise object shares all internals accross all instances. This function
+	 * isolates the promise and returns new object, which has separated status. Isolated
+	 * promise is still resolved, when original promise is resolved, but you can attach
+	 * own callbacks and use the cancel() to remove them. This is particular useful for queues
+	 * or dispatches to handle destruction of such objects, when the promise must be canceled
+	 * because the queue or the dispatcher is going to destruction.
+	 *
+	 * @return new isolated promise
+	 *
+	 * @note function just chains promise 1:1. It has same effect as attach then() which contains
+	 * empty function.
+	 */
+	Promise isolate();
+
+	///Transform type of promise to another type
+	/**
+	 * Function is static so you have to call it using:
+	 * @code
+	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x);
+	 * @endcode
+	 * ... where promise_x is original promise and Y is a new type. There must be automatic
+	 * conversion available through the constructor or conversion operator. Function can also
+	 * handle conversion through explicit constructor.
+	 *
+	 * @param original original promise
+	 * @return new promise
+	 */
+	template<typename X>
+	static Promise transform(Promise<X> original);
+
+	///Transform type of promise to another type
+	/**
+	 * Function is static so you have to call it using:
+	 * @code
+	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x,&tranform_fn);
+	 * @endcode
+	 * ... where promise_x is original promise and Y is a new type. Function will use
+	 * function to convert value to the new type.
+	 *
+	 * @param original original promise
+	 * @param function that handles conversion.
+	 * @return new promise
+	 */
+	template<typename X, typename Fn>
+	static Promise transform(Promise<X> original, Fn fn);
 
 
 	///Interface to resolve promise
@@ -248,8 +318,9 @@ public:
 
 		virtual ~Resolution() {}
 
-
 	};
+
+
 
 protected:
 	friend class PromiseResolution<T>;
@@ -264,6 +335,7 @@ protected:
 		virtual void reject(const PException &e) throw();
 		void registerExpectant(Resolution *ifc);
 		void unregisterExpectant(Resolution *ifc);
+		void cancel(const PException &e) throw();
 		IRuntimeAlloc &alloc;
 
 		FastLock *getLockPtr();
@@ -271,7 +343,9 @@ protected:
 		FastLock lock;
 		Optional<T> value;
 		PException exception;
-		AutoArray<Resolution *, SmallAlloc<4> > sleepers;
+
+		typedef AutoArray<Resolution *, SmallAlloc<4> > Sleepers;
+		Sleepers sleepers;
 
 
 		template<typename X>
@@ -280,6 +354,11 @@ protected:
 
 	RefCntPtr<Future> future;
 
+	static const T &isolateHelper(const T &value);
+	template<typename X>
+	static X transformHelper(const T &value);
+
+	template<typename X> friend class Promise;
 };
 
 
