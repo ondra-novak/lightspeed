@@ -1,92 +1,180 @@
 /*
- * paralelExecutor.h
+ * parallelExecutor2.h
  *
- *  Created on: 4.4.2011
+ *  Created on: 16.4.2013
  *      Author: ondra
  */
 
-#ifndef LIGHTSPEED_ACTIONS_PARALELEXECUTOR_H_
-#define LIGHTSPEED_ACTIONS_PARALELEXECUTOR_H_
+#ifndef LIGHTSPEED_BASE_PARALLELEXECUTOR2_H_
+#define LIGHTSPEED_BASE_PARALLELEXECUTOR2_H_
 
-#include "message.h"
 #include "executor.h"
+#include "../../mt/slist.h"
+#include "../../mt/syncPt.h"
+#include "../../mt/atomic_type.h"
 #include "../../mt/thread.h"
-#include "../memory/rtAlloc.h"
-#include "../containers/autoArray.h"
-#include "parallelExecutor2.h"
-
-
 
 namespace LightSpeed {
 
-
-	///Parallel executor is tool for add basic  parallelism into the application
+class ParallelExecutor: public LightSpeed::IExecutor {
+public:
+	///Initialize executor
 	/**
-	 *  Object implements IExecutor interface.
-	 *
-	 *  To use ParallelExecutor, construct instance of this class at stack
-	 *  where you need the start parallel operation. You can specify count
-	 *  of threads that will be used, and timeout for waiting for particular task
-	 *
-	 *  @code
-	 *  ParallelExecutor parallel;
-	 *  for (int i = 0; i < 1000; i++) {
-	 *  	parallel.execute(Action(&foo,FooParams));
-	 *  }
-	 *  @endcode
-	 *
-	 *  Example calls function foo(const FooParams &) repeatedly for 1000 times.
-	 *  ParallelExecutor allows to execute this function at every available
-	 *  CPU on computer
-	 *
-	 *  Class itself tracks idle worker-threads and assign them a work. If
-	 *  there is no idle worker-thread, function  waits until any
-	 *  worker finishes and becomes idle.
-	 *
-	 *  Class doesn't support thread automatic shutdown on idle. Instance is not
-	 *  also MT safe - this mean, that there should be only one thread that
-	 *  control the object. Function executed inside worker-thread should not
-	 *  access the object without proper synchronization. These limitations
-	 *  allows keep implementation the simplest as possible (no locks and mutexes
-	 *  on interface)
-	 *
-	 *
-	 *
-	 *
+	 * @param maxThreads maximum thread count. If count is zero, function
+	 *  uses count of CPUs
+	 * @param maxWaitTimeout specifies count of milliseconds to wait for idle
+	 * 	 worker.
+	 * @param newThreadTimeout specifies timeout on idle worker after
+	 * 	 a new thread is spawned. Default value 0 causes that new thread
+	 * 	 is spawned for every action until maximum threads are reached. You
+	 * 	 can specify higher value to slowdown rapid spawning of new threads
+	 * 	 when several actions arrives in single block
+	 * @param threadIdleTimeout specifies timeout after idle worker is
+	 *   terminated.
 	 */
-	class ParallelExecutor: public ParallelExecutor2 {
-	public:
+	ParallelExecutor(natural maxThreads = 0,
+			 	 	  natural maxWaitTimeout = naturalNull,
+			 	 	  natural newThreadTimeout = 0,
+			 	 	  natural threadIdleTimeout = naturalNull);
+
+	virtual ~ParallelExecutor();
+
+	///initializes executor using setup of another executor
+	ParallelExecutor(const ParallelExecutor &other);
+
+	///Executes action in thread pool
+	/**
+	 * @param action action to execute
+	 * @exception TimeoutException time ellapsed during waiting on idle thread
+	 * @note Function is not MT safe. If you want to call this function
+	 * from different threads, use appropriate locking.
+	 */
+	virtual void execute(const IExecAction &action);
+
+	///Orders are threads to stop
+	/**
+	 * @param timeout timeout in miliseconds.
+	 * @retval true all stopped
+	 * @retval false timeout.
+	 * @note in case of timeout, order is not canceled. Order can
+	 * be canceled by executing action or spawning new threads spawnThreads
+	 */
+	virtual bool stopAll(natural timeout = 0) ;
 
 
-		///Constructs parallel executor
-		/**
-		 * @param maxThreads maximal count of threads. Default value 0 means
-		 * 	that count of thread is equal to count of available CPUs. To
-		 *  get count of CPUs use getCPUCount() function
-		 *
-		 * @param maxWaitTimeout  how long execute() can wait for
-		 *  idle worker in miliseconds. Use naturalNull to infinite waiting
-		 */
-		ParallelExecutor(natural maxThreads = 0,
-						 natural maxWaitTimeout = naturalNull);
+	///adjust max thread count
+	/**
+	 * Function can be called anytime and can be used to adjust actual count of threads.
+	 * Final count will be reached later. If more threads is requested, new threads will
+	 * be started with new tasks. You can speedup this process calling function spawnThreads.
+	 * If less threads is requested, function directs all extra threads to finish its work
+	 * and terminate as soon as possible.
+	 *
+	 * @param count
+	 */
+	void setMaxThreadCount(natural count);
+
+	///Retrieves current max count of threads
+	natural getMaxThreadCount();
+
+	///Starts threads
+	/** By default, threads are started when task is not executed after `newThreadTimeout`
+	 * miliseconds. This field can be zero, which causes, that new thread is started right
+	 * when there is no idle thread in time of executing task. This still take a small
+	 * piece of time needed to create and start thread. If you know, that there will  be
+	 * a lot of work, you can spawn extra threads before executing tasks.
+	 * @param count specifies count of threads to spawn, Default value means that maximum
+	 * possible threads (specified by maxThread) will be spawn.
+	 */
+	void spawnThreads(natural count = naturalNull);
+
+	///Returns actual thread count
+	natural getThreadCount() const;
+
+	///sets new wait timeout
+	void setWaitTimeout(natural tm);
+
+	///sets new thread creation timeout
+	void setNewThreadTimeout(natural tm);
+
+	///sets new idle timeout
+	void setIdleTimeout(natural tm);
+
+	natural getWaitTimeout() const;
+
+	natural getNewThreadTimeout() const;
+
+	natural getIdleTimeout() const;
+
+	///retrieves count of CPUs available on this computer
+	static natural getCPUCount();
+
+	///called when worker is initialized
+	/** Function is empty, but descendant class can place a custom code here
+	 *
+	 *  @note Thread executing this code is counted as active. Executor will not create additional threads
+	 *  when maximum count is reached.
+	 */
+	virtual void onThreadInit() {}
+
+	///called before worker is destroyed
+	/** Function is empty, but descendant class can place a custom code here
+	 *
+	 * @note while this function is executed, thread is no longer count as active. If there
+	 * is longer code, executor can create additional threads until it reaches maximum count. Total
+	 * count of threads can be higher than maximum. Don't place code here taking long time to run, or
+	 * calculate with possibility that more threads can be created
+	 */
+	virtual void onThreadDone() {}
+
+	///Called when thread has nothing to do
+	/**
+	 * @param ntf notifier which becomes signaled when new work is ready. Function should exit as soon
+	 * as possible in this case.
+	 *
+	 * Leaving this function sooner causes that thread start sleeping and waiting for notification
+	 */
+	virtual void onThreadIdle(const Notifier &) {}
+
+	///checks exception state throwing any exception out of function
+
+	void checkException();
+
+	natural getIdleCount() const {return idleCount;}
+
+	bool isRunning() const {return idleCount < curThreadCount;}
 
 
-		///detects count of cpus
-		/**
-		 * @return count of processors available for this application.
-		 * Function can return 0, if count cannot be determined.
-		 *
-		 * Constructor of ParallelExecutor() uses this function while maxThreads is
-		 * set to zero. In case that function returns 0, ParallelExecutor initializes
-		 * itself to 1.
-		 *
-		 */
-		static natural getCPUCount();
+	///TODO: finish not implemented yet.
+	void finish();
 
-	};
+	virtual void join() {stopAll(naturalNull);}
 
-
-}
+protected:
+	natural maxThreads;
+	natural maxWaitTimeout;
+	natural newThreadTimeout;
+	natural threadIdleTimeout;
+	atomic curThreadCount;
+	atomic idleCount;
 
 
-#endif /* LIGHTSPEED_ACTIONS_PARALELEXECUTOR_H_ */
+	class Worker;
+	friend class Worker;
+
+
+	Pointer<Worker> topWorker;
+	ISleepingObject * volatile callerNtf;
+	const Message<void>::Ifc * volatile curAction;
+	SyncPt waitPt;
+	FastLock executeLock;
+	PException lastException;
+	bool orderStop;
+	void startNewThread();
+
+private:
+	void cleanUp();
+};
+
+} /* namespace LightSpeed */
+#endif /* LIGHTSPEED_BASE_PARALLELEXECUTOR2_H_ */

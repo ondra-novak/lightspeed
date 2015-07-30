@@ -7,20 +7,20 @@
 
 #include "ParallelTest.h"
 #include "../lightspeed/base/debug/dbglog.h"
-#include "../lightspeed/base/actions/parallelExecutor2.h"
+#include "../lightspeed/base/actions/parallelExecutor.h"
 #include "../lightspeed/mt/thread.h"
 
 using LightSpeed::LogObject;
 
 namespace LightSpeedTest {
 
-class MyParEx: public ParallelExecutor2 {
+class MyParEx: public ParallelExecutor {
 public:
 	MyParEx(natural maxThreads = 0,
 			 	 	  natural maxWaitTimeout = naturalNull,
 			 	 	  natural newThreadTimeout = 0,
 			 	 	  natural threadIdleTimeout = naturalNull)
-		:ParallelExecutor2(maxThreads,maxWaitTimeout,newThreadTimeout,threadIdleTimeout) {}
+		:ParallelExecutor(maxThreads,maxWaitTimeout,newThreadTimeout,threadIdleTimeout) {}
 	virtual void threadInit() {
 		LogObject lg(THISLOCATION);
 		lg.info("New thread");
@@ -41,7 +41,7 @@ integer ParallelTest::start(const Args& ) {
 	lg.info("Test start"); {
 		MyParEx par(20,naturalNull,0,500);
 		for (natural i = 2000; i > 0; i = i -1) {
-			par.execute(ParallelExecutor2::ExecAction::create(this,&ParallelTest::worker,i/*rand() % 10000*/));
+			par.execute(ParallelExecutor::ExecAction::create(this,&ParallelTest::worker,i/*rand() % 10000*/));
 			if ( i % 300 == 0)
 				Thread::deepSleep(3000);
 		}

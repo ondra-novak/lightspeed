@@ -25,26 +25,8 @@
 namespace LightSpeed {
 
 
-class TCPSharedThreadPool: public IExecutor {
-public:
-	virtual void execute(const IExecAction &action);
-	bool stopAll(natural timeout = 0);
-	virtual void join();
-	virtual void finish();
-	virtual bool isRunning() const ;
 
-	TCPSharedThreadPool(IExecutor &executor)
-		:executor(executor) {}
-
-protected:
-	typedef Synchronized<FastLock>  Sync;
-	mutable FastLock lock;
-	IExecutor &executor;
-
-};
-
-
-class TCPServer: protected ISleepingObject {
+class TCPServer {
 public:
 
 
@@ -67,7 +49,7 @@ public:
 	 * must go through TCPSharedTheadPool object to ensure MT safety
 	 * (executors cannot )
 	 */
-	TCPServer(ITCPServerConnHandler &handler, TCPSharedThreadPool *connExecutor);
+	TCPServer(ITCPServerConnHandler &handler, IExecutor *connExecutor);
 
 	virtual ~TCPServer();
 
@@ -217,8 +199,15 @@ protected:
 	natural readTimeout, writeTimeout;
 
 
+	class Sleeper: public ISleepingObject {
+	public:
+		virtual void wakeUp(natural reason = 0) throw();
+		TCPServer &owner;
+		Sleeper(TCPServer &owner):owner(owner) {}
+	};
+	Sleeper sleeper;
 
-	virtual void wakeUp(natural reason = 0) throw();
+
 	void acceptConn(NetworkStreamSource& listenSock, natural sourceId) throw();
 	void worker(Connection *owner);
 	void workerEx(Connection *owner, natural eventId);

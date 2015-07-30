@@ -15,14 +15,14 @@ namespace LightSpeed {
 
 TCPServer::TCPServer(ITCPServerConnHandler &handler,natural maxThreads)
 :internalExecutor(new ParallelExecutor(maxThreads))
-,handler2(&handler),shutdown(1)
+,handler2(&handler),shutdown(1),sleeper(*this)
 {
 	executor = internalExecutor;
 }
 
-TCPServer::TCPServer(ITCPServerConnHandler &handler, TCPSharedThreadPool *connExecutor)
+TCPServer::TCPServer(ITCPServerConnHandler &handler, IExecutor *connExecutor)
 :executor(connExecutor)
-,handler2(&handler),shutdown(1)
+,handler2(&handler),shutdown(1),sleeper(*this)
 {
 
 
@@ -47,7 +47,7 @@ void TCPServer::start(NetworkStreamSource tcpsource)
 
 	shutdown = 0;
 	mother = tcpsource;
-	eventListener(mother,this);
+	eventListener(mother,&sleeper);
 }
 
 
@@ -86,7 +86,7 @@ void TCPServer::stop()
 	}
 	Notifier ntf;
 	//finally remove mother socket from the listener
-	eventListener(mother,this).erase().onCompletion(&ntf);
+	eventListener(mother,&sleeper).erase().onCompletion(&ntf);
 	//wait for completion
 	ntf.wait(naturalNull,false);
 
@@ -106,10 +106,10 @@ void TCPServer::stop()
 
 }
 
-void TCPServer::wakeUp(natural ) throw() {
-	acceptConn(mother, 0);
+void TCPServer::Sleeper::wakeUp(natural ) throw() {
+	owner.acceptConn(owner.mother, 0);
 	//re-register mother
-	if (mother.hasItems()) eventListener(mother,this);
+	if (owner.mother.hasItems()) owner.eventListener(owner.mother,this);
 }
 void TCPServer::acceptConn(NetworkStreamSource& listenSock, natural sourceId) throw() {
 
@@ -280,17 +280,6 @@ bool TCPServer::isRunning()
 }
 
 
-void TCPSharedThreadPool::execute( const IExecAction &action )
-{
-	Sync _(lock);
-	executor.execute(action);
-}
-
-bool TCPSharedThreadPool::stopAll( natural timeout /*= 0*/ )
-{
-	Sync _(lock);
-	return executor.stopAll(timeout);
-}
 
 
 void TCPServer::workerEx(Connection *owner, natural eventId) {
@@ -321,12 +310,6 @@ void TCPServer::workerDisconnect(Connection *owner) {
 	close(owner);
 }
 
-void TCPSharedThreadPool::join() {
-	Sync _(lock);
-	return executor.join();
-
-}
-
 
 natural TCPServer::addPort(natural port, bool bindLocalOnly,
 		natural connTimeout) {
@@ -355,16 +338,6 @@ TCPServer::OtherPortAccept::OtherPortAccept(TCPServer& owner, natural sourceId,
 		const NetworkStreamSource& nss)
 	:owner(owner),sourceId(sourceId),nss(nss)
 {
-}
-
-void TCPSharedThreadPool::finish() {
-	Sync _(lock);
-	executor.finish();
-}
-
-bool TCPSharedThreadPool::isRunning() const {
-	Sync _(lock);
-	return executor.isRunning();
 }
 
 
