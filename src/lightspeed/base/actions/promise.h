@@ -2,8 +2,7 @@
 #include "../containers/optional.h"
 #include "../containers/autoArray.h"
 #include "../memory/smallAlloc.h"
-#include "../exceptions/exception.h"
-#include "../exceptions/canceledException.h"
+#include "../iexception.h"
 #include "../constructor.h"
 #include "../../mt/timeout.h"
 #include "../../mt/sleepingobject.h"
@@ -21,6 +20,44 @@ template<typename T> class PromiseResolution;
 IRuntimeAlloc *getPromiseAlocator();
 
 
+///Controls any promise
+/** Promise objects are templates and require knowledge of its internal type. It is impossible
+ * to control promises without knowing the type in the compile time. This interface allows limited
+ * functions to control any promise object. It can be used by dispatchers to manage and control promises
+ * registred inside.
+ *
+ * Each promise exposes this interface. It can be also used to refer the promises in containers
+ */
+class IPromiseControl: public RefCntObj {
+public:
+	virtual ~IPromiseControl() {}
+
+	///Cancels the promise
+	/**
+	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * promise is not resolved, so owner of the resolution object still able to resolve promise.
+	 *
+	 * Dispatchers can use function to cancel all registered promises if they need to empty their
+	 * collectors
+	 *
+	 * @param pointer to exception to use for cancelation
+	 */
+	virtual void cancel(const PException &e) throw () = 0;
+
+	///Cancels the promise
+	/**
+	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * promise is not resolved, so owner of the resolution object still able to resolve promise.
+	 *
+	 * Dispatchers can use function to cancel all registered promises if they need to empty their
+	 * collectors
+	 *
+	 * @note function sends CanceledException to all subscribers
+	 */
+	virtual void cancel() throw () = 0;
+};
+
+typedef RefCntPtr<IPromiseControl> PPromiseControl;
 
 template<typename T>
 class Promise {
@@ -46,7 +83,19 @@ public:
 	  @return result of promise once it is resolved
 	  @exception any function throws rejection exception
 	 */
-	const T &wait(const Timeout &tm = Timeout()) const;
+	const T &wait(const Timeout &tm) const;
+
+	///Reads value from the promise
+	/**
+	  Function waits for resolution. Function has no timeout, so it will wait infinitively to resolution
+	  @return result of promise once it is resolved
+	  @exception any function throws rejection exception
+	 */
+	const T &wait() const;
+
+	///Alias to wait. Function retrieves value of the promise if resolved, otherwise blocks.
+	const T &getValue() const {return wait();}
+
 
 	///Reads value - same as wait(), just with infinite timeout
 	operator const T &() const {return wait();}
@@ -145,6 +194,18 @@ public:
 	template<typename Fn>
 	Promise whenRejectedCall(Fn rejectFn);
 
+	///When promise is resolved, then specified sleeping object is wakenup.
+	/**
+	 * @param sleep sleeping object to wake up
+	 * @param resolveReason reason value passed when promise is resolved
+	 * @param rejectReason reason value passed when promise is rejected
+	 * @return new promise object refers the current promise.
+	 *
+	 * @note ISleepingObject doesn't carry value of the promise. Woken thread must
+	 * read value using getValue()
+	 */
+	Promise thenWake(ISleepingObject &sleep, natural resolveReason=0, natural rejectReason=1);
+
 	///Registers additional callback 
 	/** This allows to handle resolution by specific way */
 	Promise registerCb(Resolution *ifc);
@@ -175,6 +236,18 @@ public:
 	void cancel(PException exception) throw();
 
 
+	///Cancels the promise
+	/**
+	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * promise is not resolved, so owner of the resolution object still able to resolve promise. This
+	 * also mean, that you are still able to attach callback after cancelation. Function only
+	 * affects all currently registered callbacks.
+	 *
+	 * @note function send CanceledException to all subscribers
+	 */
+	void cancel() throw();
+
+
 	///Isolates this promise object
 	/**
 	 * By default, promise object shares all internals accross all instances. This function
@@ -189,13 +262,13 @@ public:
 	 * @note function just chains promise 1:1. It has same effect as attach then() which contains
 	 * empty function.
 	 */
-	Promise isolate();
+	Promise isolate() ;
 
 	///Transform type of promise to another type
 	/**
 	 * Function is static so you have to call it using:
 	 * @code
-	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x);
+	 * Promise<Y> promise_y = Promise<Y>::trans`
 	 * @endcode
 	 * ... where promise_x is original promise and Y is a new type. There must be automatic
 	 * conversion available through the constructor or conversion operator. Function can also
@@ -223,6 +296,37 @@ public:
 	template<typename X, typename Fn>
 	static Promise transform(Promise<X> original, Fn fn);
 
+
+	///Retrieves promises control interface
+	/**
+	 * @return interface that allows to control promise. See IPromiseControl description.
+	 *
+	 */
+	PPromiseControl getControlInterface() {return PPromiseControl(future);}
+
+
+	///Allows to join resolution of two promises into one.
+	/**
+	 * Function returns promise which resolves once both promises (right and left) resolves. Result
+	 * of this resultion is always right side, result of left promise is ignored.
+	 *
+	 * @param other right side of the operator
+	 *
+	 * @return promise carrying result of right promise
+	 *
+	 * @note you can combine various types of promises. Type of right operand is always returned as
+	 * a result.
+	 *
+	 * @note When any of promises is rejected, whole promise is rejected. Note that if left
+	 * operand is rejected, result promise can be still considered as unresolved until the second
+	 * operand is resolved.
+	 */
+	template<typename X>
+	Promise<X> operator && (const Promise<X> &other) ;
+
+	///Resolves when one of both promises resolved first.
+
+//	Promise operator || (const Promise &other) ;
 
 	///Interface to resolve promise
 	/** Asynchronous task will receive this interface to resolve promise once
@@ -325,7 +429,7 @@ public:
 protected:
 	friend class PromiseResolution<T>;
 
-	class Future:public RefCntObj, public Resolution, public DynObject  {
+	class Future:public IPromiseControl, public Resolution, public DynObject  {
 	public:
 		
 		Future(IRuntimeAlloc &alloc):alloc(alloc) {}
@@ -335,8 +439,10 @@ protected:
 		virtual void reject(const PException &e) throw();
 		void registerExpectant(Resolution *ifc);
 		void unregisterExpectant(Resolution *ifc);
-		void cancel(const PException &e) throw();
+		virtual void cancel(const PException &e) throw();
+		virtual void cancel() throw ();
 		IRuntimeAlloc &alloc;
+
 
 		FastLock *getLockPtr();
 	protected:
@@ -371,13 +477,7 @@ public:
 
 	PromiseResolution():ptr(0) {}
 	PromiseResolution(const PromiseResolution &other):SharedResource(other,other.ptr?other.ptr->getLockPtr():0) {}
-	~PromiseResolution() {
-		if (!SharedResource::isShared() && ptr) {
-			reject(CanceledException(THISLOCATION));
-		} else {
-			unshare(ptr?ptr->getLockPtr():0);
-		}
-	}
+	~PromiseResolution();
 
 	using Promise<T>::Resolution::resolve;
 	using Promise<T>::Resolution::reject;

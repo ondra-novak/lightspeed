@@ -2,7 +2,9 @@
 
 #include "promise.h"
 
+
 #include "../containers/autoArray.tcc"
+#include "../exceptions/canceledException.h"
 
 namespace LightSpeed {
 
@@ -83,29 +85,6 @@ void Promise<T>::Future::resolveInternal( const X & result )
 	RefCntPtr<Future>(this).manualRelease();
 }
 
-#if 0
-template<typename T>
-Promise<T>::Promise(PromiseResolution<T> * &resolution) 
-{
-	IRuntimeAlloc *alloc = getPromiseAlocator();
-	future = new(*alloc) Future(*alloc);
-	future = future.getMT();
-	future.manualAddRef();
-	resolution = future;
-	
-}
-
-
-template<typename T>
-Promise<T>::Promise( PromiseResolution<T> * &resolution, IRuntimeAlloc &alloc )
-{	
-	future = new(alloc) Future(alloc);
-	future = future.getMT();
-	future.manualAddRef();
-	resolution = future;
-
-}
-#endif
 
 template<typename T>
 Promise<T> Promise<T>::registerCb( Resolution *ifc )
@@ -124,7 +103,7 @@ Promise<T> Promise<T>::unregisterCb( Resolution *ifc )
 template<typename T>
 const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 {
-	class Ntf: public PromiseResolution<T> {
+	class Ntf: public Resolution {
 	public:
 		ISleepingObject *thread;
 		const T *result;
@@ -157,6 +136,11 @@ const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 	if (!ntf.result) throw TimeoutException(THISLOCATION);
 	return *ntf.result;	
 	
+}
+
+template<typename T>
+const T & Promise<T>::wait( ) const {
+	return wait(Timeout());
 }
 
 template<typename T>
@@ -345,102 +329,11 @@ void Promise<T>::Future::cancel( const PException &e ) throw() {
 		cpy[i]->reject(e);
 }
 
-#if 0
-template<typename T, typename Fn>
-class PromisePackedFunction {
-public:
-	PromisePackedFunction(PromiseResolve<T> r, const Fn &fn):r(r),fn(fn) {}
-
-	void operator()(){
-		try {
-			r.resolve(fn());
-		} catch (Exception &e) {
-			r.reject(e);
-		} catch (std::exception &e) {
-			r.reject(StdException(THISLOCATION,e));
-		} catch (...) {
-			r.reject(UnknownException(THISLOCATION));
-		}
-	}
-
-	template<typename A>
-	void operator()(const A &a){
-		try {
-			r.resolve(fn(a));
-		} catch (Exception &e) {
-			r.reject(e);
-		} catch (std::exception &e) {
-			r.reject(StdException(THISLOCATION,e));
-		} catch (...) {
-			r.reject(UnknownException(THISLOCATION));
-		}
-	}
-
-	template<typename A, typename B>
-	void operator()(const A &a, const B &b){
-		try {
-			r.resolve(fn(a,b));
-		} catch (Exception &e) {
-			r.reject(e);
-		} catch (std::exception &e) {
-			r.reject(StdException(THISLOCATION,e));
-		} catch (...) {
-			r.reject(UnknownException(THISLOCATION));
-		}
-	}
-
-	template<typename A, typename B, typename C>
-	void operator()(const A &a, const B &b, const C &c){
-		try {
-			r.resolve(fn(a,b,c));
-		} catch (Exception &e) {
-			r.reject(e);
-		} catch (std::exception &e) {
-			r.reject(StdException(THISLOCATION,e));
-		} catch (...) {
-			r.reject(UnknownException(THISLOCATION));
-		}
-	}
-
-	template<typename A, typename B, typename C, typename D>
-	void operator()(const A &a, const B &b, const C &c, const D &d){
-		try {
-			r.resolve(fn(a,b,c,d));
-		} catch (Exception &e) {
-			r.reject(e);
-		} catch (std::exception &e) {
-			r.reject(StdException(THISLOCATION,e));
-		} catch (...) {
-			r.reject(UnknownException(THISLOCATION));
-		}
-	}
-
-	template<typename A, typename B, typename C, typename D, typename E>
-	void operator()(const A &a, const B &b, const C &c, const D &d, const E &e){
-		try {
-			r.resolve(fn(a,b,c,d,e));
-		} catch (Exception &e) {
-			r.reject(e);
-		} catch (std::exception &e) {
-			r.reject(StdException(THISLOCATION,e));
-		} catch (...) {
-			r.reject(UnknownException(THISLOCATION));
-		}
-	}
-protected:
-	PromiseResolve<T> r;
-	Fn fn;
-};
-
 template<typename T>
-template<typename Fn>
-PromisePackedFunction<T,Fn> Promise<T>::packFn(Fn fn) {
-	PromiseResolve<T> r;
-	Promise<T> q(r);
-	*this = q;
-	return PromisePackedFunction<T,Fn>(r,fn);
+void Promise<T>::Future::cancel( ) throw() {
+	cancel(new CanceledException(THISLOCATION));
 }
-#endif
+
 
 template<typename T>
 Promise<T>::Promise(PromiseResolution<T> &resolution) {
@@ -480,6 +373,11 @@ template<typename T>
 void Promise<T>::cancel(PException exception) throw()  {
 	future->cancel(exception);
 
+}
+
+template<typename T>
+void Promise<T>::cancel() throw()  {
+	future->cancel();
 }
 
 template<typename T>
@@ -534,4 +432,107 @@ Promise<T> Promise<T>::transform(Promise<X> original, Fn fn) {
 	return p;
 }
 
+template<typename T>
+PromiseResolution<T>::~PromiseResolution(){
+	if (!SharedResource::isShared() && ptr) {
+		reject(CanceledException(THISLOCATION));
+	} else {
+		unshare(ptr?ptr->getLockPtr():0);
+	}
 }
+
+
+
+template<typename T>
+Promise<T> Promise<T>::thenWake(ISleepingObject &sleep, natural resolveReason, natural rejectReason) {
+
+	class A: public Resolution, public DynObject {
+	public:
+		A(ISleepingObject &sleepObj, natural resolved, natural rejected)
+			:sleepObj(sleepObj),resolved(resolved),rejected(rejected) {}
+
+		virtual void resolve(const T &) throw() {
+			sleepObj.wakeUp(resolved);
+			delete this;
+		}
+		virtual void reject(const PException &) throw() {
+			sleepObj.wakeUp(rejected);
+			delete this;
+		}
+
+	protected:
+		ISleepingObject &sleepObj;
+		natural resolved;
+		natural rejected;
+
+	};
+	registerCb(new(future->alloc) A(sleep,resolveReason,rejectReason));
+	return *this;
+
+}
+
+
+template<typename T>
+template<typename X>
+Promise<X> Promise<T>::operator && (const Promise<X> &other) {
+
+	class B: public Resolution, public DynObject {
+	public:
+		B(const X &value, const PromiseResolution<X> &res)
+			:value(value),res(res) {}
+
+		virtual void resolve(const T &) throw() {
+			//ignore value and resolve next promise by stored value
+			res.resolve(value);
+			//delete this callback
+			delete this;
+		}
+		virtual void reject(const PException &e) throw() {
+			//reject the promise using exception
+			res.reject(e);
+			//delete this callback (with the result)
+			delete this;
+		}
+	protected:
+		X value;
+		PromiseResolution<X> res;
+	};
+
+	class A: public Promise<X>::Resolution, public DynObject {
+	public:
+		A(const Promise<T> &checkPromise, const PromiseResolution<X> &res)
+			:checkPromise(checkPromise),res(res) {}
+
+		virtual void resolve(const X &v) throw() {
+			//create new callback which resolves once the other promise is resolved
+			//register it
+			checkPromise.registerCb(new(checkPromise.future->alloc) B(v,res));
+			//delete this callback
+			delete this;
+		}
+		virtual void reject(const PException &e) throw() {
+			//forward rejection
+			res.reject(e);
+			delete this;
+		}
+
+
+	protected:
+		Promise<T> checkPromise;
+		PromiseResolution<X> res;
+	};
+
+
+	PromiseResolution<X> rptr;
+	Promise<X> p(rptr,other.future->alloc);
+	other.registerCb(new(other.future->alloc) A(*this,rptr));
+	return p;
+}
+
+/*template<typename T>
+Promise<T> Promise<T>:: operator || (const Promise<T> &other)  {
+
+}*/
+
+}
+

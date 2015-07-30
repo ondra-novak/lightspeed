@@ -71,7 +71,7 @@ class StdAlloc;
 			return getObjectSize(x, typename MIsConvertible<T *, DynObject *>::MValue());
 		}
 
-		typedef ICloneable CloneableBase;
+		typedef ICloneable ICloneableBase;
 private:
 		template<typename T>
 		static T *doCloneObject(const T *orig,  IRuntimeAlloc &alloc, MFalse) {
