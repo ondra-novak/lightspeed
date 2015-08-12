@@ -145,7 +145,6 @@
     <ClInclude Include="src\lightspeed\base\actions\message.h" />
     <ClInclude Include="src\lightspeed\base\actions\msgQueue.h" />
     <ClInclude Include="src\lightspeed\base\actions\parallelExecutor.h" />
-    <ClInclude Include="src\lightspeed\base\actions\parallelExecutor2.h" />
     <ClInclude Include="src\lightspeed\base\actions\promise.h" />
     <ClInclude Include="src\lightspeed\base\actions\scheduler.h" />
     <ClInclude Include="src\lightspeed\base\actions\simpleMsgQueue.h" />
@@ -449,7 +448,6 @@
     <ClCompile Include="src\lightspeed\base\actions\message.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\msgQueue.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\parallelExecutor.cpp" />
-    <ClCompile Include="src\lightspeed\base\actions\parallelExecutor2.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\promise.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\scheduler.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\simpleMsgQueue.cpp" />
