@@ -166,6 +166,9 @@ namespace LightSpeed {
         	buffr.setAutoflush(o);
         }
 
+		const IOBuffer<bufferSize> &getBuffer() const { return buffr; }
+		IOBuffer<bufferSize> &getBuffer() { return buffr; }
+
     protected:
         IOBuffer<bufferSize> buffr;
         void connectBuff() {
@@ -195,6 +198,9 @@ namespace LightSpeed {
 			SeqFileOutput::operator=(SeqFileOutput(nil));
 		}
 
+		const IOBuffer<bufferSize> &getBuffer() const { return buffr; }
+		IOBuffer<bufferSize> &getBuffer() { return buffr; }
+
 
     protected:
         IOBuffer<bufferSize> buffr;
@@ -208,67 +214,6 @@ namespace LightSpeed {
 
 
 
-/*
-    template< typename Iter>
-    class OutputAutoflush: public WriteIteratorBase<typename OriginT<Iter>::T::ItemT,  OutputAutoflush<Iter> > {
-    public:
-    	typedef WriteIteratorBase<typename OriginT<Iter>::T::ItemT,  OutputAutoflush<Iter> > Super;
-    	typedef typename Super::ItemT ItemT;
-
-    	OutputAutoflush(Iter iter):iter(iter) {}
-    	OutputAutoflush(Iter iter, ItemT flushChar):iter(iter),flushChar(flushChar) {}
-
-    	void setFlushChar(ItemT flushChar) {this->flushChar = flushChar;}
-    	void unsetFlushChar() {this->flushChar.unset();}
-
-    	bool hasItems() const {return iter.hasItems();}
-    	bool lessThan(const OutputAutoflush &other) {return iter.lessThan(other.iter);}
-    	bool equalTo(const OutputAutoflush &other) {return iter.equalTo(other.iter);}
-
-    	void write(const ItemT &x) {
-    		iter.write(x);
-    		if (flushChar.isSet() && x == flushChar.get()) iter.flush();
-    	}
-
-    protected:
-    	Iter iter;
-    	Optional<typename Super::ItemT> flushChar;
-
-    };
-
-    template< template<class> class CharConvertor =  WideToUtf8Writer>
-    class OutputTextFile:
-        public FltChain<FltChain<SeqFileOutput, CharConvertor<SeqFileOutput > >, OutputAutoflush<FltChain<SeqFileOutput, CharConvertor<SeqFileOutput > > > > {
-        typedef FltChain<FltChain<SeqFileOutput, CharConvertor<SeqFileOutput > >, OutputAutoflush<FltChain<SeqFileOutput, CharConvertor<SeqFileOutput > > > >  Super;
-     public:
-
-        OutputTextFile(const SeqFileOutput &output):Super(output) {
-            setFlushChar('\n');
-        }
-
-        void setFlushChar(const byte &chr) {Super::setFlushChar(chr);}
-        void unsetFlushChar() {Super::unsetFlushChar();}
-        bool isSetFlushChar() const {return Super::isSetFlushChar();}
-        const byte &getFlushChar() const {return Super::getFlushChar();}
-
-     };
-
-    template<template<class> class CharConvertor =  Utf8ToWideReader>
-    class InputTextFile:
-        public FltChain<SeqFileInput, CharConvertor<SeqFileInput > > {
-
-        typedef FltChain<SeqFileInput, CharConvertor<SeqFileInput > > Super;
-     public:
-        typedef typename Super::ItemT ItemT;
-
-        InputTextFile(const SeqFileInput &output):Super(output) {}
-
-        void connectOutput(IOutputControl *o) {Super::nxChain().connectOutput(o);}
-        IOutputControl *getConnectedOutput() const {return Super::nxChain().getConnectedOutput();}
-
-     };
-
-*/
 }
 
 #endif /* LIGHTSPEED_STREAMS_FILEIOBUFF_H_ */

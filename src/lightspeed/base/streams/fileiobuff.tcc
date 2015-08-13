@@ -79,13 +79,57 @@ natural IOBuffer<bufferSize>::write(const void *buffer,  natural size) {
 
 template<natural bufferSize>
 natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
+	//we can now support peek buffer expansion
+
+	IOBuffer<bufferSize> *mthis = const_cast<IOBuffer<bufferSize> *>(this);
+
 	if (size == 0) {
 		if (canRead()) return rdpos - rdend;
 		else return 0;
 	}
-	natural res = const_cast<IOBuffer *>(this)->read(buffer,size);
-	rdpos -= res;
-	return res;
+
+	//calculate available data
+	natural s = rdend - rdpos;
+	//if less than required data are available
+	if (s < size) {
+		//first flush any output
+		mthis->flush();
+		//also flush any other connected output
+		if (autoflush != nil) mthis->autoflush->flush();
+		//now, assume wrbeg == wrpos
+
+		//if there is space at the begin of the buffer and no space at the end
+		if (bufferSize < rdend + (size - s) && rdpos > 0) {
+
+			// >>|----#data#?????|<<
+			//move current data to the beginning of the buffer if required
+			if (s) {
+				memmove(buff.data(), buff.data() + rdpos, s);
+			}
+			//update pointers
+			rdend -= rdpos;
+			rdpos = 0;
+			//now we have >>|#data# -----|<<
+		}
+		//if there is space
+		if (bufferSize > rdend) {
+			//read from the input as much as possible - function may block
+			natural x = targetIn->read(buff.data() + rdend, bufferSize - rdend);
+			//update rdend - stream can return 0 for end of file, we will not check here, because peek
+			rdend += x;
+			//calculate new s
+			s = rdend - rdpos;
+			//move wrpos and wrbeg at the end of the buffer
+			wrpos = wrbeg = rdend;
+		}
+	}
+	//whether available is above required
+	if (s > size) s = size;
+	//copy data 
+	memcpy(buffer, buff.data() + rdpos, s);
+	//return count of copied data
+	return s;
+
 }
 
 
