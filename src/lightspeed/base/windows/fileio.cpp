@@ -954,11 +954,19 @@ bool WindowsDirectoryIterator::getNext()
 
 	if (hFind == 0) {
 		String mask;
+		natural ppos;
+		{
+			LPWSTR name;
+			DWORD l = GetFullPathNameW(path.cStr(), 0, 0, 0);
+			StringW expath;
+			wchar_t *buff = expath.createBuffer(l);
+			GetFullPathNameW(path.cStr(), l, buff, &name);
+			path = expath;
+			ppos = name - buff - 1;
+		}
 		if (thisFile) {
 			mask = path;
-			natural k = path.findLast('\\');
-			if (k == naturalNull) path = String();
-			else path = path.head(k);
+			path = path.head(ppos);
 			
 		} else {
 			mask = path + ConstStrW(L"\\*");
