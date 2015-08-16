@@ -117,7 +117,7 @@ namespace LightSpeed {
 
 
 		///retrieves current day number
-		natural getDay() const {return day;}
+		integer getDay() const {return day;}
 		///retrieves current time in a day
 		natural getTime() const {return time;}
 
