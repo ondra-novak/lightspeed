@@ -286,10 +286,10 @@ namespace LightSpeed {
     			IFileIOServices &svcs = IFileIOServices::getIOServices();
     			close(fd);
     			fd = -1;
-    			String oldver = targetFile + ConstStrW(L".bak");
+/*    			String oldver = targetFile + ConstStrW(L".bak");
     			if (svcs.canOpenFile(targetFile,IFileIOServices::fileAccessible))
-    				svcs.move(targetFile,oldver,true);
-    			svcs.move(String(name),targetFile,false);
+    				svcs.move(targetFile,oldver,true);*/
+    			svcs.move(String(name),targetFile,true);
     		}
     	}
 
@@ -307,9 +307,6 @@ namespace LightSpeed {
 
 
         bool deleteOnClose = false;
-#ifdef O_CLOEXEC
-        openFlags |= O_CLOEXEC;
-#endif
         StringA cname =String::getUtf8(ofn);
         if (cname.length() > 4 && cname.head(4) == ConstStrA("#fd:")) {
         	int fx;
@@ -329,7 +326,13 @@ namespace LightSpeed {
     				&dynamic_cast<FileDescriptor &>(*f),
     				ofn);
     	}
-        int createFlags =  S_IRUSR|S_IWUSR|S_IWGRP|S_IRGRP|S_IWOTH|S_IROTH;
+
+#ifdef O_CLOEXEC
+        openFlags |= O_CLOEXEC;
+#endif
+
+
+    	int createFlags =  S_IRUSR|S_IWUSR|S_IWGRP|S_IRGRP|S_IWOTH|S_IROTH;
         if (flags & writeThrough) openFlags|=O_SYNC;
         if (flags & deleteOnClose) deleteOnClose = true;
         if (flags & append) openFlags|=O_APPEND;
@@ -1014,7 +1017,11 @@ namespace LightSpeed {
 
     			int proto = getProto(mode);
     			struct stat64 st;
-    			if (!fstat64(fd,&st)) throw FileMsgException(THISLOCATION,errno,fname,"stat failed");
+    			if (fstat64(fd,&st)) throw FileMsgException(THISLOCATION,errno,fname,"stat failed");
+
+    			if (st.st_size == 0) {
+    				return MappedRegion(this,0,0,0);
+    			}
 
         		void *res = mmap(0,st.st_size,proto, (copyOnWrite?MAP_PRIVATE:MAP_SHARED),fd,0);
         		if (res == MAP_FAILED) {
@@ -1042,15 +1049,19 @@ namespace LightSpeed {
 
         	}
         	virtual void unmap(MappedRegion &reg) {
+        		if (reg.size == 0) return;
         		munmap(reg.address,reg.size);
         	}
         	virtual void sync(MappedRegion &reg) {
+        		if (reg.size == 0) return;
         		msync(reg.address,reg.size,MS_SYNC);
         	}
         	virtual void lock(MappedRegion &reg) {
+        		if (reg.size == 0) return;
         		mlock(reg.address,reg.size);
         	}
         	virtual void unlock(MappedRegion &reg) {
+        		if (reg.size == 0) return;
         		munlock(reg.address,reg.size);
         	}
 
@@ -1067,7 +1078,7 @@ namespace LightSpeed {
     		if (ihnd == 0) throw FileMsgException(THISLOCATION,EFAULT,filename,"File cannot be mapped");
     		int fd;
     		ihnd->getHandle(&fd,sizeof(fd));
-    		return new Mapped(fd,filename);
+    		return new Mapped(dup(fd),filename);
 
 
     	} catch (Exception &e) {
@@ -1129,12 +1140,30 @@ namespace LightSpeed {
 		}
     }
 
+    static StringA getCwd() {
+    	AutoArray<char , SmallAlloc<256> > buffer;
+    	buffer.resize(256);
+    	char *cwd = getcwd(buffer.data(),buffer.length());
+    	while (cwd == 0){
+    		int e = errno;
+    		if (e != ERANGE) throw ErrNoException(THISLOCATION,e);
+    		buffer.resize(buffer.length()*3/2);
+    		cwd = getcwd(buffer.data(),buffer.length());
+    	}
+    	natural len = strlen(cwd);
+    	if (cwd[len-1] != '/') {cwd[len] = '/';len++;}
+    	ConstStrA strcwd(cwd,len);
+    	return strcwd;
+
+    }
+
     typedef struct stat64 FileStat;
 
     	class FileInfo: public IFolderIterator, public ILinuxFileInfo {
     	public:
     		FileInfo(IFileIOServices &svc, ConstStrW pathname, const FileStat &statinfo)
     			:svc(svc),statinfo(statinfo),fullname(pathname) {
+
 
     			natural k = pathname.findLast('/');
     			if (k != naturalNull) {
@@ -1212,12 +1241,14 @@ namespace LightSpeed {
 
     PFolderIterator LinuxFileServices::getFileInfo(ConstStrW pathname)  {
     	StringA cname = String::getUtf8(pathname);
+    	bool extended;
+    	if (cname.empty() || cname[0] != '/') {cname = getCwd() + cname;extended = true;} else {extended = false;}
     	FileStat fst;
     	if (stat64(cname.c_str(),&fst)) {
     		int en = errno;
-    		throw FileIOError(THISLOCATION,en,pathname);
+    		throw FileIOError(THISLOCATION,en,cname);
     	}
-    	return new FileInfo(*const_cast<LinuxFileServices *>(this),pathname,fst);
+    	return new FileInfo(*const_cast<LinuxFileServices *>(this),extended?String(cname):String(pathname),fst);
     }
 
 
