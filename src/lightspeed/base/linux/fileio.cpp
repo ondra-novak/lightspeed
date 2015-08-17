@@ -854,12 +854,10 @@ namespace LightSpeed {
 
     	StringA fn = wideToUtf8(folderName);
     	if (parents) createFolders(fn);
-    	else {
-    		if (::mkdir(fn.c_str(),0777) == -1) {
-    			int err = errno;
-    			throw FolderCreationException(THISLOCATION,err,folderName);
-    		}
-    	}
+		if (::mkdir(fn.c_str(),0777) == -1) {
+			int err = errno;
+			throw FolderCreationException(THISLOCATION,err,folderName);
+		}
     }
     void LinuxFileServices::removeFolder(ConstStrW folderName, bool recursive) {
 
