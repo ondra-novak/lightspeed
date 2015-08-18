@@ -126,7 +126,12 @@ namespace LightSpeed {
 		mutable natural rdend;
 		///begin of written data
 		mutable natural wrbeg;
+		///true, if eof already found and waiting after buffer is emptied
+		mutable bool eof;
 
+
+		void intFetch() const;
+		void intFlush() const;
 	private:
 		///buffer cannot be copied
 		IOBuffer(const IOBuffer &) {}

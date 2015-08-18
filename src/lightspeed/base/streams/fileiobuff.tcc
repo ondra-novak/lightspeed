@@ -21,20 +21,20 @@ namespace LightSpeed {
 
 template<natural bufferSize>
 IOBuffer<bufferSize>::IOBuffer(ISeqFileHandle *hndl):targetIn(hndl), targetOut(hndl)
-	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0) {}
+	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0),eof(false) {}
 
 template<natural bufferSize>
 IOBuffer<bufferSize>::IOBuffer(IInputStream *hndl):targetIn(hndl)
-	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0) {}
+	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0),eof(false) {}
 
 template<natural bufferSize>
 IOBuffer<bufferSize>::IOBuffer(IInOutStream *hndl):targetIn(hndl), targetOut(hndl)
-	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0) {}
+	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0),eof(false) {}
 
 
 template<natural bufferSize>
 IOBuffer<bufferSize>::IOBuffer(IOutputStream *hndl):targetOut(hndl)
-	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0) {}
+	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0),eof(false) {}
 
 template<natural bufferSize>
 natural IOBuffer<bufferSize>::read(void *buffer,  natural size) {
@@ -44,14 +44,24 @@ natural IOBuffer<bufferSize>::read(void *buffer,  natural size) {
 		memcpy(buffer,buff.data()+rdpos,s);
 		rdpos+=s;
 		return s;
+	} else if (eof) {
+		return 0;
 	} else {
-		flush();
-		if (autoflush != nil) autoflush->flush();
-		rdpos = 0;
-		rdend = targetIn->read(buff.data(),bufferSize);
-		if (rdend == 0) return 0;
+		intFetch();
 		return read(buffer,size);
 	}
+}
+
+
+template<natural bufferSize>
+void IOBuffer<bufferSize>::intFetch() const {
+	if (eof) return;
+	intFlush();
+	if (autoflush != nil) autoflush->flush();
+	rdpos = 0;
+	rdend = 0;
+	rdend = targetIn->read(buff.data(),bufferSize);
+	eof = rdend == 0;
 }
 
 template<natural bufferSize>
@@ -81,7 +91,6 @@ template<natural bufferSize>
 natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
 	//we can now support peek buffer expansion
 
-	IOBuffer<bufferSize> *mthis = const_cast<IOBuffer<bufferSize> *>(this);
 
 	if (size == 0) {
 		if (canRead()) return rdpos - rdend;
@@ -93,9 +102,9 @@ natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
 	//if less than required data are available
 	if (s < size) {
 		//first flush any output
-		mthis->flush();
+		intFlush();
 		//also flush any other connected output
-		if (autoflush != nil) mthis->autoflush->flush();
+		if (autoflush != nil) autoflush->flush();
 		//now, assume wrbeg == wrpos
 
 		//if there is space at the begin of the buffer and no space at the end
@@ -136,11 +145,9 @@ natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
 template<natural bufferSize>
 bool IOBuffer<bufferSize>::canRead() const {
 	if ( rdpos < rdend ) return true;
-	if (wrpos > wrbeg) {
-		const_cast<IOBuffer<bufferSize> *>(this)->flush();
-		if (autoflush != nil) autoflush->flush();
-	}
-	return targetIn->canRead();
+	if (eof) return false;
+	intFetch();
+	return !eof;
 }
 
 template<natural bufferSize>
@@ -150,6 +157,11 @@ bool IOBuffer<bufferSize>::canWrite() const {
 
 template<natural bufferSize>
 void IOBuffer<bufferSize>::flush() {
+	intFlush();
+}
+
+template<natural bufferSize>
+void IOBuffer<bufferSize>::intFlush() const {
 	if (wrpos > wrbeg) {
 		while (wrpos > wrbeg) {
 			natural s = wrpos - wrbeg;
