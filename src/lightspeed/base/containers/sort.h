@@ -87,6 +87,11 @@ namespace LightSpeed {
 
 		///resets object state - treat container not sorted
 		void reset() {heapSize = 0;}
+
+
+		Container &getContainer() {return cont;}
+		const Container &getContainer() const {return cont;}
+
     protected:
         Container &cont;
         Cmp isLess;
