@@ -115,8 +115,10 @@ template<typename Char, typename Bin>
 Bin Base64DecoderT<Char,Bin>::output() {
 	cycle++;
 	byte q = (buffer >> ((7 - cycle) * 8)) & 0xFF;
-	if (cycle == 7)
+	if (cycle == 7) {
+		buffer = 0;
 		cycle = 0;
+	}
 
 	return (Bin)q;
 }
@@ -142,7 +144,10 @@ Base64DecoderT<Char,Bin>::Base64DecoderT():buffer(0),cycle(0),eos(7) {
 
 template<typename Char, typename Bin>
 void Base64DecoderT<Char,Bin>::flush() {
-	if (cycle < 4) cycle = 4;
+	if (cycle < 4 && cycle > 0) {
+		eos = 7 - cycle;
+		cycle = 4;
+	}
 }
 
 
