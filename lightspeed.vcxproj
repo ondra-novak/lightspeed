@@ -424,6 +424,7 @@
     <ClInclude Include="src\lightspeed\utils\base64.h" />
     <ClInclude Include="src\lightspeed\utils\binFilter.h" />
     <ClInclude Include="src\lightspeed\utils\configParser.h" />
+    <ClInclude Include="src\lightspeed\utils\crc32.h" />
     <ClInclude Include="src\lightspeed\utils\eventdb.h" />
     <ClInclude Include="src\lightspeed\utils\FilePath.h" />
     <ClInclude Include="src\lightspeed\utils\impl\md5.h" />
@@ -534,6 +535,7 @@
     <ClCompile Include="src\lightspeed\mt\windows\threadSleeper.cpp" />
     <ClCompile Include="src\lightspeed\utils\base64.cpp" />
     <ClCompile Include="src\lightspeed\utils\configParser.cpp" />
+    <ClCompile Include="src\lightspeed\utils\crc32.cpp" />
     <ClCompile Include="src\lightspeed\utils\eventdb.cpp" />
     <ClCompile Include="src\lightspeed\utils\impl\md5.cpp" />
     <ClCompile Include="src\lightspeed\utils\impl\sha1.cpp" />

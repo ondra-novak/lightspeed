@@ -23,7 +23,8 @@ extern LIGHTSPEED_EXPORT byte base64_decodeTable[256];
 void base64_initTables();
 
 template<typename Bin, typename Char>
-Base64EncoderT<Bin,Char>::Base64EncoderT(bool urlencode):buffer(0),cycle(0),eqchr(7),encodeTable(urlencode?base64_urlEncodeTable:base64_encodeTable) {}
+Base64EncoderT<Bin,Char>::Base64EncoderT(bool urlencode, bool noPadding)
+	:buffer(0),cycle(0),eqchr(7),eos(7),encodeTable(urlencode?base64_urlEncodeTable:base64_encodeTable),noPadding(noPadding) {}
 
 template<typename Bin, typename Char>
 bool Base64EncoderT<Bin,Char>::needItems() const {
@@ -38,19 +39,18 @@ void Base64EncoderT<Bin,Char>::input(const Bin& x) {
 }
 
 template<typename Bin, typename Char>
-bool Base64EncoderT<Bin,Char>::hasItems() const {
-	return cycle >= 3 && cycle < 7;
+bool Base64EncoderT<Bin,Char>::hasItems() const {	
+	return (cycle >= 3 && cycle < eos);
 }
 
 template<typename Bin, typename Char>
 Char Base64EncoderT<Bin,Char>::output() {
-	byte q = (byte)(((buffer>>18 & 0x3F)));
-	buffer<<=6;
-	if (cycle >= eqchr) {
+	byte q;
+	if (cycle++ >= eqchr) {
 		q = '=';
-		cycle++;
 	} else {
-		cycle++;
+		q = (byte)(((buffer >> 18 & 0x3F)));
+		buffer <<= 6;
 		if (cycle == 7)
 			cycle = 0;
 
@@ -78,6 +78,7 @@ void Base64EncoderT<Bin,Char>::flush() {
 			input(0);
 			eqchr--;
 		}
+		if (noPadding) eos = eqchr;
 	}
 
 }
@@ -91,31 +92,33 @@ bool Base64DecoderT<Char,Bin>::needItems() const {
 template<typename Char, typename Bin>
 void Base64DecoderT<Char,Bin>::input(const Char& xc) {
 	char x = (char)xc;
-	if (isspace(x)) return;
-	if (x == '=' || x == '.' || x == '~') {
-		eqchr--;
-		buffer = buffer << 6;
-		if (eqchr == 4) cycle = 0;
-	} else {
-		natural k = base64_decodeTable[(unsigned char)x];
-		buffer = (buffer << 6) | (k);
-		eqchr = 7;
+	natural k = base64_decodeTable[(unsigned char)x];
+	if (k == 0xFF) {
+		if (x == '=' || x == '.' || x == '~') {
+			cycle++;
+			if (eos > cycle + 3) eos = cycle + 3;
+		}
 	}
-	cycle++;
+	else {
+		cycle++;
+		buffer = buffer | (k << (6 * (4 - cycle)));
+			
+	}
 }
 
 template<typename Char, typename Bin>
 bool Base64DecoderT<Char,Bin>::hasItems() const {
-	return cycle >= 4 && cycle < eqchr;
+	return cycle >= 4 && cycle < eos;
 }
 
 template<typename Char, typename Bin>
 Bin Base64DecoderT<Char,Bin>::output() {
-	byte q = (buffer >> 16) & 0xFF;
-	buffer <<= 8;
 	cycle++;
-	if (cycle == eqchr)
+	byte q = (buffer >> ((7 - cycle) * 8)) & 0xFF;
+	if (cycle == 7) {
+		buffer = 0;
 		cycle = 0;
+	}
 
 	return (Bin)q;
 }
@@ -131,16 +134,20 @@ natural Base64DecoderT<Char,Bin>::calcToRead(natural trgCount) const {
 
 template<typename Char, typename Bin>
 bool Base64DecoderT<Char,Bin>::canAccept(const Char& x) const {
-	return (base64_decodeTable[(unsigned char)x] != 0xFF);
+	return x == '=' || x == '~' || x == '.' || (base64_decodeTable[(unsigned char)x] != 0xFF);
 }
 
 template<typename Char, typename Bin>
-Base64DecoderT<Char,Bin>::Base64DecoderT():buffer(0),cycle(0),eqchr(7) {
+Base64DecoderT<Char,Bin>::Base64DecoderT():buffer(0),cycle(0),eos(7) {
 	base64_initTables();
 }
 
 template<typename Char, typename Bin>
 void Base64DecoderT<Char,Bin>::flush() {
+	if (cycle < 4 && cycle > 0) {
+		eos = 7 - cycle;
+		cycle = 4;
+	}
 }
 
 

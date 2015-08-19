@@ -20,7 +20,7 @@ namespace LightSpeed {
 	template<typename Bin, typename Char>
 	class Base64EncoderT: public IteratorFilterBase<Bin, Char, Base64EncoderT<Bin,Char> > {
 	public:
-		Base64EncoderT(bool urlencode = false);
+		Base64EncoderT(bool urlencode = false, bool noPadding = false);
         bool needItems() const;
         void input(const Bin &x);
         bool hasItems() const;
@@ -32,7 +32,9 @@ namespace LightSpeed {
         natural buffer;
         char cycle;
         char eqchr;
+		char eos;
         const byte *encodeTable;
+		bool noPadding;
 	};
 
 	typedef Base64EncoderT<byte,char> Base64Encoder;
@@ -55,7 +57,7 @@ namespace LightSpeed {
 	protected:
         natural buffer;
         char cycle;
-        char eqchr;
+		char eos;
 	};
 
 	typedef Base64DecoderT<char,byte> Base64Decoder;
