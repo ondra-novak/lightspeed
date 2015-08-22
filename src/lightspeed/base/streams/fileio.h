@@ -145,6 +145,10 @@ public:
 
 	natural dataReady() const {return fhnd->dataReady();}
 
+	///Closes file by setting internal handle to NULL
+	/** Please note that if file is still referenced somewhere, it remains opened until last reference is closed*/
+	void close() { fhnd = nil; }
+
 protected:
 	mutable PInputStream fhnd;
 	mutable byte b;
@@ -203,6 +207,12 @@ public:
 	@exception InterfaceNotImplementedException Object doesn't support the input stream
 	*/
 	IInputStream *getInput() ;
+
+	
+	///Closes file by setting internal handle to NULL. 
+	/** Please note that if file is still referenced somewhere, it remains opened until last reference is closed*/
+	void close() { if (!fhnd.isShared()) flush(); fhnd = nil; }
+
 
 	
 

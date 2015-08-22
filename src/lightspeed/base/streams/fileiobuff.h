@@ -146,76 +146,48 @@ namespace LightSpeed {
     template<natural bufferSize = 4096>
     class SeqFileInBuff: public SeqFileInput {
     public:
-        SeqFileInBuff(const SeqFileInput &input)
-        	:SeqFileInput(nil),buffr(input.getStream())
-        		{connectBuff();}
+		SeqFileInBuff(const SeqFileInput &input)
+			:SeqFileInput(new IOBuffer<bufferSize>(input.getStream())) {}
 
 		SeqFileInBuff(ISeqFileHandle *handle)
-			:SeqFileInput(nil),buffr(handle)
-		{connectBuff();}
+			:SeqFileInput(new IOBuffer<bufferSize>(handle)){}
 
 
 		SeqFileInBuff(ConstStrW fname, natural openFlags)
-			:SeqFileInput(nil),buffr(SeqFileInput(fname,openFlags).getStream())
-				{connectBuff();}
+		:SeqFileInput(new IOBuffer<bufferSize>(SeqFileInput(fname, openFlags).getStream())){}
 
-		~SeqFileInBuff() {
-			SeqFileInput::operator=(SeqFileInput(nil));
-		}
         template<natural x>
         void setAutoflush( SeqFileOutBuff<x> &o) {
-        	buffr.setAutoflush(&o.buffr);
+        	getBuffer().setAutoflush(&o.buffr);
         }
 
         void setAutoflush(IBufferFlush *o) {
-        	buffr.setAutoflush(o);
+			getBuffer().setAutoflush(o);
         }
 
-		const IOBuffer<bufferSize> &getBuffer() const { return buffr; }
-		IOBuffer<bufferSize> &getBuffer() { return buffr; }
-
-    protected:
-        IOBuffer<bufferSize> buffr;
-        void connectBuff() {
-        	PSeqFileHandle x(&buffr);
-        	buffr.setStaticObj();
-        	SeqFileInput::operator=(SeqFileInput(x));
-        }
+		const IOBuffer<bufferSize> &getBuffer() const { return static_cast<const IOBuffer<bufferSize> &>(*this->fhnd); }
+		IOBuffer<bufferSize> &getBuffer() { return static_cast<IOBuffer<bufferSize> &>(*this->fhnd); }
     };
 
     template<natural bufferSize >
     class SeqFileOutBuff: public SeqFileOutput {
     public:
     	template<natural X> friend class SeqFileInBuff;
-    	SeqFileOutBuff(const SeqFileOutput &output)
-        	:SeqFileOutput(nil),buffr(output.getStream())
-    		{connectBuff();}
+		SeqFileOutBuff(const SeqFileOutput &output)
+			:SeqFileOutput(new IOBuffer<bufferSize>(output.getStream())) {}
 
 		SeqFileOutBuff(ConstStrW fname, natural openFlags)
-			:SeqFileOutput(nil),buffr(SeqFileOutput(fname,openFlags).getStream())
-		{connectBuff();}
+			:SeqFileOutput(new IOBuffer<bufferSize>(SeqFileOutput(fname, openFlags).getStream())) {}
 
 		SeqFileOutBuff(ISeqFileHandle *handle)
-			:SeqFileOutput(nil),buffr(handle)
-		{connectBuff();}
-
-		~SeqFileOutBuff() {
-			SeqFileOutput::operator=(SeqFileOutput(nil));
-		}
-
-		const IOBuffer<bufferSize> &getBuffer() const { return buffr; }
-		IOBuffer<bufferSize> &getBuffer() { return buffr; }
+			: SeqFileOutput(new IOBuffer<bufferSize>(handle)) {}
 
 
-    protected:
-        IOBuffer<bufferSize> buffr;
+		const IOBuffer<bufferSize> &getBuffer() const { return static_cast<const IOBuffer<bufferSize> &>(*this->fhnd); }
+		IOBuffer<bufferSize> &getBuffer() { return static_cast<IOBuffer<bufferSize> &>(*this->fhnd); }
 
-        void connectBuff() {
-        	PSeqFileHandle x(&buffr);
-        	x.manualAddRef();
-        	SeqFileOutput::operator=(SeqFileOutput(x));
-        }
-};
+
+	};
 
 
 
