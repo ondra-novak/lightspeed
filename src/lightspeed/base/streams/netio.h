@@ -9,7 +9,6 @@
 #define LIGHTSPEED_STREAMS_NETIO_H_
 
 
-#include "bufferedio.h"
 #include "fileio.h"
 #include "standardIO.h"
 #include "netio_ifc.h"
@@ -207,26 +206,23 @@ namespace LightSpeed {
 
 
 	///Buffered bidirectional stream object.
-	template<natural inputBufferSize = 4096, natural outputBufferSize = inputBufferSize>
+	template<natural bufferSize = 4096>
 	class NetworkStream: public SeqFileInput, public SeqFileOutput {
 	public:
 
+		typedef IOBuffer<bufferSize> Buffer;
+		typedef RefCntPtr<Buffer> PBuffer;
+
 		NetworkStream(PNetworkStream handle)
 			:SeqFileInput(nil),SeqFileOutput(nil)
-			,buffInput(handle.get())
-			,buffOutput(handle.get())
+			,buffer(handle.get())
 			,handle(handle) {
-			buffInput.setStaticObj();
-			buffOutput.setStaticObj();
 			SeqFileInput &i = *this;
-			i = SeqFileInput(&buffInput);
+			i = SeqFileInput(&buffer);
 			SeqFileOutput &o = *this;
-			o = SeqFileOutput(&buffOutput);
-			buffInput.setAutoflush(&buffOutput);
+			o = SeqFileOutput(&buffer);
+			buffer.setStaticObj();
 		}
-
-		typedef BufferedInputStream<StreamBuffer<inputBufferSize> > BuffIn;
-		typedef BufferedOutputStream<StreamBuffer<outputBufferSize> > BuffOut;
 
 		PNetworkStream getHandle() {
 			return handle;
@@ -238,20 +234,21 @@ namespace LightSpeed {
 			SeqFileOutput &o = *this;
 			o = SeqFileOutput(nil);
 		}
-		IBufferedInputStream *getBufferedInputStream()  {
-			return &buffInput;
+
+		const Buffer &getBuffer() const {
+			return buffer;
 		}
-		IBufferedOutputStream *getBufferedOutputStream()  {
-			return &buffOutput;
+		Buffer &getBuffer()  {
+			return buffer;
 		}
+
 		using SeqFileInput::hasItems;
 		natural dataReady() const {
-			return buffInput.dataReady();
+			return buffer.dataReady();
 		}
 
 	protected:
-		BuffIn buffInput;
-		BuffOut buffOutput;
+		Buffer buffer;
 		PNetworkStream handle;
 	private:
 		NetworkStream(const NetworkStream &) {}

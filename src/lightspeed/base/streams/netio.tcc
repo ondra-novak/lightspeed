@@ -10,7 +10,7 @@
 
 
 #include "../containers/autoArray.tcc"
-#include "bufferedio.tcc"
+#include "fileiobuff.tcc"
 
 
 #endif /* LIGHTSPEED_BASE_STREAMS_NETIO_TCC_ */
