@@ -109,6 +109,71 @@ namespace LightSpeed {
 		PInputStream getInputStream() const {return targetIn;}
 		POutputStream getOutputStream() const {return targetOut;}
 
+		///Preloads buffer from the input stream
+		/**
+		 * Function performs one cycle of reading from the input stream without changing state of the
+		 * reading.
+		 * @return Count of bytes preloaded. If there is no space in the buffer, or if EOF has
+		 *  been reached, function returns 0.
+		 */
+		natural fetch() const ;
+		///Searches the buffer for given sequence
+		/**
+		 * @param seq binary sequence to search.
+		 * @param fetchedCount count of fetched bytes to search. It is hint to speed operation.
+		 * 			Default value causes, that whole buffer will be searched. You can specify
+		 * 			result of last fetch operation to search only recent fetched bytes. If you
+		 * 			fetched multiple times, you can sum these results into one value and pass
+		 * 			this value as argument. Function also counts with length of the sequence, it
+		 * 			can adjust the value if necesery.
+		 *
+		 * @return position in the buffer. Informs you, how many bytes you need to read
+		 *  to reach the searched sequence. Function retuns naturalNull if sequence is not found.
+		 *
+		 * function can be used along with fetch()
+		 *
+		 * @code
+		 * natural pos = buff.lookup(seq);
+		 * while (pos == naturalNull) {
+		 * 	   natural fetched = buff.fetch();
+		 *     if (fetched == 0) throw ErrorMessageException(THISLOCATION, "Not found");
+		 *     pos = buff.lookup(seq,fetched);
+		 * }
+		 * @endcode
+		 */
+		natural lookup(ConstBin seq, natural fetchedCount = naturalNull) const ;
+
+		///Puts bytes on top of the buffer
+		/**
+		 * Function puts some bytes on top of the buffer. Put bytes will be read by next read operation prior to
+		 * original data from the source. You can cal this function multiple-times until buffer is full.
+		 * @param bytes
+		 * @retval true success
+		 * @retval false failure, no space in the buffer. No bytes were put back
+		 */
+	bool putBack(ConstBin seq);
+
+	///Reserves space for writing
+	/**
+	 * Function is useful when buffer is used for both reading and writing operation.
+	 * If buffer is used for writing only, you don't need to set this value. Function
+	 * ensures, that there will be always reserved specified count of bytes for writing. It
+	 * means that function reduces space for reading.
+     *
+	 * @param sz count of bytes reserved for writing. Value is limited to half of the buffer.
+	 * You can set naturalNull to reserve much buffer as possible.
+	 *
+	 * @note in some cases, there is still alowed to temporary lower this value for specific reading
+	 * operations. For example function putBack() can use reserved area to put data there. The value
+	 * actually sets reserved space for putBack() bytes.
+	 * Functions fetch() and peek() can also temporary claim the reserved area to receive maximum available
+	 * bytes to acheieve required function (when it runs out of space).
+	 * You have to include into your calculations.
+	 *
+	 *
+	 */
+	void reserveWrite(natural sz);
+
 	protected:
 		///handle of stream 
 		PInputStream targetIn;
@@ -129,9 +194,16 @@ namespace LightSpeed {
 		///true, if eof already found and waiting after buffer is emptied
 		mutable bool eof;
 
+		mutable bool outputClosed;
+
+		natural writeReserve;
+
 
 		void intFetch() const;
 		void intFlush() const;
+		//note - expected flushed output
+		void adjustWritePos() const;
+
 	private:
 		///buffer cannot be copied
 		IOBuffer(const IOBuffer &) {}

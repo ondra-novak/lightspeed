@@ -144,7 +144,7 @@ bool SimpleHTTPServer::onData(const PNetworkStream& stream, ITCPServerContext* )
 			} else if (method == ConstStrA("GET")) {
 				methodGET(vpath,header,mystream);
 			} else if (method == ConstStrA("HEAD")) {
-				DumpStream dump(*mystream.getBufferedOutputStream());dump.setStaticObj();
+				DumpStream dump(mystream.getBuffer());dump.setStaticObj();
 				SeqFileOutput dumpout(&dump);
 				methodGET(vpath,header,dumpout);
 			} else if (method == ConstStrA("POST")) {

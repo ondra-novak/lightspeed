@@ -7,11 +7,9 @@
 
 
 #include "fileiobuff.tcc"
-#include "bufferedio.tcc"
 
 
 namespace LightSpeed {
 
 template class IOBuffer<>;
-template class BufferedInputStream<>;
 }
