@@ -8,7 +8,6 @@ CC_SRCS += \
 
 CPP_SRCS += \
 ../src/lightspeed/base/streams/abstractFileIOService.cpp \
-../src/lightspeed/base/streams/bufferedio.cpp \
 ../src/lightspeed/base/streams/compressNumb.cpp \
 ../src/lightspeed/base/streams/filehlp.cpp \
 ../src/lightspeed/base/streams/fileiobuff.cpp \
@@ -20,7 +19,6 @@ CC_DEPS += \
 
 OBJS += \
 ./src/lightspeed/base/streams/abstractFileIOService.o \
-./src/lightspeed/base/streams/bufferedio.o \
 ./src/lightspeed/base/streams/compressNumb.o \
 ./src/lightspeed/base/streams/filehlp.o \
 ./src/lightspeed/base/streams/fileiobuff.o \
@@ -30,7 +28,6 @@ OBJS += \
 
 CPP_DEPS += \
 ./src/lightspeed/base/streams/abstractFileIOService.d \
-./src/lightspeed/base/streams/bufferedio.d \
 ./src/lightspeed/base/streams/compressNumb.d \
 ./src/lightspeed/base/streams/filehlp.d \
 ./src/lightspeed/base/streams/fileiobuff.d \
