@@ -94,6 +94,7 @@ namespace LightSpeed {
  const char *FileDeletionException::msgText = "File or folder '%1' cannot be deleted: ";
  const char *HttpStatusException::msgText = "HTTP unexpected status: %2 %3 while trying to download: %1";
  const char *CanceledException::msgText = "Request has been canceled";
+ const char *FileCopyException::msgText = "Can't copy the file '%1' to the file '%2': ";
 
 const char *Synchronized_TryLockFailedMsg = "Failed to lock object while non-blocking operation has been requested (trylock)";
 const char *InvalidNumberFormatException::msgText = "Invalid number format: %1";
