@@ -6,6 +6,7 @@
 #include "../streams/fileio.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 #include <fcntl.h>
 #include <string.h>
 #include "../exceptions/unsupportedFeature.h"
@@ -906,23 +907,14 @@ namespace LightSpeed {
     	if (fstat(ifd,&st) == -1) {int e = errno;close(ifd);throw FileIOError(THISLOCATION,e,from);}
     	int ofd = open(t.cStr(),O_WRONLY|O_LARGEFILE|O_CLOEXEC|O_CREAT|(overwrite?O_TRUNC:O_EXCL), st.st_mode);
     	if (ofd == -1) {int e = errno;close(ifd);throw FileIOError(THISLOCATION,e,to);}
-    	byte buffer[16384];
-    	ssize_t r = read(ifd,buffer,sizeof(buffer));
-    	while (r) {
-    		if (r == -1) {
-    			int e = errno;close(ifd);close(ofd);
-    			throw FileIOError(THISLOCATION,e,from);
-    		}
-    		ssize_t s = write(ofd,buffer,r);
-    		if (s != r) {
-    			int e = errno;close(ifd);close(ofd);
-    			throw FileIOError(THISLOCATION,e,to);
-    		}
-    		r = read(ifd,buffer,sizeof(buffer));
 
-    	}
+    	int err = 0;
+    	ssize_t res = sendfile(ofd,ifd,0,st.st_size);
+    	if (res == -1) err = errno;
     	close(ifd);
     	close(ofd);
+
+    	if (err) throw FileCopyException(THISLOCATION, err, from, to);
     }
     void LinuxFileServices::move(ConstStrW from, ConstStrW to, bool overwrite) {
     	if (from == to) return;
@@ -932,17 +924,13 @@ namespace LightSpeed {
     	if (h1 != h2) throwUnsupportedFeature(THISLOCATION, this, "Cannot move files between various filesystems");
     	if (h1) return h1->move(from,to,overwrite);
 
+    	if (!overwrite && canOpenFile(to,fileAccessible)) {
+    		throw FileIOError(THISLOCATION, EEXIST,to);
+    	}
 
     	if (::rename(wideToUtf8(from).cStr(),wideToUtf8(to).cStr()) == -1) {
-
     		int e = errno;
-    		if ((e == ENOTEMPTY || e == EEXIST) && overwrite) {try {
-    			remove(to);
-    			move(from,to,false);
-    		} catch (const Exception &e) {
-    			throw FileMsgException(THISLOCATION,EFAULT,to,ConstStrA("Exception while trying to remove target file")) << e;
-    		} } else if (e == EXDEV) {try {
-
+    		if (e == EXDEV) {try {
     			copy(from,to,overwrite);
     			remove(from);
     		}

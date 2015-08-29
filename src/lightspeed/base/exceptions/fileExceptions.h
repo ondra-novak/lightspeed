@@ -140,6 +140,27 @@ namespace LightSpeed {
 		}
 		static LIGHTSPEED_EXPORT const char *msgText;;
 	};
+	class FileCopyException: public FileIOException {
+	public:
+		LIGHTSPEED_EXCEPTIONFINAL;
+
+		FileCopyException(const ProgramLocation &loc, int errNr,
+				const String &source,
+				const String &target):
+			FileIOException(loc,errNr,source),target(target) {}
+
+		virtual void message(ExceptionMsg &msg) const{
+			msg(msgText) << fname << target;
+			return ErrNoException::message(msg);
+		}
+		const String & getSource() const {return fname;}
+		const String & getTarget() const {return target;}
+
+		static LIGHTSPEED_EXPORT const char *msgText;
+		virtual ~FileCopyException() throw() {}
+protected:
+		String target;
+	};
 
 }
 
