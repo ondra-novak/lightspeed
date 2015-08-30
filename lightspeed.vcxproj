@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>lightspeed-15.01</ProjectName>
+    <ProjectName>lightspeed</ProjectName>
     <ProjectGuid>{9200DF2A-2CE6-41FC-B6BF-EF7DE0DC95F6}</ProjectGuid>
     <RootNamespace>lightspeed-11.10</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -315,13 +315,12 @@
     <ClInclude Include="src\lightspeed\base\streams\abstractFileIOService.h" />
     <ClInclude Include="src\lightspeed\base\streams\autoflush.h" />
     <ClInclude Include="src\lightspeed\base\streams\binary.h" />
-    <ClInclude Include="src\lightspeed\base\streams\bufferedio.h" />
-    <ClInclude Include="src\lightspeed\base\streams\bufferedio_ifc.h" />
     <ClInclude Include="src\lightspeed\base\streams\compressNumb.h" />
     <ClInclude Include="src\lightspeed\base\streams\directory.h" />
     <ClInclude Include="src\lightspeed\base\streams\fileio.h" />
     <ClInclude Include="src\lightspeed\base\streams\fileiobuff.h" />
     <ClInclude Include="src\lightspeed\base\streams\fileio_ifc.h" />
+    <ClInclude Include="src\lightspeed\base\streams\fileiobuff_ifc.h" />
     <ClInclude Include="src\lightspeed\base\streams\memfile.h" />
     <ClInclude Include="src\lightspeed\base\streams\multibyte.h" />
     <ClInclude Include="src\lightspeed\base\streams\netio.h" />
@@ -352,6 +351,7 @@
     <ClInclude Include="src\lightspeed\base\text\textFormatManip.h" />
     <ClInclude Include="src\lightspeed\base\text\textIn.h" />
     <ClInclude Include="src\lightspeed\base\text\textInBuffer.h" />
+    <ClInclude Include="src\lightspeed\base\text\textLineReader.h" />
     <ClInclude Include="src\lightspeed\base\text\textOut.h" />
     <ClInclude Include="src\lightspeed\base\text\textParser.h" />
     <ClInclude Include="src\lightspeed\base\text\textstream.h" />
@@ -484,7 +484,6 @@
     <ClCompile Include="src\lightspeed\base\namedEnum.cpp" />
     <ClCompile Include="src\lightspeed\base\objmanip.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\abstractFileIOService.cpp" />
-    <ClCompile Include="src\lightspeed\base\streams\bufferedio.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\compressNumb.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\filehlp.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\fileiobuff.cpp" />
@@ -573,7 +572,6 @@
     <None Include="src\lightspeed\base\iter\sortFilter.tcc" />
     <None Include="src\lightspeed\base\namedEnum.tcc" />
     <None Include="src\lightspeed\base\serialize\classTable.tcc" />
-    <None Include="src\lightspeed\base\streams\bufferedio.tcc" />
     <None Include="src\lightspeed\base\streams\fileiobuff.tcc" />
     <None Include="src\lightspeed\base\streams\memfile.tcc" />
     <None Include="src\lightspeed\base\streams\netio.tcc" />

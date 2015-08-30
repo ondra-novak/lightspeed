@@ -6,6 +6,7 @@
 #include "textIn.h"
 #include "../memory/smallAlloc.h"
 #include "../streams/fileio.h"
+#include "textLineReader.h"
 
 namespace LightSpeed {
 	
@@ -32,7 +33,8 @@ namespace LightSpeed {
 	typedef TextOut<SeqTextOutWW, SmallAlloc<256> > PrintTextWW;
 	typedef TextIn<SeqTextInWW, SmallAlloc<256> > ScanTextWW;
 
-	
-
+	typedef TextLineReader<SeqTextInA> SeqTextLineInA;
+	typedef TextLineReader<SeqTextInW> SeqTextLineInW;
+	typedef TextLineReader<SeqTextInWW> SeqTextLineInWW;
 
 }
