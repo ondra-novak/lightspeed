@@ -17,17 +17,14 @@
 #include "utf.h"
 #include "../containers/carray.h"
 
+#include "fileiobuff_ifc.h"
+
 
 
 
 namespace LightSpeed {
 
 
-	class IBufferFlush {
-	public:
-		virtual void flush() = 0;
-		virtual ~IBufferFlush() {}
-	};
 
 
 	///Implements simple buffering for streams that extends ISeqFileHandle
@@ -53,7 +50,7 @@ namespace LightSpeed {
 	
 
 	template<natural bufferSize = 4096>
-	class IOBuffer: public ISeqFileHandle, public IBufferFlush {
+	class IOBuffer : public IInOutBuffer {
 	public:
 
 		///Constructs buffer object
@@ -151,7 +148,7 @@ namespace LightSpeed {
 		 * @retval true success
 		 * @retval false failure, no space in the buffer. No bytes were put back
 		 */
-	bool putBack(ConstBin seq);
+	void putBack(ConstBin seq);
 
 	///Reserves space for writing
 	/**
@@ -163,16 +160,20 @@ namespace LightSpeed {
 	 * @param sz count of bytes reserved for writing. Value is limited to half of the buffer.
 	 * You can set naturalNull to reserve much buffer as possible.
 	 *
-	 * @note in some cases, there is still alowed to temporary lower this value for specific reading
+	 * @note in some cases, there is still allowed to temporary lower this value for specific reading
 	 * operations. For example function putBack() can use reserved area to put data there. The value
 	 * actually sets reserved space for putBack() bytes.
 	 * Functions fetch() and peek() can also temporary claim the reserved area to receive maximum available
-	 * bytes to acheieve required function (when it runs out of space).
+	 * bytes to achieve required function (when it runs out of space).
 	 * You have to include into your calculations.
 	 *
 	 *
 	 */
 	void reserveWrite(natural sz);
+
+	virtual IBufferFlush * getAutoflush() const { return autoflush; }
+	virtual PInputStream getSource() const { return targetIn; }
+
 
 	protected:
 		///handle of stream 
@@ -209,6 +210,32 @@ namespace LightSpeed {
 		IOBuffer(const IOBuffer &) {}
 		///buffer cannot be assigned
 		void operator=(const IOBuffer &) {}
+
+		virtual natural IInputBuffer::length() const { return rdend - rdpos; }
+		virtual natural IInputBuffer::capacity() const { return bufferSize; }
+		virtual ConstBin IInputBuffer::getBuffer() const { return ConstBin(buff.head(rdend).offset(rdpos)); }
+		virtual bool IInputBuffer::empty() const { return rdpos == rdend; }
+		virtual void IInputBuffer::discard(natural count) {
+			natural l = rdend - rdpos;
+			if (l < count) count = l;
+			rdpos += count;
+		}
+		virtual void IInputBuffer::clear() { rdpos = rdend; }
+
+		virtual natural IOutputBuffer::length() const { return wrpos - wrbeg; }
+		virtual natural IOutputBuffer::capacity() const { return bufferSize;  }
+		virtual natural IOutputBuffer::available() const {
+			natural s = ((wrbeg < rdpos && rdpos < rdend) ? rdpos : bufferSize) - wrpos;
+			return s;
+		}
+		virtual bool IOutputBuffer::empty() const { return wrpos == wrbeg; }
+		virtual void IOutputBuffer::clear() { wrpos = wrbeg;  }
+		virtual void IOutputBuffer::discard(natural count) {
+			natural s = wrpos - wrbeg;
+			if (count > s) wrpos = wrbeg; else wrpos -= count;
+		}
+
+
 	};
 
 

@@ -283,11 +283,11 @@ void IOBuffer<bufferSize>::closeOutput() {
 }
 
 template<natural bufferSize>
-bool IOBuffer<bufferSize>::putBack(ConstBin seq) {
+void IOBuffer<bufferSize>::putBack(ConstBin seq) {
 	//calculate occupied area
 	natural sz = rdend - rdpos;
 	//reject action, when there is no space to put data
-	if (bufferSize - sz < seq.length()) return false;
+	if (bufferSize - sz < seq.length()) throwWriteIteratorNoSpace(THISLOCATION, typeid(*this));
 
 	//there is space before the read buffer
 	if (rdpos > seq.length()) {
@@ -300,14 +300,13 @@ bool IOBuffer<bufferSize>::putBack(ConstBin seq) {
 		memcpy(buff.data()+rdpos-seq.length(), seq.data(), seq.length());
 		//update rdpos
 		rdpos -= seq.length();
-		//success
-		return true;
+
 	} else {
 		//failure - we cannot put bytes back without moving buffer
 		/* by definition, it is not recomended to put back more bytes than was read.
 		 * You can increase the are using function reserveWrite()
 		 */
-		return false;
+		throwWriteIteratorNoSpace(THISLOCATION, typeid(*this));		
 	}
 }
 
