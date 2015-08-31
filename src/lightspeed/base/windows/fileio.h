@@ -23,7 +23,7 @@ namespace LightSpeed {
 		
 	};
 
-	class WindowsFile: public ISeqFileHandle,
+	class WindowsFile: public IInOutStream,
 //		public ILockFileInterface,
 		public IRndFileHandle,
 		public WindowsFileCommon
@@ -97,7 +97,7 @@ namespace LightSpeed {
 
 	};
 
-	class WindowsConsole: public ISeqFileHandle,
+	class WindowsConsole: public IInOutStream,
 						  public WindowsFileCommon {
 	public:
 

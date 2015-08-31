@@ -217,7 +217,7 @@ namespace LightSpeed {
 	}
 
 
-	HANDLE getFdFromStream(PSeqFileHandle hndl, const ProgramLocation &loc) {
+	HANDLE getFdFromStream(PInOutStream hndl, const ProgramLocation &loc) {
 		IFileExtractHandle *fdinfo = dynamic_cast<IFileExtractHandle *>(hndl.get());
 		if (fdinfo == 0) {
 			throw InvalidParamException(loc,1,"Object must be native file, pipe or socket");
@@ -243,7 +243,7 @@ namespace LightSpeed {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);				
 		POutputStream local;
 		createIpcPipe(ctx.pInput,local);
-		output = local;
+		output = SeqFileOutput(local);
 		return *this;
 	}
 
@@ -261,7 +261,7 @@ namespace LightSpeed {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);				
 		PInputStream local;
 		createIpcPipe(local,ctx.pOutput);
-		input = local;
+		input = SeqFileInput(local);
 		return *this;
 	}
 
@@ -295,7 +295,7 @@ namespace LightSpeed {
 		ProcessContext &ctx = ProcessContext::getCtx(*context);		
 		PInputStream local;
 		createIpcPipe(local,ctx.pError);
-		input = local;
+		input = SeqFileInput(local);
 		return *this;
 	}
 

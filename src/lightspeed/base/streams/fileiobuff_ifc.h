@@ -1,5 +1,6 @@
 #include "../memory/refcntifc.h"
 #include "fileio_ifc.h"
+#include "../platform.h"
 namespace LightSpeed {
 
 
@@ -106,13 +107,21 @@ namespace LightSpeed {
 	};
 
 
+#ifdef LIGHTSPEED_PLATFORM_WINDOWS
+#pragma warning( push) 
+#pragma warning(disable:4250)
+#endif
 
 	class IInOutBuffer : public IInOutStream, public IInputBuffer, public IOutputBuffer {
 	public:
-
+		
 
 	};
 
+
+#ifdef LIGHTSPEED_PLATFORM_WINDOWS
+#pragma warning( pop) 
+#endif
 
 
 }

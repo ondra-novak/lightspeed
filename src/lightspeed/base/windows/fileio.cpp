@@ -416,7 +416,7 @@ LightSpeed::PInOutStream WindowsFileService::openSeqFile( const void *handle, si
 }
 
 class WindowsFileCommitOnClose: public IFileExtractHandle
-	,public ISeqFileHandle,
+	,public IInOutStream,
 				public IRndFileHandle {
 public:	
 	WindowsFileCommitOnClose(PInOutStream hndl, String name)
