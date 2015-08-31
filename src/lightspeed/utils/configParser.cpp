@@ -233,8 +233,8 @@ public:
 		}
 		try {
 			SeqFileInput input(wpath,openFlags);
-			PInputStream bufferedInput = new IOBuffer<>(input.getHandle());
-			return Stream(bufferedInput,*this);
+			PInputStream bufferedInput = new IOBuffer<>(input.getStream());
+			return Stream(SeqFileInput(bufferedInput),*this);
 		} catch (Exception &e) {
 			throw FailedToParseINIFileException(THISLOCATION,wpath) << e;
 		}

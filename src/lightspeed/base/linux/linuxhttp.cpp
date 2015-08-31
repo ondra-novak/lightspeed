@@ -51,7 +51,7 @@ void LinuxHttpStream::flush() {
 
 natural LinuxHttpStream::dataReady() const {
 	if (state != stReading) return 0;
-	else return inputStream.getHandle()->dataReady();
+	else return inputStream.getStream()->dataReady();
 }
 
 
@@ -152,9 +152,9 @@ void LinuxHttpStream::parseReplyHeader() {
 
 void LinuxHttpStream::readHeader(SeqFileInput& wgetin, SeqFileInput& wgeterr) {
 	int wgetin_fd, wgeterr_fd;
-	wgetin.getHandle()->getIfc<IFileExtractHandle>().getHandle(&wgetin_fd,
+	wgetin.getStream()->getIfc<IFileExtractHandle>().getHandle(&wgetin_fd,
 			sizeof(wgetin_fd));
-	wgeterr.getHandle()->getIfc<IFileExtractHandle>().getHandle(&wgeterr_fd,
+	wgeterr.getStream()->getIfc<IFileExtractHandle>().getHandle(&wgeterr_fd,
 			sizeof(wgeterr_fd));
 
 	LinuxFdSelect fdselect;
@@ -325,7 +325,7 @@ LinuxHttpStream::~LinuxHttpStream() {
 
 size_t LinuxHttpStream::getHandle(void *buffer, size_t bufferSize) {
 	if (state != stReading) sendRequest();
-	return inputStream.getHandle()->getIfc<IFileExtractHandle>().getHandle(buffer,bufferSize);
+	return inputStream.getStream()->getIfc<IFileExtractHandle>().getHandle(buffer,bufferSize);
 
 
 }

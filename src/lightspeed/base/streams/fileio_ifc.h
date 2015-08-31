@@ -187,30 +187,9 @@ namespace LightSpeed {
 
 
 	///Defines interface for full-duplex streams
-	class IInOutStream: public IInputStream, public IOutputStream {
+	class IInOutStream: public virtual IInputStream, public virtual IOutputStream {
 
 	};
-
-
-    ///Low-level object to manipulate with the sequential file
-    /** This interface is actually deprecated, but it is still in use in many classes. Interface
-     * has been replaced by IInOutStream
-     */
-    class ISeqFileHandle: public IInOutStream {
-    public:
-	};
-
-    class IInputBlockStream: public IInputStream {
-    public:
-
-    	///closes current block and opens new one
-    	/**
-    	 *
-    	 * @retval true new block opened
-    	 * @retval false no more blocks available
-    	 */
-    	virtual bool nextBlock() = 0;
-    };
 
 
     ///extends IInputStream or IOutputStream with position control
@@ -250,43 +229,6 @@ namespace LightSpeed {
 
     	///Removes all marks active at current file
     	virtual void unmarkAll() = 0;
-    };
-
-
-    class IOutputBlockStream: public IOutputStream {
-    public:
-
-    	///Closes current block and creates new one
-    	/**
-    	 * Function closes current block and allows to open new block with first write on it.
-    	 * Multiple call of next() without writting to the block doesn't cause to create empty
-    	 * blocks. You have to write at least one byte to new block.
-    	 *
-    	 * If you really need to create empty block, use closeOutput() after next(). Function closeOutput()
-    	 * should always create new block and then immediatelly closes it.
-    	 *
-    	 *
-    	 * @note that closeOutput() should not commit the block. It should only block additional writes.
-    	 */
-    	virtual void closeBlock() = 0;
-
-    	///Closes current block and creates new one
-    	/**
-    	 * Function closes current block and allows to open new block with first write on it.
-    	 * Multiple call of next() without writting to the block doesn't cause to create empty
-    	 * blocks. You have to write at least one byte to new block.
-    	 *
-    	 * If you really need to create empty block, use closeOutput() after next(). Function closeOutput()
-    	 * should always create new block and then immediatelly closes it.
-    	 *
-    	 * @param sizeOfNextBlock specifies size of new block. Object should not allow to write beiond this
-    	 * size. If currently closing block is smaller then specified size, object can pad this block
-    	 * with zeroes.
-    	 *
-    	 * @note that closeOutput() should not commit the block. It should only block additional writes.
-    	 */
-    	virtual void closeBlock(natural sizeOfNextBlock) = 0;
-
     };
 
 
@@ -414,8 +356,7 @@ namespace LightSpeed {
 
 
 
-    ///Shared pointer. You can share the object. 
-    typedef RefCntPtr<ISeqFileHandle> PSeqFileHandle;
+
     ///Shared pointer. You can share the object. 
     typedef RefCntPtr<IRndFileHandle> PRndFileHandle;
     ///Shared pointer. You can share the object.
@@ -1073,7 +1014,7 @@ namespace LightSpeed {
 	///This interface is available,when resource is received from HTTP source
 	/** To access this interface, use IInterface */
 
-	class IHTTPStream: public ISeqFileHandle, public IHTTPSettings {
+	class IHTTPStream: public IInOutStream, public IHTTPSettings {
 	public:
 
 

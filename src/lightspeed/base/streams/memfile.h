@@ -18,7 +18,7 @@ namespace LightSpeed {
 	class StdAlloc;
 
 	template<typename Alloc = StdAlloc>
-	class MemFile: public ISeqFileHandle, public IRndFileHandle {
+	class MemFile: public IInOutStream, public IRndFileHandle {
 	public:
 
         virtual natural read(void *buffer,  natural size);
@@ -60,7 +60,7 @@ namespace LightSpeed {
 	};
 
 
-	class MemFileStr: public ISeqFileHandle, public IRndFileHandle {
+	class MemFileStr: public IInputStream, public IRndFileHandle {
 	public:
 
 		MemFileStr(ConstStrA text):text(text),pos(0) {}

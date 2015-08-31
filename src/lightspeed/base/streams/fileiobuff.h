@@ -53,13 +53,6 @@ namespace LightSpeed {
 	class IOBuffer : public IInOutBuffer {
 	public:
 
-		///Constructs buffer object
-		/**
-		 * @param hndl source/target stream,
-		 *
-		 */
-		IOBuffer(ISeqFileHandle *hndl);
-
 		IOBuffer(IInOutStream *hndl);
 
 		IOBuffer(IInputStream *hndl);
@@ -102,9 +95,9 @@ namespace LightSpeed {
 		 */
 		void setAutoflush(IBufferFlush *autoflush) {this->autoflush = autoflush;}
 
-		PSeqFileHandle getTarget() const {return dynamic_cast<ISeqFileHandle *>(targetIn.get());}
-		PInputStream getInputStream() const {return targetIn;}
-		POutputStream getOutputStream() const {return targetOut;}
+		virtual POutputStream getTarget() const {return targetOut;}
+		virtual PInputStream getSource() const { return targetIn; }
+
 
 		///Preloads buffer from the input stream
 		/**
@@ -172,7 +165,26 @@ namespace LightSpeed {
 	void reserveWrite(natural sz);
 
 	virtual IBufferFlush * getAutoflush() const { return autoflush; }
-	virtual PInputStream getSource() const { return targetIn; }
+
+	virtual natural getInputLength() const { return rdend - rdpos; }
+	virtual natural getInputCapacity() const { return bufferSize; }
+	virtual ConstBin getInputBuffer() const { return ConstBin(buff.head(rdend).offset(rdpos)); }
+	virtual void discardInput(natural count) {
+		natural l = rdend - rdpos;
+		if (l < count) count = l;
+		rdpos += count;
+	}
+
+	virtual natural getOutputLength() const { return wrpos - wrbeg; }
+	virtual natural getOutputCapacity() const { return bufferSize;  }
+	virtual natural getOutputAvailable() const {
+		natural s = ((wrbeg < rdpos && rdpos < rdend) ? rdpos : bufferSize) - wrpos;
+		return s;
+	}
+	virtual void discardOutput(natural count) {
+		natural s = wrpos - wrbeg;
+		if (count > s) wrpos = wrbeg; else wrpos -= count;
+	}
 
 
 	protected:
@@ -211,29 +223,6 @@ namespace LightSpeed {
 		///buffer cannot be assigned
 		void operator=(const IOBuffer &) {}
 
-		virtual natural IInputBuffer::length() const { return rdend - rdpos; }
-		virtual natural IInputBuffer::capacity() const { return bufferSize; }
-		virtual ConstBin IInputBuffer::getBuffer() const { return ConstBin(buff.head(rdend).offset(rdpos)); }
-		virtual bool IInputBuffer::empty() const { return rdpos == rdend; }
-		virtual void IInputBuffer::discard(natural count) {
-			natural l = rdend - rdpos;
-			if (l < count) count = l;
-			rdpos += count;
-		}
-		virtual void IInputBuffer::clear() { rdpos = rdend; }
-
-		virtual natural IOutputBuffer::length() const { return wrpos - wrbeg; }
-		virtual natural IOutputBuffer::capacity() const { return bufferSize;  }
-		virtual natural IOutputBuffer::available() const {
-			natural s = ((wrbeg < rdpos && rdpos < rdend) ? rdpos : bufferSize) - wrpos;
-			return s;
-		}
-		virtual bool IOutputBuffer::empty() const { return wrpos == wrbeg; }
-		virtual void IOutputBuffer::clear() { wrpos = wrbeg;  }
-		virtual void IOutputBuffer::discard(natural count) {
-			natural s = wrpos - wrbeg;
-			if (count > s) wrpos = wrbeg; else wrpos -= count;
-		}
 
 
 	};
@@ -245,14 +234,14 @@ namespace LightSpeed {
     template<natural bufferSize = 4096>
     class SeqFileInBuff: public SeqFileInput {
     public:
-		SeqFileInBuff(const SeqFileInput &input)
+    	explicit SeqFileInBuff(const SeqFileInput &input)
 			:SeqFileInput(new IOBuffer<bufferSize>(input.getStream())) {}
 
-		SeqFileInBuff(ISeqFileHandle *handle)
+    	explicit SeqFileInBuff(IInputStream *handle)
 			:SeqFileInput(new IOBuffer<bufferSize>(handle)){}
 
 
-		SeqFileInBuff(ConstStrW fname, natural openFlags)
+    	explicit SeqFileInBuff(ConstStrW fname, natural openFlags)
 		:SeqFileInput(new IOBuffer<bufferSize>(SeqFileInput(fname, openFlags).getStream())){}
 
         template<natural x>
@@ -272,13 +261,13 @@ namespace LightSpeed {
     class SeqFileOutBuff: public SeqFileOutput {
     public:
     	template<natural X> friend class SeqFileInBuff;
-		SeqFileOutBuff(const SeqFileOutput &output)
+    	explicit SeqFileOutBuff(const SeqFileOutput &output)
 			:SeqFileOutput(new IOBuffer<bufferSize>(output.getStream())) {}
 
-		SeqFileOutBuff(ConstStrW fname, natural openFlags)
+    	explicit SeqFileOutBuff(ConstStrW fname, natural openFlags)
 			:SeqFileOutput(new IOBuffer<bufferSize>(SeqFileOutput(fname, openFlags).getStream())) {}
 
-		SeqFileOutBuff(ISeqFileHandle *handle)
+    	explicit SeqFileOutBuff(IOutputStream *handle)
 			: SeqFileOutput(new IOBuffer<bufferSize>(handle)) {}
 
 

@@ -43,9 +43,9 @@ namespace LightSpeed {
 void StdLogOutput::logLine(ConstStrA line, ILogOutput::LogType ,natural ) {
 	Sync _(lock);
 	ConstStringT<byte> outTextB(reinterpret_cast<const byte *>(line.data()),line.length());
-	if (outFile.getHandle() != nil) outFile.blockWrite(outTextB);
+	if (outFile.getStream() != nil) outFile.blockWrite(outTextB);
 	if (stdErrEnabled) {
-		if (stdErr.getHandle() == nil)
+		if (stdErr.getStream() == nil)
 			stdErr = StdError();
 		stdErr.blockWrite(outTextB);
 	}

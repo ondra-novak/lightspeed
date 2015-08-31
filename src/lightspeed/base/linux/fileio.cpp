@@ -21,6 +21,8 @@
 #include "../exceptions/invalidParamException.h"
 #include "../../mt/linux/systime.h"
 #include <sys/mman.h>
+
+#include "../interface.tcc"
 #include "linuxhttp.h"
 #include "../streams/tcpHandler.h"
 #include "../streams/abstractFileIOService.h"
@@ -472,7 +474,7 @@ namespace LightSpeed {
 
     PRndFileHandle LinuxFileServices::openRndFile(
                     ConstStrW ofn, FileOpenMode mode, OpenFlags::Type flags) {
-    	PSeqFileHandle sh;
+    	PInputStream sh;
 
     	IFileIOHandler *h = findHandler(ofn);
     	if (h) return h->openRndFile(ofn,mode,flags);
@@ -484,7 +486,7 @@ namespace LightSpeed {
         else
             sh = safeOpenFile(ofn,O_RDWR, flags);
 
-        PRndFileHandle out(dynamic_cast<IRndFileHandle *>(sh.get()));
+        PRndFileHandle out(sh->getIfcPtr<IRndFileHandle>());
         if (out == nil)
         	throw InvalidParamException(THISLOCATION,1,"File cannot be opened in random access mode");
         return out;

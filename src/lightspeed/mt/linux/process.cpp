@@ -47,10 +47,12 @@ namespace LightSpeed {
 
 
 		const ProcessEnv *curEnv;
+		typedef RefCntPtr<IRefCntInterface> PStream;
 		AutoArray<StringA, RTAlloc> cmdLine;
 		IRuntimeAlloc &alloc;
-		PSeqFileHandle input,output,error;
-		AutoArray<PSeqFileHandle, RTAlloc> extraStreams;
+		PInputStream input;
+		POutputStream output,error;
+		AutoArray<PStream, RTAlloc> extraStreams;
 		int pid;
 		integer exitCode;
 
@@ -154,9 +156,9 @@ namespace LightSpeed {
 		Pipe pipe;
 		pipeIn = pipe.getReadEnd();
 		SeqFileOutput pipeOut = pipe.getWriteEnd();
-		ctx.extraStreams.add(pipeOut.getHandle());
+		ctx.extraStreams.add(pipeOut.getStream().get());
 		int fd;
-		pipeOut.getHandle()->getIfc<IFileExtractHandle>().getHandle(&fd,sizeof(fd));
+		pipeOut.getStream()->getIfc<IFileExtractHandle>().getHandle(&fd,sizeof(fd));
 		return arg(getFDName(fd,false,true,true));
 	}
 
@@ -165,9 +167,9 @@ namespace LightSpeed {
 		Pipe pipe;
 		pipeOut = pipe.getWriteEnd();
 		SeqFileInput pipeIn = pipe.getReadEnd();
-		ctx.extraStreams.add(pipeIn.getHandle());
+		ctx.extraStreams.add(pipeIn.getStream().get());
 		int fd;
-		pipeIn.getHandle()->getIfc<IFileExtractHandle>().getHandle(&fd,sizeof(fd));
+		pipeIn.getStream()->getIfc<IFileExtractHandle>().getHandle(&fd,sizeof(fd));
 		return arg(getFDName(fd,true,false,true));
 	}
 
@@ -214,26 +216,26 @@ namespace LightSpeed {
 
 	Process &Process::stdOut(const SeqFileOutput &stream) {
 		LinuxProcessContext &ctx = LinuxProcessContext::getCtx(*context);
-		ctx.output = stream.getHandle();
+		ctx.output = stream.getStream();
 		return *this;
 	}
 
 	Process &Process::stdErr(const SeqFileOutput &stream) {
 		LinuxProcessContext &ctx = LinuxProcessContext::getCtx(*context);
-		ctx.error = stream.getHandle();
+		ctx.error = stream.getStream();
 		return *this;
 	}
 
 
 	Process &Process::stdOutErr(const SeqFileOutput &stream) {
 		LinuxProcessContext &ctx = LinuxProcessContext::getCtx(*context);
-		ctx.output = ctx.error = stream.getHandle();
+		ctx.output = ctx.error = stream.getStream();
 		return *this;
 	}
 
 	Process &Process::stdIn(const SeqFileInput &stream) {
 		LinuxProcessContext &ctx = LinuxProcessContext::getCtx(*context);
-		ctx.input = ctx.error = stream.getHandle();
+		ctx.input = stream.getStream();
 		return *this;
 	}
 
@@ -372,7 +374,7 @@ namespace LightSpeed {
 		*tbl = 0;
 	}
 
-	static int getHandle(PSeqFileHandle handle) {
+	static int getHandle(LinuxProcessContext::PStream handle) {
 		if (handle == nil) return -1;
 		int h;
 		handle->getIfc<IFileExtractHandle>().getHandle(&h,sizeof(h));
@@ -429,9 +431,9 @@ namespace LightSpeed {
 */
 
 		//retrieve fds for input output and error. If not used, fd is set to -1
-		int hInput = getHandle(ctx.input);
-		int hOutput = getHandle(ctx.output);
-		int hError = getHandle(ctx.error);
+		int hInput = getHandle(ctx.input.get());
+		int hOutput = getHandle(ctx.output.get());
+		int hError = getHandle(ctx.error.get());
 
 		StringA cwdutf8 = cwd.getUtf8();
 		const char *cwdchr = cwdutf8.c_str();

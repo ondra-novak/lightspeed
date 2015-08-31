@@ -2,6 +2,7 @@
 
 
 #include "../containers/autoArray.h"
+#include "../iter/iterator.h"
 
 
 namespace LightSpeed {
@@ -20,7 +21,6 @@ namespace LightSpeed {
 	class TextLineReader : public IteratorBase<ConstStringT<typename ConstObject<typename OriginT<Iterator>::T::ItemT>::Remove>, TextLineReader<Iterator, Allocator> > {	
 	public:
 		typedef typename ConstObject<typename OriginT<Iterator>::T::ItemT>::Remove T;
-		typedef typename IteratorBase<ConstStringT<T>, TextLineReader<Iterator, Allocator> > Super;
 
 		///Construct object from given iterator
 		/**

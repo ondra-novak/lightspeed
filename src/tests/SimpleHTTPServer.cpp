@@ -215,7 +215,7 @@ void SimpleHTTPServer::sendHeader2(SeqFileOutput& out, int status,
 
 void SimpleHTTPServer::sendHeader(SeqFileOutput& out, int status,
 									ConstStrA statusMsg, const Header& header) {
-	DumpStream *strm = dynamic_cast<DumpStream *>(out.getHandle().get());
+	DumpStream *strm = out.getStream()->getIfcPtr<DumpStream>();
 	if (strm) {
 		SeqFileOutput o(strm);
 		sendHeader2(o,status,statusMsg,header);

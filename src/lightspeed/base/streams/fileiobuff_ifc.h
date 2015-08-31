@@ -9,7 +9,7 @@ namespace LightSpeed {
 		virtual ~IBufferFlush() {}
 	};
 
-	class IInputBuffer : public IInputStream  {
+	class IInputBuffer : public virtual IInputStream  {
 	public:
 
 		///connect output stream with input stream to handle flushing correctly
@@ -68,120 +68,49 @@ namespace LightSpeed {
 		/**
 			@return count of bytes currently in buffer
 		*/
-		virtual natural length() const = 0;
+		virtual natural getInputLength() const = 0;
 		///returns total capacity of the buffer
 		/**
 		  @return maximum capacity of the buffer
 		*/
-		virtual natural capacity() const = 0;
+		virtual natural getInputCapacity() const = 0;
 		///retrieves current buffer
 		/**
 		 @return reference to buffer. Reference is valid until data are read from the buffer */
-		virtual ConstBin getBuffer() const = 0;
-		///returns true, if buffer is empty
-		/**
-		@retval true buffer is empty. Next read causes access to source stream. In this state, changing parameters
-		 of the buffer can be immediately applied. 
-		 @retval false buffer is not empty. Reading data will be satisfy from the buffer. Changing parameters 
-		 don't need to be applied immediately
-		*/
-		virtual bool empty() const = 0;
+		virtual ConstBin getInputBuffer() const = 0;
 		///discard up count bytes from the buffer
 		/**
 		 @param count count of bytes to discard
 
 		 @note discard should be faster than skip() of the iterator
 		*/
-		virtual void discard(natural count) = 0;
-
-		///clear whole buffer
-		virtual void clear() = 0;
+		virtual void discardInput(natural count) = 0;
 
 	};
 
-	class IOutputBuffer : public IOutputStream, public IBufferFlush {
+	class IOutputBuffer : public virtual IOutputStream, public IBufferFlush {
 	public:
 		///returns current count of bytes already buffered
-		virtual natural length() const = 0;
+		virtual natural getOutputLength() const = 0;
 		///returns total capacity of the buffer
-		virtual natural capacity() const = 0;
+		virtual natural getOutputCapacity() const = 0;
 		///returns available capacity of the buffer before buffer will be flushed to the output stream
-		virtual natural available() const = 0;
-		///returns true, if buffer is empty
-		virtual bool empty() const = 0;
-		///discard everything in buffer
-		virtual void clear() = 0;
+		virtual natural getOutputAvailable() const = 0;
 		///flush buffer to the output stream
 		virtual void flush() = 0;
 		///discard count of bytes recently sent to the stream
 		/** function throws exception, if specified count of bytes cannot be discarded */
-		virtual void discard(natural count) = 0;
+		virtual void discardOutput(natural count) = 0;
+
+		virtual POutputStream getTarget() const = 0;
 	};
 
 
-	class IInOutBuffer : public IInputBuffer, public IOutputBuffer {
 
-		class Stub : public IInOutStream {
-		public:
-			Stub(IInOutBuffer *b) :b(b) {}
-
-			virtual natural read(void *buffer, natural size) {
-				return b->read(buffer, size);
-			}
-
-			virtual natural peek(void *buffer, natural size) const {
-				return b->peek(buffer, size);
-			}
-
-			virtual bool canRead() const {
-				return b->canRead();
-			}
-
-			virtual natural dataReady() const {
-				return b->dataReady();
-			}
-
-			virtual natural write(const void *buffer, natural size) {
-				return b->write(buffer, size);
-			}
-
-			virtual bool canWrite() const {
-				return b->canWrite();
-			}
-
-			virtual void flush() {
-				return b->flush();
-			}
-
-			virtual void closeOutput() 	{
-				return b->closeOutput();
-			}
-
-			virtual void * proxyInterface(IInterfaceRequest &p) override
-			{
-				void *k = b->proxyInterface(p);
-				if (k == 0) return IInOutStream::proxyInterface(p);
-				else return k;
-			}
-
-			virtual const void * proxyInterface(const IInterfaceRequest &p) const override
-			{
-				const void *k = b->proxyInterface(p);
-				if (k == 0) return IInOutStream::proxyInterface(p);
-				else return k;
-			}
-
-		protected:
-			IInOutBuffer *b;
-		};
+	class IInOutBuffer : public IInOutStream, public IInputBuffer, public IOutputBuffer {
 	public:
 
-		operator IInOutStream *() { return &s; }
-		operator const IInOutStream *() const { return &s; }
 
-		IInOutBuffer() :s(this) {}
-	protected:
-		Stub s;
 	};
 
 

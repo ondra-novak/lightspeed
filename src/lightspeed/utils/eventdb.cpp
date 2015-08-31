@@ -548,7 +548,7 @@ void EventLog::rescanOtherLog(PInputStream input) {
 	time_t tm = 0;
 
 	while (infile.hasItems()) {
-		parseBlock(input,hdr,checksum,tm,buffer,false);
+		parseBlock(infile,hdr,checksum,tm,buffer,false);
 		for (natural i = 0; i < listeners.length(); i++) {
 			try {
 				listeners[i]->onUpdate(0,tm,hdr.recordType,RecData(buffer.head(hdr.recordSize*blockSize)));

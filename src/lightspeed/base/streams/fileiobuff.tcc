@@ -19,10 +19,6 @@ namespace LightSpeed {
 
 
 template<natural bufferSize>
-IOBuffer<bufferSize>::IOBuffer(ISeqFileHandle *hndl):targetIn(hndl), targetOut(hndl)
-	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0),eof(false),outputClosed(false),writeReserve(0) {}
-
-template<natural bufferSize>
 IOBuffer<bufferSize>::IOBuffer(IInputStream *hndl):targetIn(hndl)
 	,rdpos(bufferSize),wrpos(0),rdend(bufferSize),wrbeg(0),eof(false),outputClosed(true),writeReserve(0) {}
 

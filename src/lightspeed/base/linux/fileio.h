@@ -12,7 +12,7 @@ struct stat64;
 
 namespace LightSpeed
 {
-	class FileDescriptorSeq: public ISeqFileHandle, public ILockFileInterface
+	class FileDescriptorSeq: public IInOutStream, public ILockFileInterface
 							, public IFileExtractHandle{
 	public:
         int fd;

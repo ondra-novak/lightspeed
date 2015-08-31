@@ -82,9 +82,8 @@ protected:
     
 class SeqFileInput: public IteratorBase<byte, SeqFileInput> {
 public:
-	SeqFileInput(PSeqFileHandle fhnd):fhnd(fhnd.get()) {}
-	SeqFileInput(IInputStream *fhnd):fhnd(fhnd) {}
-	SeqFileInput(PInputStream fhnd):fhnd(fhnd) {}
+	explicit SeqFileInput(IInputStream *fhnd):fhnd(fhnd) {}
+	explicit SeqFileInput(PInputStream fhnd):fhnd(fhnd) {}
 	SeqFileInput(NullType) {}
 	SeqFileInput(PRndFileHandle fhnd, IRndFileHandle::FileOffset offset):fhnd(new RndFileReader(fhnd,offset)) {}
 	SeqFileInput(ConstStrW ofn, OpenFlags::Type flags = 0)
@@ -132,7 +131,6 @@ public:
 		return x;
 	}
 
-	PSeqFileHandle getHandle() const {return dynamic_cast<ISeqFileHandle *>(fhnd.get());}
 	PInputStream getStream() const {return fhnd;}
 
 	///Get output part of this stream is available
@@ -157,9 +155,8 @@ protected:
 class SeqFileOutput: public WriteIteratorBase<byte, SeqFileOutput> {
 public:
 
-	SeqFileOutput(PSeqFileHandle fhnd):fhnd(fhnd.get()) {}
-	SeqFileOutput(POutputStream fhnd):fhnd(fhnd) {}
-	SeqFileOutput(IOutputStream *fhnd):fhnd(fhnd) {}
+	explicit SeqFileOutput(POutputStream fhnd):fhnd(fhnd) {}
+	explicit SeqFileOutput(IOutputStream *fhnd):fhnd(fhnd) {}
 	SeqFileOutput(NullType) {}
 	SeqFileOutput(PRndFileHandle fhnd, IRndFileHandle::FileOffset offset):fhnd(new RndFileWriter(fhnd,offset)) {}
 	SeqFileOutput(ConstStrW ofn, OpenFlags::Type flags = OpenFlags::create|OpenFlags::truncate)
@@ -191,7 +188,6 @@ public:
 		return x;
 	}
 
-	PSeqFileHandle getHandle() const {return dynamic_cast<ISeqFileHandle *>(fhnd.get());}
 	POutputStream getStream() const {return fhnd;}
 	void flush() {fhnd->flush();}
 	void closeOutput() {fhnd->closeOutput();}

@@ -386,7 +386,7 @@ namespace LightSpeed {
 
 
 
-	class INetworkStream: public ISeqFileHandle, public INetworkResource {
+	class INetworkStream: public IInOutStream, public INetworkResource {
 	public:
 
 
@@ -405,7 +405,7 @@ namespace LightSpeed {
 	 * before it is destroyed. It often contain address of side,
 	 * which sent this datagram to this computer
 	 */
-	class INetworkDatagram: public ISeqFileHandle, public IRndFileHandle {
+	class INetworkDatagram: public IInOutStream, public IRndFileHandle {
 	public:
 
 		///Receives target for this datagram.
@@ -480,8 +480,8 @@ namespace LightSpeed {
 		 */
 		virtual natural getUID() const = 0;
 
-		using ISeqFileHandle::read;
-		using ISeqFileHandle::write;
+		using IInOutStream::read;
+		using IInOutStream::write;
 		using IRndFileHandle::read;
 		using IRndFileHandle::write;
 
