@@ -28,13 +28,13 @@ namespace LightSpeed {
 
 		   - under linux, it will be '\n' under windows '\r\n'
 		 */
-		TextLineReader(Iterator iter) :iter(iter), sep(DefaultNLString<T>()),needFetch(true) {}
+		TextLineReader(Iterator iter) :iter(iter),needFetch(true), sep(DefaultNLString<T>()) {}
 		///Construct object from given iterator. You can specify own new line separator.
-		TextLineReader(Iterator iter, ConstStringT<T> sep) :iter(iter), sep(sep), needFetch(true) {}
+		TextLineReader(Iterator iter, ConstStringT<T> sep) :iter(iter), needFetch(true), sep(sep) {}
 		///Construct object from given iterator and also initialize buffer with the allocator
-		TextLineReader(Iterator iter, Allocator alloc) :iter(iter), sep(DefaultNLString<T>()), buffer(alloc), needFetch(true) {}
+		TextLineReader(Iterator iter, Allocator alloc) :iter(iter), buffer(alloc), needFetch(true), sep(DefaultNLString<T>()) {}
 		///Construct object from given iterator and also initialize buffer with the allocator. You can specify own new line separator.
-		TextLineReader(Iterator iter, ConstStringT<T> sep, Allocator alloc) :iter(iter), sep(sep), buffer(alloc), needFetch(true) {}
+		TextLineReader(Iterator iter, ConstStringT<T> sep, Allocator alloc) :iter(iter), buffer(alloc), needFetch(true), sep(sep) {}
 
 		const ConstStringT<T> &peek() const;
 		const ConstStringT<T> &getNext();
