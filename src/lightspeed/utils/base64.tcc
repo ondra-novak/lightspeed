@@ -95,8 +95,8 @@ void Base64DecoderT<Char,Bin>::input(const Char& xc) {
 	natural k = base64_decodeTable[(unsigned char)x];
 	if (k == 0xFF) {
 		if (x == '=' || x == '.' || x == '~') {
-			cycle++;
 			if (eos > cycle + 3) eos = cycle + 3;
+			cycle++;
 		}
 	}
 	else {
