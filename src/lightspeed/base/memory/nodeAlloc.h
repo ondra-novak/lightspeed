@@ -11,8 +11,8 @@
 
 namespace LightSpeed {
 
-
 typedef SharedPtr<IRuntimeAlloc> NodeAlloc;
+///Default allocator to allocate AVLTree nodes.
 NodeAlloc createDefaultNodeAllocator();
 
 

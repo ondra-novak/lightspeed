@@ -13,15 +13,23 @@
 #include "../exceptions/stdexception.h"
 namespace LightSpeed {
 
+template<typename Arg>
+Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractDispatcher::dispatch(
+		const Arg& arg) {
+	return dispatch2(arg,DispatchHelper<Arg>::tag);
+}
 
-template<typename T, typename Fn>
-Promise<T> AbstractDispatcher::dispatch(const Promise<T> &, Fn fn) {
+template<typename Arg>
+inline Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractDispatcher::dispatch2(
+		const Arg& arg, Tag_Function) {
+
+	typedef typename AbstractDispatcher::DispatchHelper<Arg>::RetV T;
 
 	class Action: public IDispatchAction {
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
-		Action(const Fn fn, const PromiseResolution<T> &res):fn(fn),res(res) {}
+		Action(const Arg fn, const PromiseResolution<T> &res):fn(fn),res(res) {}
 		void run() throw() {
 			try {
 				res.resolve((T)fn());
@@ -38,15 +46,61 @@ Promise<T> AbstractDispatcher::dispatch(const Promise<T> &, Fn fn) {
 		}
 
 	protected:
+		Arg fn;
+		PromiseResolution<T> res;
+	};
+
+	PromiseResolution<T> pres;
+	Promise<T> promise(pres);
+	Action a(arg,pres);
+	const IDispatchAction &da = a;
+	dispatchAction(da);
+	return promise;
+}
+
+
+
+
+
+
+template<typename Object, typename RetVal>
+inline Promise<RetVal> LightSpeed::AbstractDispatcher::dispatch(
+		const Object& obj, RetVal (Object::*memberfn)()) {
+
+	typedef RetVal T;
+	typedef RetVal (Object::*Fn)();
+
+	class Action: public IDispatchAction {
+	public:
+
+		LIGHTSPEED_CLONEABLECLASS;
+		Action(const Object &obj,  Fn fn, const PromiseResolution<T> &res):obj(obj),fn(fn),res(res) {}
+		void run() throw() {
+			try {
+				res.resolve((T)(obj.*fn)());
+			} catch (const Exception &e) {
+				res.reject(e.clone());
+			} catch (const std::exception &e) {
+				res.reject(new StdException(THISLOCATION,e));
+			} catch (...) {
+				res.reject(new UnknownException(THISLOCATION));
+			}
+		}
+		void reject(const Exception &e) throw() {
+			res.reject(e.clone());
+		}
+
+	protected:
+		Object obj;
 		Fn fn;
 		PromiseResolution<T> res;
 	};
 
 	PromiseResolution<T> pres;
-	Promise<T> promise;
-	Action a(fn,pres);
+	Promise<T> promise(pres);
+	Action a(obj,memberfn,pres);
 	const IDispatchAction &da = a;
-	dispatch(da);
+	dispatchAction(da);
 	return promise;
 }
 
@@ -88,11 +142,11 @@ public:
 	}
 
 	virtual void resolve(const T &result) throw() {
-		dispatcher.dispatch(DispatchResult(pr,result));
+		dispatcher.dispatchAction(DispatchResult(pr,result));
 		delete this;
 	}
 	virtual void reject(const PException &e) throw() {
-		dispatcher.dispatch(DispatchReject(pr,e));
+		dispatcher.dispatchAction(DispatchReject(pr,e));
 		delete this;
 	}
 
@@ -104,11 +158,18 @@ protected:
 };
 
 
-template<typename T>
-Promise<T> AbstractDispatcher::dispatch(Promise<T> promise) {
+
+template<typename Arg>
+inline Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractDispatcher::dispatch2(
+		const Arg& arg, Tag_Promise) {
+
+
+	typedef typename AbstractDispatcher::DispatchHelper<Arg>::RetV T;
+
+	Promise<T> src = arg;
 	PromiseResolution<T> pr;
 	Promise<T> ret(pr);
-	promise.registerCb(new(*getPromiseAlocator()) PromiseDispatch<T>(*this,pr));
+	src.registerCb(new(*getPromiseAlocator()) PromiseDispatch<T>(*this,pr));
 	return ret;
 
 

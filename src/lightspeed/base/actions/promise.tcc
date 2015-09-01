@@ -534,5 +534,22 @@ Promise<T> Promise<T>:: operator || (const Promise<T> &other)  {
 
 }*/
 
+
+template<typename Fn>
+Promise<void> Promise<void>::then(Fn fn) {
+	return Promise<Empty>::then(EmptyCallVoid<Fn>(fn));
+}
+
+template<typename Fn>
+Promise<void> Promise<void>::thenCall(Fn fn) {
+	return Promise<Empty>::thenCall(EmptyCallVoid<Fn>(fn));
+}
+
+template<typename Fn, typename RFn>
+Promise<void> Promise<void>::then(Fn resolveFn, RFn rejectFn){
+	return Promise<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+}
+
+
 }
 

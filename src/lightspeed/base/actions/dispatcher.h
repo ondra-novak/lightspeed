@@ -12,13 +12,41 @@
 
 namespace LightSpeed {
 
-
-///Interface that allows to give object commands through actions
-/**
- * Every object that implements IDispatcher can receive commands through objects packed into
- * Action. The interface should be used with executors and queue dispatchers.
- */
 class AbstractDispatcher {
+
+	enum Tag_Function {tag_function};
+	enum Tag_Promise {tag_promise};
+
+
+	//if you receive error about this class, feature you requested is not available in C++03
+	template <typename Fn>
+	class DispatchHelper;
+
+	#if __cplusplus >= 201103L
+	template <typename Fn>
+	class DispatchHelper
+	{
+	public:
+		typedef decltype(Fn::operator()) RetV;
+		static const Tag_Function tag = tag_function;
+	};
+#endif
+
+	template<typename T>
+	class DispatchHelper<T (*)()> {
+	public:
+		typedef T RetV;
+		static const Tag_Function tag = tag_function;
+	};
+
+	template<typename T>
+	class DispatchHelper<Promise<T> > {
+	public:
+		typedef T RetV;
+		static const Tag_Promise tag = tag_promise;
+	};
+
+
 public:
 
 	class IDispatchAction: public ICloneable {
@@ -28,6 +56,7 @@ public:
 		virtual void reject(const Exception &e) throw() = 0;
 	};
 
+
 	///Dispatches action through the object
 	/** Depend on type of the object, action can be dispatched by many ways. If
 	 *  dispatcher is queue, action is enqueued and processed later. If dispatcher
@@ -36,57 +65,46 @@ public:
 	 *  Function can block, if the dispatcher is busy.
 	 *
 	 *
-	 * @param action action to dispatch. Function can create copy of the function. To create
-	 * function object, you can use Action::create. You can also use Action instance with a function
-	 * but called function should always create copy.
+	 * @param action action to dispatch. Function can create copy of the action.
 	 *
-	 * @note function distpatch must be MT safe!
+	 * @note function must be MT safe
 	 *
 	 */
-	virtual void dispatch(const IDispatchAction &action) = 0;
+	virtual void dispatchAction(const IDispatchAction &action) = 0;
 
-	///Dispatches function call and returns value as promise
+
+	///Dispatches the object through the dispatcher
 	/**
-	 * This allows generally dispatch any function to the dispatcher
+	 * @param arg object to dispatch. The object can be either a function without arguments,
+	 *     or it can be also function object, but this will work in C++11 and highter. It
+	 *     can be also lambda function from C++11. Finally, it can be also Promise object which
+	 *     will be dispatched later once promise is resolved.
 	 *
-	 * @param fn function to dispatch
-	 * @param template_promise promise object that can be constructred directly inside the argument.
-	 *   It is used to determine type of result promise. This allows convert result of the function
-	 *   to another convertible type - for example: from child to parent type, or from integer
-	 *   to float, etc. This also allows to compile code under pre C++11 compiler. Value of the
-	 *   argument is not used and not changed.
-	 * @return
 	 *
-	 * @code
-	 * Promise<int> res = dispatcher.dispatch(&foo, Promise<int>());
-	 * dispatcher.dispatch(Promise<float>(),&bar).then(&bas);
-	 * @endcode
+	 * @return Returns promise which is resolved, once the dispatcher processes the object. Promise
+	 * is resolved by return value of the function called on the object.
+	 *
+	 * @note if you need to dispatch function object in C++03, call dispatch() version with
+	 *  two arguments
 	 */
-	template<typename T, typename Fn>
-	Promise<T> dispatch(const Promise<T> &template_promise, Fn fn);
+	template<typename Arg>
+	Promise<typename DispatchHelper<Arg>::RetV> dispatch(const Arg &arg);
 
-	///Dispatches promise through the dispatcher
-	/** Once promise is resolved or rejected, result is carried through the dispatcher.
-	 * Function returns new promise, which becomes resolved once the dispatcher processes the result.
-	 * This function can be used for example to forward promises to the main dispatcher to process result
-	 * in the main thread instead of the thread which resolved the promise.
+
+	///Dispatches the member function call
+	/**
+	 * @param obj object which member function should be called. Note that object is COPIED
+	 *  to the dispatcher. If you want to avoid copying, construct proxy object that will
+	 *  carry the pointer.
 	 *
-	 * @param promise promise to dispatch
-	 * @return new promise which becomes resolved once the dispatcher finishes its forward. Callback
-	 * functions are called in the context of dispatcher's thread
+	 * @param memberfn Pointer to member function in format &Object::memberFn that will
+	 * be dispatched. If you want to dispatch function object, use &Object::operator().
 	 *
-	 * @code
-	 * Promise<int> x = doAsyncCode();
-	 * dispatcher.dispatch(x).then(&onResult,&onError);
-	 * @endcode
-	 *
-	 * Code above receives promise from an asynchronous code execution and dispatches the promise
-	 * throught the dispatcher. Once doAsyncCode finishes, result is dispatched and function onResult
-	 * is executed in the context of the dispatcher
+	 * @return Returns Promise which is resolved, once the dispatcher returns from the function. Promise
+	 * is resolved by return value of the function called on the object.
 	 */
-	template<typename T>
-	Promise<T> dispatch(Promise<T> promise) ;
-
+	template<typename Object, typename RetVal>
+	Promise<RetVal> dispatch(const Object &obj, RetVal (Object::*memberfn)());
 
 
 
@@ -95,11 +113,18 @@ public:
 protected:
 	template<typename T> class PromiseDispatch;
 
+	template<typename Arg>
+	Promise<typename DispatchHelper<Arg>::RetV> dispatch2(const Arg &arg, Tag_Function);
+	template<typename Arg>
+	Promise<typename DispatchHelper<Arg>::RetV> dispatch2(const Arg &arg, Tag_Promise);
+
 };
 
 
-}
 
+
+
+}
 
 
 #endif /* LIGHTSPEED_BASE_ACTIONS_DISPATCHER_H_ */
