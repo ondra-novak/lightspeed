@@ -512,6 +512,72 @@ protected:
 	}
 };
 
+template<>
+class PromiseResolution<void>: public PromiseResolution<Empty> {
+public:
+
+	using PromiseResolution<Empty>::resolve;
+	using PromiseResolution<Empty>::reject;
+	void resolve() throw() {
+		resolve(Empty());
+	}
+};
+
+
+///Specialization for void argument.
+/** Because void argument is a special type, we have specialization for it. Promises with void
+ * type should accept callback functions without arguments and they should not expect return value of the
+ * callback function. Also resolve promise should be called without arguments.
+ *
+ * Specialization uses Promise<Empty> where Empty is special empty class. During lifetime of
+ * the promise, the Empty instance is carried through, but it should not leave the promise object out.
+ *
+ * Functions then() and thenCall() accepts callbacks without argument. Conversion to callback with
+ * "the Empty" argument is done by the internal function EmptyCallVoid. This function shallows
+ * the callback function and calls it without argument. It also doesn't expect return value.
+ *
+ * To resolve Promise<void> you should construct PromiseResolution<void>. This object
+ * contains simple function resolve() without argument. Function internally constructs Empty instance
+ * and uses it to process whole callback chain.
+ *
+ * Promise<void> can be anytime converted to Promise<Empty> and vice versa.
+ *
+ *
+ * It is possible to receive value of the promise, but you will receive an instance of the Empty class
+ *
+ * Function wait() doesn't return value, but still can throw an exception in case, that promise
+ * is rejected.
+ *
+ */
+template<>
+class Promise<void>: public Promise<Empty> {
+
+	template<typename Fn>
+	struct EmptyCallVoid {
+	public:
+		Fn fn;
+		EmptyCallVoid(Fn fn):fn(fn) {}
+		const Empty &operator()(const Empty &x) const {fn();return x;}
+
+	};
+
+	template<typename Fn>
+	Promise then(Fn fn);
+	template<typename Fn>
+	Promise thenCall(Fn fn);
+	template<typename Fn, typename RFn>
+	Promise then(Fn resolveFn, RFn rejectFn);
+
+	void wait(const Timeout &tm) {Promise<Empty>::wait(tm);}
+
+	Promise() {}
+	Promise(const Promise<Empty> &x):Promise<Empty>(x) {}
+	Promise(PromiseResolution<void> &resolution):Promise<Empty>(resolution) {}
+	Promise(PromiseResolution<void> &resolution, IRuntimeAlloc &alloc):Promise<Empty>(resolution,alloc) {}
+
+};
+
+
 }
 
 

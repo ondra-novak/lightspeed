@@ -12,7 +12,7 @@
 
 namespace LightSpeed {
 
-template Promise<int> AbstractDispatcher::dispatch(Promise<int>);
+template Promise<typename AbstractDispatcher::DispatchHelper<Promise<int> >::RetV> AbstractDispatcher::dispatch(const Promise<int> &);
 
 
 }
