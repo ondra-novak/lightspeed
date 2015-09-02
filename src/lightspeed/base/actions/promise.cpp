@@ -5,8 +5,7 @@
 
 namespace LightSpeed {
 
-template class Promise<int>;
-template Promise<float> Promise<float>::transform(Promise<int>);
+template class Promise<void>;
 
 	
 
