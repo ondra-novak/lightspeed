@@ -10,7 +10,9 @@
 #include "../exceptions/exception.h"
 #include "promise.h"
 
+
 namespace LightSpeed {
+
 
 class AbstractDispatcher {
 
@@ -22,7 +24,7 @@ class AbstractDispatcher {
 	template <typename Fn>
 	class DispatchHelper;
 
-	#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L
 	template <typename Fn>
 	class DispatchHelper
 	{
@@ -48,6 +50,8 @@ class AbstractDispatcher {
 
 
 public:
+
+	AbstractDispatcher();
 
 	class IDispatchAction: public ICloneable {
 	public:
@@ -107,20 +111,52 @@ public:
 	Promise<RetVal> dispatch(const Object &obj, RetVal (Object::*memberfn)());
 
 
+	///Dispatches the member function call with and argument
+	/**
+	 * @param obj object which member function should be called. Note that object is COPIED
+	 *  to the dispatcher. If you want to avoid copying, construct proxy object that will
+	 *  carry the pointer.
+	 *
+	 * @param memberfn Pointer to member function in format &Object::memberFn that will
+	 * be dispatched. If you want to dispatch function object, use &Object::operator().
+	 *
+	 * @param  arg user defined argument
+	 *
+	 * @return Returns Promise which is resolved, once the dispatcher returns from the function. Promise
+	 * is resolved by return value of the function called on the object.
+	 */
+	template<typename Object, typename RetVal, typename Arg>
+	Promise<RetVal> dispatch(const Object &obj, RetVal (Object::*memberfn)(Arg arg), const typename FastParam<Arg>::T arg);
 
-	virtual ~AbstractDispatcher() {}
+
+	virtual ~AbstractDispatcher() {cleanup();}
 
 protected:
 	template<typename T> class PromiseDispatch;
+	class PromiseReg {
+	public:
+		PromiseReg *next;
+		PromiseReg *prev;
+
+		PromiseReg():next(0),prev(0) {}
+		virtual void cancel() = 0;
+	};
+
+
+	void registerPromise(PromiseReg *reg);
+	void unregisterPromise(PromiseReg *reg);
+	void cleanup();
 
 	template<typename Arg>
 	Promise<typename DispatchHelper<Arg>::RetV> dispatch2(const Arg &arg, Tag_Function);
 	template<typename Arg>
 	Promise<typename DispatchHelper<Arg>::RetV> dispatch2(const Arg &arg, Tag_Promise);
 
+
+	FastLock unregLock;
+	PromiseReg *regChain;
+
 };
-
-
 
 
 

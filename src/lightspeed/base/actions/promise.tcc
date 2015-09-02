@@ -355,11 +355,6 @@ Promise<T>::Promise(PromiseResolution<T> &resolution, IRuntimeAlloc &alloc) {
 }
 
 template<typename T>
-const T &Promise<T>::isolateHelper(const T &value) {
-	return value;
-}
-
-template<typename T>
 inline FastLock* Promise<T>::Future::getLockPtr() {
 	return &lock;
 }
@@ -382,7 +377,9 @@ void Promise<T>::cancel() throw()  {
 
 template<typename T>
 Promise<T> Promise<T>::isolate() {
-	return then(&isolateHelper);
+	PromiseResolution<T> res;
+	Promise<T> newPromise(res);
+	return then(res);
 }
 
 template<typename T>
@@ -550,6 +547,59 @@ Promise<void> Promise<void>::then(Fn resolveFn, RFn rejectFn){
 	return Promise<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
 }
 
+template<typename T>
+inline Promise<T> Promise<T>::then(const PromiseResolution<T>& resolution) {
+	class A: public Resolution, public DynObject {
+	public:
+		A(const PromiseResolution<T>& resolution)
+			:resolution(resolution) {}
+
+		virtual void resolve(const T &v) throw() {
+			resolution.resolve(v);
+			delete this;
+		}
+		virtual void reject(const PException &e) throw() {
+			resolution.reject(e);
+			delete this;
+		}
+
+	protected:
+		PromiseResolution<T> resolution;
+
+	};
+	registerCb(new(future->alloc) A(resolution));
+	return *this;
+
+}
+
+Promise<void> Promise<void>::then(const PromiseResolution<void> &resolution) {
+	return Promise<Empty>::then(static_cast<const PromiseResolution<Empty> &>(resolution));
+}
+
+
+template<typename X>
+Promise<void> Promise<void>::transform(Promise<X> original)
+{
+	class A:public Promise<X>::Resolution, public DynObject {
+	public:
+		A(PromiseResolution<void> rptr):rptr(rptr) {}
+		virtual void resolve(const X &) throw() {
+			rptr.resolve();
+			delete this;
+		}
+		virtual void reject(const PException &oe) throw() {
+			rptr.reject(oe);
+			delete this;
+		}
+
+	protected:
+		PromiseResolution<void> rptr;
+	};
+	PromiseResolution<void> rptr;
+	Promise<void> p(rptr,original.future->alloc);
+	original.registerCb(new(original.future->alloc) A(rptr));
+	return p;
+}
 
 }
 

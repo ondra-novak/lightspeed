@@ -59,8 +59,26 @@ public:
 
 typedef RefCntPtr<IPromiseControl> PPromiseControl;
 
+///Promise object
+/** Promise can be used instead result of asynchronous task in case, that result is not yet known.
+ * You can construct Promise object from PromiseResolution. You have to pass PromiseResolution to the
+ * asynchronous task and you should return Promise object as result.
+ *
+ * Promise object can be copied. Copying just increases count of references.
+ *
+ * Promise object can be also destroyed before promise is resolved.
+ *
+ * You can attach various callbacks to the promise object, that are called once promise
+ * is resolved. You can use getValue() or wait() to read result. These functiio
+ *
+ * Promises can be stored in map as keys. You can compare two Promise references to find
+ * whether both are connected with the same future value.
+ *
+ */
 template<typename T>
-class Promise {
+class Promise
+	:public ComparableLess<Promise<T> > //< you can compare promises
+{
 public:
 
 	class Resolution;
@@ -136,6 +154,15 @@ public:
 
 	template<typename Fn>
 	Promise thenCall(Fn resolveFn);
+
+	///Resolves another promise after current promise is resolved
+	/**
+	 * @param resolution resolution object that will be used to resolve another promise using
+	 * result of current promise
+	 *
+	 * @return function returns this promise
+	 */
+	Promise then(const PromiseResolution<T> &resolution);
 
 	///Define what happens when promise is resolved
 	/**
@@ -426,8 +453,13 @@ public:
 
 
 
+
 protected:
 	friend class PromiseResolution<T>;
+	friend class ComparableLess<Promise<T> >;
+
+	bool lessThan(const Promise<T> &other) const {return future.lessThan(other.future);}
+	bool isNil() const {return future.isNil();}
 
 	class Future:public IPromiseControl, public Resolution, public DynObject  {
 	public:
@@ -460,14 +492,17 @@ protected:
 
 	RefCntPtr<Future> future;
 
-	static const T &isolateHelper(const T &value);
 	template<typename X>
 	static X transformHelper(const T &value);
 
 	template<typename X> friend class Promise;
 };
 
-
+///Represents result of an asynchronous task. It should be passed to the code that process the task
+/**
+ * You need the PromiseResolution object to construct promise object. PromiseResolution can be
+ * copied similar to Promise. After copying the copy still connected with original promise.
+ */
 template<class T>
 class PromiseResolution: public SharedResource, public Promise<T>::Resolution {
 public:
@@ -492,6 +527,11 @@ public:
 	virtual void reject(const PException &e) throw() {
 		Resolution *ptr = grabPtr();
 		if (ptr) ptr->reject(e);
+	}
+
+	const T &operator=(const T & v) {
+		resolve(v);
+		return v;
 	}
 
 protected:
@@ -568,6 +608,32 @@ class Promise<void>: public Promise<Empty> {
 	template<typename Fn, typename RFn>
 	Promise then(Fn resolveFn, RFn rejectFn);
 
+	///attach another promise object to current promise
+	/**
+	 * another promise is attached and resolved  along with current promise
+	 *
+	 * @param resolution resolution of another promise
+	 * @return this promise
+	 *
+	 */
+	Promise then(const PromiseResolution<void> &resolution);
+
+	///Transforms any promise into Promise<void>
+	/** This can be used to create a notification about resolution without carrying the value.
+	 *
+	 * @param original original promise
+	 * @return new promise of void type
+	 */
+	template<typename X>
+	static Promise transform(Promise<X> original);
+
+	///Blocks thread execution until promise is resolved
+	/**
+	 * @param tm desired timeout
+	 *
+	 * @exception TimeoutException timeout ellapsed before resolution
+	 * @exception any promise has been rejected with an exception.
+	 */
 	void wait(const Timeout &tm) {Promise<Empty>::wait(tm);}
 
 	Promise() {}
@@ -579,5 +645,4 @@ class Promise<void>: public Promise<Empty> {
 
 
 }
-
 
