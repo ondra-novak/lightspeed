@@ -102,6 +102,60 @@ public:
 	   rule causes application crash */
 	Promise() {}
 
+	///Creates the Result object
+	/** Result object is intended to act as recipient of result. The task running at the background
+	   have to put result of the execution to the object, or call reject anytime an exception happen.
+	   Result object will accept just one action and then its instance can be released
+	   
+	   Function creates new result object and returns it as result. Function always creates
+	   new result object destroying the previous one. This always give you assurance, that
+	   returned object has not been already resolved.
+
+	   You cannot obtain same result object twice or multiple times from the single Promise. However, the Result object
+	   is counted reference, you can make multiple copies and they still represent one result value.	   
+
+	   @return result object.
+
+	   @note Leaving the last reference in the scope causes, that promise is rejected by special exception.
+	 */
+	   
+	    	    
+	Result createResult();
+	///Creates the result object
+	/** Result object is intended to act as recipient of result. The task running at the background
+	   have to put result of the execution to the object, or call reject anytime an exception happen.
+	   Result object will accept just one action and then its instance can be released
+
+	   Function creates new result object and returns it as result. Function always creates
+	   new result object destroying the previous one. This always give you assurance, that
+	   returned object has not been already resolved.
+
+	   You cannot obtain same result object twice or multiple times from the single Promise. However, the Result object
+	   is counted reference, you can make multiple copies and they still represent one result value.
+
+	   @param reference to allocator that will be used to allocate result object.
+	   @return result object.
+
+	   @note Leaving the last reference in the scope causes, that promise is rejected by special exception.
+	  */
+	Result createResult(IRuntimeAlloc &alloc);
+
+	///Initialized promise but doesn't prepare result object
+	/** By default, promise objects are constructed uninitialized due performance reason. You have to create result object
+	   to start working with the promise, or assign to the promise another promise, because promises are counted references.
+
+	   This is third way how to create promise without need to work with result object. It is useful when you need to create
+	   promise object, add observers and then much much later you will need to create result object.
+
+	   Function init() performs full promise initialization. After initialization, you can attach observers, but they
+	   will stay unresolved till somebody creates result object and resolves it.
+
+	   After initialization, you can call createResult(). If the promise is destroyed without result creation, observers
+	   are rejected similar to cancel() method.
+	 */
+
+	void init();
+	void init(IRuntimeAlloc &alloc);
 
 
 	///Reads value from the promise
@@ -244,7 +298,7 @@ public:
 	Promise thenWake(ISleepingObject &sleep, natural resolveReason=0, natural rejectReason=1);
 
 	///Registers additional callback 
-	/** Regisers user defeined observer.
+	/** Registers user defined observer.
 	 *
 	 * @param ifc pointer to an observer. Observer is identified by its address, so you cannot
 	 * register observer twice (but you should not try it. To achieve best performance, this
@@ -332,7 +386,7 @@ public:
 	/**
 	 * Function is static so you have to call it using:
 	 * @code
-	 * Promise<Y> promise_y = Promise<Y>::trans`
+	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x)
 	 * @endcode
 	 * ... where promise_x is original promise and Y is a new type. There must be automatic
 	 * conversion available through the constructor or conversion operator. Function can also
@@ -372,7 +426,7 @@ public:
 	///Allows to join resolution of two promises into one.
 	/**
 	 * Function returns promise which resolves once both promises (right and left) resolves. Result
-	 * of this resultion is always right side, result of left promise is ignored.
+	 * of this resolution is always right side, result of left promise is ignored.
 	 *
 	 * @param other right side of the operator
 	 *
@@ -392,7 +446,7 @@ public:
 
 //	Promise operator || (const Promise &other) ;
 
-	///Allows create much flexibile observers than classical "then" or "whenRejected"
+	///Allows create much flexible observers than classical "then" or "whenRejected"
 	/** Observer is object, that receives result or rejection reason once the promise is resolved
 	 * You can create observer by implementing this interface. You have to implement methods
 	 * resolve() and reject().
@@ -434,12 +488,6 @@ public:
 	};
 
 	///Interface to resolve promise
-	/** Asynchronous task will receive this interface to resolve promise once
-	  the task is finished and result is known
-
-	  Expectants must implement this interface to receive result. There are
-	  couple classes that will help with it
-	 */
 	class Resolution: public IObserver {
 	public:
 
@@ -529,58 +577,49 @@ public:
 
 	};
 
-	class Result: public SharedResource, public Resolution {
+	class Result: public Resolution {
 	public:
-		Result():ptr(0) {}
-		Result(const Result &other):SharedResource(other,other.ptr?other.ptr->getLockPtr():0) {}
+		Result(const Result &other);
+
 		~Result();
 
 		using Resolution::resolve;
 		using Resolution::reject;
 		virtual void resolve(const T &result) throw() {
-			Resolution *ptr = grabPtr();
-			if (ptr) ptr->resolve(result);
+			if (ptr != nil) ptr->resolve(result);
 		}
 		virtual void resolve(const IConstructor<T> &result) throw() {
-			Resolution *ptr = grabPtr();
-			if (ptr) ptr->resolve(result);
+			if (ptr != nil) ptr->resolve(result);
 		}
 		virtual void reject(const PException &e) throw() {
-			Resolution *ptr = grabPtr();
-			if (ptr) ptr->reject(e);
+			if (ptr != nil) ptr->reject(e);
 		}
-
 		const T &operator=(const T & v) {
 			resolve(v);
 			return v;
 		}
 
+
 	protected:
 		friend class Promise<T>;
-		Result(Future *r):ptr(r) {}
+		Result(Future *r);
 
-		Future *ptr;
-		Future *grabPtr() {
-			Future *p = ptr;
-			forEachInstance(&setPtrToNull);
-			return p;
+		void cleanup() {
+			ptr->releaseResultRef();
+			ptr = nil;
 		}
 
-		static bool setPtrToNull(SharedResource *x, SharedResource *) {
-			Result *c = static_cast<Result *>(x);
-			c->ptr = 0;
-			return true;
-		}
+		RefCntPtr<Future> ptr;
 
+	private:
+		Result &operator=(const Result &other);
 	};
 
-	Result createResult();
-	Result createResult(IRuntimeAlloc &alloc);
-
-	void init();
-	void init(IRuntimeAlloc &alloc);
 
 protected:
+
+	Promise(Future *p) :future(p) {}
+
 	friend class ComparableLess<Promise<T> >;
 
 	bool lessThan(const Promise<T> &other) const {return future.lessThan(other.future);}
@@ -589,7 +628,7 @@ protected:
 	class Future:public IPromiseControl, public Resolution, public DynObject  {
 	public:
 		
-		Future(IRuntimeAlloc &alloc):alloc(alloc),internal(true) {}
+		Future(IRuntimeAlloc &alloc):alloc(alloc),resultRefCnt(0) {}
 		~Future();
 		virtual bool resolved() const throw ();
 		virtual void resolve(const T &result) throw() ;
@@ -600,9 +639,8 @@ protected:
 		virtual void cancel(const PException &e) throw();
 		virtual void cancel() throw ();
 		IRuntimeAlloc &alloc;
-		bool isInternal() const;
-		void loadObservers(const Future &internal);
-		void makeExternal();
+		void addResultRef();
+		void releaseResultRef();
 
 
 
@@ -614,12 +652,14 @@ protected:
 
 		typedef AutoArray<IObserver *, SmallAlloc<4> > Observers;
 		Observers observers;
-		bool internal;
+		atomic resultRefCnt;
 
+		friend class Promise;
 
 		template<typename X>
 		void resolveInternal( const X & result );
 	};
+
 
 	RefCntPtr<Future> future;
 
@@ -665,7 +705,6 @@ public:
 	class Result: public Promise<Empty>::Result {
 	public:
 		typedef Promise<Empty>::Result Super;
-		Result() {}
 		Result(const Super &other):Super(other) {}
 		using Super::resolve;
 		virtual void resolve() throw() {

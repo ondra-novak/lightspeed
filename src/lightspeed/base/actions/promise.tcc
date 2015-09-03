@@ -64,7 +64,8 @@ bool Promise<T>::Future::unregisterObserver( IObserver *ifc )
 	for (natural i = observers.length(); i > 0 ;) {
 		--i;
 		if (observers[i] == ifc) {
-			observers.erase(i); return true;
+			observers.erase(i); 
+			return true;
 		}
 	}
 	return false;
@@ -83,7 +84,6 @@ void Promise<T>::Future::resolveInternal( const X & result )
 		observers[i]->resolve(value);
 
 	observers.clear();
-	RefCntPtr<Future>(this).manualRelease();
 }
 
 
@@ -321,14 +321,16 @@ void Promise<T>::Resolution::reject( const Exception &e ) throw() {
 }
 
 template<typename T>
-void Promise<T>::Future::cancel( const PException &e ) throw() {
-	Observers cpy;
-	{
-		Synchronized<FastLock> _(lock);
-		cpy.swap(observers);
-	}
-	for (natural i = 0; i < cpy.length();i++)
-		cpy[i]->reject(e);
+void Promise<T>::Future::cancel( const PException &e ) throw() {	
+		Observers cpy;
+		{
+			Synchronized<FastLock> _(lock);
+			if (resolved()) return;
+			cpy.swap(observers);
+		}
+		for (natural i = 0; i < cpy.length(); i++)
+			cpy[i]->reject(e);
+	
 }
 
 template<typename T>
@@ -345,11 +347,9 @@ void Promise<T>::init() {
 
 template<typename T>
 typename Promise<T>::Result Promise<T>::createResult() {
-	if (future == nil || !future->isInternal()) {
+	if (future == nil || readAcquire(&future->resultRefCnt) != 0) {
 		init();
 	}
-	//future.manualAddRef();
-	future->makeExternal();
 	return Result(future);
 }
 
@@ -361,28 +361,10 @@ void Promise<T>::init(IRuntimeAlloc &alloc) {
 
 template<typename T>
 typename Promise<T>::Result Promise<T>::createResult(IRuntimeAlloc &alloc) {
-	if (future == nil || !future->isInternal()) {
+	if (future == nil || readAcquire(&future->resultRefCnt) != 0) {
 		init(alloc);
 	}
-	//future.manualAddRef();
-	future->makeExternal();
 	return Result(future);
-}
-
-template<typename T>
-void Promise<T>::Future::makeExternal() {
-	Synchronized<FastLock> _(lock);
-	if (internal) {
-		internal = false;
-		RefCntPtr<Future> me (this);
-		me.manualAddRef();
-	}
-}
-
-
-template<typename T>
-inline FastLock* Promise<T>::Future::getLockPtr() {
-	return &lock;
 }
 
 template<typename T>
@@ -455,13 +437,45 @@ Promise<T> Promise<T>::transform(Promise<X> original, Fn fn) {
 }
 
 template<typename T>
-Promise<T>::Result::~Result(){
-	if (!SharedResource::isShared() && ptr) {
-		reject(CanceledException(THISLOCATION));
-	} else {
-		unshare(ptr?ptr->getLockPtr():0);
+void Promise<T>::Future::addResultRef()
+{
+	if (lockInc(resultRefCnt) == 1) {
+		RefCntPtr<Future> x(this);
+		x.manualAddRef();
 	}
 }
+
+template<typename T>
+void Promise<T>::Future::releaseResultRef()
+{
+	if (lockDec(resultRefCnt) == 0) {
+		RefCntPtr<Future> x(this);
+		x.manualRelease();
+		cancel();
+	}
+}
+
+
+template<typename T>
+Promise<T>::Result::Result(Future *r)
+	:ptr(r)
+{
+	ptr->addResultRef();
+}
+
+template<typename T>
+Promise<T>::Result::~Result()
+{
+	ptr->releaseResultRef();
+}
+
+template<typename T>
+Promise<T>::Result::Result(const Result &other)
+:ptr(other.ptr)
+{
+	ptr->addResultRef();
+}
+
 
 
 template<typename T>
@@ -631,17 +645,6 @@ Promise<void> Promise<void>::transform(Promise<X> original)
 	return p;
 }
 
-
-template<typename T>
-bool Promise<T>::Future::isInternal() const {
-	return internal;
-}
-
-template<typename T>
-void Promise<T>::Future::loadObservers(const Future& internal) {
-	Synchronized<FastLock> _(lock);
-	observers.append(internal.observers);
-}
 
 }
 
