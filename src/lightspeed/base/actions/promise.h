@@ -21,7 +21,7 @@ IRuntimeAlloc *getPromiseAlocator();
 
 
 ///Controls any promise
-/** Promise objects are templates and require knowledge of its internal type. It is impossible
+/** Promise objects are templates and they require knowledge of its internal type. It is impossible
  * to control promises without knowing the type in the compile time. This interface allows limited
  * functions to control any promise object. It can be used by dispatchers to manage and control promises
  * registred inside.
@@ -55,6 +55,18 @@ public:
 	 * @note function sends CanceledException to all subscribers
 	 */
 	virtual void cancel() throw () = 0;
+
+	///determines resolution state
+	/**
+	 * You can use this function to determine whether promise has been resolved and then
+	 * you can for example stop tracking it.
+	 *
+	 * @retval true promise is resolved or rejected.
+	 * @retval false promise is still waiting for resolution
+	 */
+	virtual bool resolved() const throw () = 0;
+
+
 };
 
 typedef RefCntPtr<IPromiseControl> PPromiseControl;
@@ -81,6 +93,7 @@ class Promise
 {
 public:
 
+	class IObserver;
 	class Resolution;
 
 	///Construct empty promise object
@@ -234,11 +247,38 @@ public:
 	Promise thenWake(ISleepingObject &sleep, natural resolveReason=0, natural rejectReason=1);
 
 	///Registers additional callback 
-	/** This allows to handle resolution by specific way */
-	Promise registerCb(Resolution *ifc);
-	///Unregisters callback
-	/** This allows to handle resolution by specific way */
-	Promise unregisterCb(Resolution *ifc);
+	/** Regisers user defeined observer.
+	 *
+	 * @param ifc pointer to an observer. Observer is identified by its address, so you cannot
+	 * register observer twice (but you should not try it. To achieve best performance, this
+	 * constrain is not checked in release version)
+	 *
+	 * Registered observer is not owned by the promise. You have to track ownership by own. But
+	 * every promise is always finally resolved, so you can destroy the observer when
+	 * promise is resolved without need to track pointer's ownership and aware about memory leaks.
+	 *
+	 * It is possible to register observer at multiple promises, but in this case, observer
+	 * will be called by multiple time without giving it track which promises did resolve.
+	 *
+	 * @note if promise is already resovled in time of registration, observer is immediatelly
+	 * executed in the content of the current thread and before function returns. If observer
+	 * destroys itself with resolution then the pointer no longer points to a valid object
+	 *
+	 */
+	void addObserver(IObserver *ifc);
+	///Removes observer
+	/** Allows you to remove observer before the resolution
+	 *
+	 * @param ifc pointer to observer to remove
+	 * @retval true observer has been found and removed. So you can now work with the observer,
+	 * eventually destroy it
+	 * @retval false observer did not found. If promise is already resolved, observer was
+	 * probably destroyed
+	 *
+	 * @note pointer is not dereferenced. You can use address of already destroyed observer.
+	 *
+	 */
+	bool removeObserver(IObserver *ifc);
 
 	///Cancels the promise
 	/**
@@ -355,6 +395,47 @@ public:
 
 //	Promise operator || (const Promise &other) ;
 
+	///Allows create much flexibile observers than classical "then" or "whenRejected"
+	/** Observer is object, that receives result or rejection reason once the promise is resolved
+	 * You can create observer by implementing this interface. You have to implement methods
+	 * resolve() and reject().
+	 *
+	 * Registered observers are not owned by the promise. You have to track ownership by own.
+	 * The most common way is to destroy observer when promise is resolved, because promise
+	 * cannot be resolved twice or multiple times.
+	 */
+	class IObserver {
+	public:
+		///Promise is resolved by a result
+		/**
+		 * @param result promise's result.
+		 *
+		 * Observer doesn't return value because observers are not connected with next Promise.
+		 * They are low-level objects. If you need to "return" a value, send the value to
+		 * a PromiseResoluton object.
+		 *
+		 * Function cannot throw exception. If exception happen, observer should store the exception
+		 * or resolve next promise by reject()
+		 *
+		 */
+		virtual void resolve(const T &result) throw() = 0;
+		///Promise is rejected
+		/**
+		 * @param e exception caused rejection
+		 *
+		 * Observer doesn't return value because observers are not connected with next Promise.
+		 * They are low-level objects. If you need to "return" a value , send the value to
+		 * a PromiseResoluton object.
+		 *
+		 *
+		 * You cannot throw exception, because observers are declared "nothrow". In case of
+		 * exception, you should to store the exception object or resolve the next promise by reject()
+		 */
+		virtual void reject(const PException &e) throw()= 0;
+
+		virtual ~IObserver() {}
+	};
+
 	///Interface to resolve promise
 	/** Asynchronous task will receive this interface to resolve promise once
 	  the task is finished and result is known
@@ -362,7 +443,7 @@ public:
 	  Expectants must implement this interface to receive result. There are
 	  couple classes that will help with it
 	 */
-	class Resolution {
+	class Resolution: public IObserver {
 	public:
 
 		///resolve promise using a new value
@@ -465,12 +546,12 @@ protected:
 	public:
 		
 		Future(IRuntimeAlloc &alloc):alloc(alloc) {}
-		bool checkResolved();
+		virtual bool resolved() const throw ();
 		virtual void resolve(const T &result) throw() ;
 		virtual void resolve(const IConstructor<T> &result) throw ();
 		virtual void reject(const PException &e) throw();
-		void registerExpectant(Resolution *ifc);
-		void unregisterExpectant(Resolution *ifc);
+		void registerObserver(IObserver *ifc);
+		bool unregisterObserver(IObserver *ifc);
 		virtual void cancel(const PException &e) throw();
 		virtual void cancel() throw ();
 		IRuntimeAlloc &alloc;
@@ -482,8 +563,8 @@ protected:
 		Optional<T> value;
 		PException exception;
 
-		typedef AutoArray<Resolution *, SmallAlloc<4> > Sleepers;
-		Sleepers sleepers;
+		typedef AutoArray<IObserver *, SmallAlloc<4> > Observers;
+		Observers observers;
 
 
 		template<typename X>

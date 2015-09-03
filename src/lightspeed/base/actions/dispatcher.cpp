@@ -12,37 +12,48 @@
 
 namespace LightSpeed {
 
-template Promise<typename AbstractDispatcher::DispatchHelper<Promise<int> >::RetV> AbstractDispatcher::dispatch(const Promise<int> &);
+template Promise<AbstractDispatcher::DispatchHelper<Promise<int> >::RetV> AbstractDispatcher::dispatch(const Promise<int> &);
 
+AbstractDispatcher::AbstractDispatcher()
+:nextCheck(1)
+{
 
-
-void AbstractDispatcher::registerPromise(PromiseReg* reg) {
-	Synchronized<FastLock> _(unregLock);
-
-	reg->next = regChain;
-	reg->prev = 0;
-	regChain = reg;
 }
 
-void AbstractDispatcher::unregisterPromise(PromiseReg* reg) {
-	Synchronized<FastLock> _(unregLock);
-	if (reg == regChain) {
-		regChain = reg->next;
+void AbstractDispatcher::promiseRegistered(PPromiseControl ppromise) {
+	bool willPrune;
+	{
+	Synchronized<FastLock> _(lock);
+	dprom.add(ppromise);
+	willPrune = dprom.length() >= nextCheck;
 	}
-	if (reg->prev) reg->prev->next = reg->next;
-	if (reg->next) reg->next->prev = reg->prev;
-	reg->next = reg->prev = 0;
-}
-
-void AbstractDispatcher::cleanup() {
-	Synchronized<FastLock> _(unregLock);
-	while (regChain) {
-		PromiseReg *r = regChain;
-		regChain = r;
-
-
+	if (willPrune) {
+		pruneRegPromises();
 	}
-}
 
 }
 
+void AbstractDispatcher::pruneRegPromises() {
+	Synchronized<FastLock> _(lock);
+	DispatchedPromises dprom2;
+	if (dprom.length() >= nextCheck) {
+		for (natural i = 0; i < dprom.length(); i++) {
+			if (!dprom[i]->resolved()) {
+				dprom2.add(dprom[i]);
+			}
+		}
+	}
+	dprom2.swap(dprom);
+	nextCheck = dprom.length() * 2;
+
+}
+
+void AbstractDispatcher::cancelAllPromises() {
+	Synchronized<FastLock> _(lock);
+	for (natural i = 0; i < dprom.length(); i++) {
+		dprom[i]->cancel();
+	}
+	dprom.clear();
+}
+
+}

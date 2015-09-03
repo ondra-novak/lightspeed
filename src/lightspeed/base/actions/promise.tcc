@@ -9,7 +9,7 @@
 namespace LightSpeed {
 
 template<typename T>
-bool Promise<T>::Future::checkResolved()
+bool Promise<T>::Future::resolved() const throw()
 {
 	return (value != nil || exception != nil);
 }
@@ -31,17 +31,17 @@ void Promise<T>::Future::reject(const PException &e ) throw ()
 {
 	{
 		Synchronized<FastLock> _(lock);
-		if (checkResolved()) return;
+		if (resolved()) return;
 		exception = e.getMT();
 	}
-	for (natural i = 0; i < sleepers.length();i++) 
-		sleepers[i]->reject(exception);
-	sleepers.clear();
+	for (natural i = 0; i < observers.length();i++)
+		observers[i]->reject(exception);
+	observers.clear();
 	RefCntPtr<Future>(this).manualRelease();
 }
 
 template<typename T>
-void Promise<T>::Future::registerExpectant( Resolution *ifc )
+void Promise<T>::Future::registerObserver( IObserver *ifc )
 {
 	lock.lock();
 	if (value != nil) {
@@ -52,21 +52,21 @@ void Promise<T>::Future::registerExpectant( Resolution *ifc )
 		lock.unlock();
 		exception->throwAgain(THISLOCATION);
 	}
-	sleepers.add(ifc);
+	observers.add(ifc);
 	lock.unlock();
 }
 
 template<typename T>
-void Promise<T>::Future::unregisterExpectant( Resolution *ifc )
+bool Promise<T>::Future::unregisterObserver( IObserver *ifc )
 {
 	Synchronized<FastLock> _(lock);
-	for (natural i = sleepers.length(); i > 0 ;) {
+	for (natural i = observers.length(); i > 0 ;) {
 		--i;
-		if (sleepers[i] == ifc) {
-			sleepers.erase(i); break;
+		if (observers[i] == ifc) {
+			observers.erase(i); return true;
 		}
-
 	}
+	return false;
 }
 
 template<typename T>
@@ -75,35 +75,33 @@ void Promise<T>::Future::resolveInternal( const X & result )
 {
 	{
 		Synchronized<FastLock> _(lock);
-		if (checkResolved()) return;
+		if (resolved()) return;
 		value = result;
 	}
-	for (natural i = 0; i < sleepers.length();i++) 
-		sleepers[i]->resolve(value);
+	for (natural i = 0; i < observers.length();i++)
+		observers[i]->resolve(value);
 
-	sleepers.clear();
+	observers.clear();
 	RefCntPtr<Future>(this).manualRelease();
 }
 
 
 template<typename T>
-Promise<T> Promise<T>::registerCb( Resolution *ifc )
+void Promise<T>::addObserver( IObserver*ifc )
 {
-	future->registerExpectant(ifc);
-	return *this;
+	future->registerObserver(ifc);
 }
 
 template<typename T>
-Promise<T> Promise<T>::unregisterCb( Resolution *ifc )
+bool Promise<T>::removeObserver( IObserver *ifc )
 {
-	future->unregisterExpectant(ifc);
-	return *this;
+	return future->unregisterObserver(ifc);
 }
 
 template<typename T>
 const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 {
-	class Ntf: public Resolution {
+	class Ntf: public IObserver {
 	public:
 		ISleepingObject *thread;
 		const T *result;
@@ -129,9 +127,9 @@ const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 	};
 
 	Ntf ntf(getCurThreadSleepingObj());
-	future->registerExpectant(&ntf);
+	future->registerObserver(&ntf);
 	while (!ntf.resolved() && !threadSleep(tm)) {}
-	future->unregisterExpectant(&ntf);
+	future->unregisterObserver(&ntf);
 	if (ntf.exception) ntf.exception->throwAgain();
 	if (!ntf.result) throw TimeoutException(THISLOCATION);
 	return *ntf.result;	
@@ -146,7 +144,7 @@ const T & Promise<T>::wait( ) const {
 template<typename T>
 template<typename Fn>
 Promise<T> Promise<T>::then( Fn fn) {
-	class X:public Resolution, public DynObject {
+	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn, PromiseResolution<T> rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const T &result) throw() {
@@ -171,7 +169,7 @@ Promise<T> Promise<T>::then( Fn fn) {
 	};
 	PromiseResolution<T> rptr;
 	Promise<T> p(rptr,future->alloc);
-	registerCb(new(future->alloc) X(fn,rptr));
+	addObserver(new(future->alloc) X(fn,rptr));
 	return p;
 }
 
@@ -179,7 +177,7 @@ template<typename T>
 template<typename Fn>
 Promise<T> Promise<T>::thenCall( Fn fn)
 {
-	class X:public Resolution, public DynObject {
+	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn):fn(fn) {}
 		virtual void resolve(const T &result) throw() {
@@ -193,7 +191,7 @@ Promise<T> Promise<T>::thenCall( Fn fn)
 	protected:
 		Fn fn;
 	};
-	registerCb(new(future->alloc) X(fn));
+	addObserver(new(future->alloc) X(fn));
 	return *this;
 }
 
@@ -201,7 +199,7 @@ template<typename T>
 template<typename Fn>
 Promise<T> Promise<T>::whenRejected( Fn fn)
 {
-	class X:public Resolution, public DynObject {
+	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn, PromiseResolution<T> rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const T &) throw() {
@@ -225,7 +223,7 @@ Promise<T> Promise<T>::whenRejected( Fn fn)
 	};
 	PromiseResolution<T> rptr;
 	Promise<T> p(rptr,future->alloc);
-	registerCb(new(future->alloc) X(fn,rptr));
+	addObserver(new(future->alloc) X(fn,rptr));
 	return p;
 }
 
@@ -247,7 +245,7 @@ Promise<T> Promise<T>::whenRejectedCall( Fn fn)
 	protected:
 		Fn fn;
 	};
-	registerCb(new(future->alloc) X(fn));
+	addObserver(new(future->alloc) X(fn));
 	return *this;
 }
 
@@ -280,19 +278,19 @@ Promise<T> Promise<T>::then(Fn resolveFn, RFn rejectFn) {
 	};
 	PromiseResolution<T> rptr;
 	Promise<T> p(rptr,future->alloc);
-	registerCb(new(future->alloc) X(resolveFn,rejectFn,rptr));
+	addObserver(new(future->alloc) X(resolveFn,rejectFn,rptr));
 	return p;
 
 }
 
 template<typename T>
 void Promise<T>::Resolution::resolve(Promise<T> result) {
-	result.registerCb(this);
+	result.addObserver(this);
 }
 
 template<typename T>
 void Promise<T>::Resolution::reject(Promise<T> result) {
-	result.registerCb(this);
+	result.addObserver(this);
 }
 
 template<typename T>
@@ -320,10 +318,10 @@ void Promise<T>::Resolution::reject( const Exception &e ) throw() {
 
 template<typename T>
 void Promise<T>::Future::cancel( const PException &e ) throw() {
-	Sleepers cpy;
+	Observers cpy;
 	{
 		Synchronized<FastLock> _(lock);
-		cpy.swap(sleepers);
+		cpy.swap(observers);
 	}
 	for (natural i = 0; i < cpy.length();i++)
 		cpy[i]->reject(e);
@@ -549,7 +547,7 @@ Promise<void> Promise<void>::then(Fn resolveFn, RFn rejectFn){
 
 template<typename T>
 inline Promise<T> Promise<T>::then(const PromiseResolution<T>& resolution) {
-	class A: public Resolution, public DynObject {
+	class A: public IObserver, public DynObject {
 	public:
 		A(const PromiseResolution<T>& resolution)
 			:resolution(resolution) {}
@@ -567,20 +565,17 @@ inline Promise<T> Promise<T>::then(const PromiseResolution<T>& resolution) {
 		PromiseResolution<T> resolution;
 
 	};
-	registerCb(new(future->alloc) A(resolution));
+	addObserver(new(future->alloc) A(resolution));
 	return *this;
 
 }
 
-Promise<void> Promise<void>::then(const PromiseResolution<void> &resolution) {
-	return Promise<Empty>::then(static_cast<const PromiseResolution<Empty> &>(resolution));
-}
 
 
 template<typename X>
 Promise<void> Promise<void>::transform(Promise<X> original)
 {
-	class A:public Promise<X>::Resolution, public DynObject {
+	class A:public Promise<X>::IObserver, public DynObject {
 	public:
 		A(PromiseResolution<void> rptr):rptr(rptr) {}
 		virtual void resolve(const X &) throw() {
@@ -597,7 +592,7 @@ Promise<void> Promise<void>::transform(Promise<X> original)
 	};
 	PromiseResolution<void> rptr;
 	Promise<void> p(rptr,original.future->alloc);
-	original.registerCb(new(original.future->alloc) A(rptr));
+	original.addObserver(new(original.future->alloc) A(rptr));
 	return p;
 }
 

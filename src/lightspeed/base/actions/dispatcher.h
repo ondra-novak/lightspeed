@@ -13,8 +13,14 @@
 
 namespace LightSpeed {
 
-
-class AbstractDispatcher {
+///IDispatcher - dispatches function call or promise to the executor - thread, thread pool or message queue
+/** This is just interface and set of helper functions to convert templates to allow requeste be able passable through
+ * the  virtual functions.
+ *
+ * To implement this interface, one should extend AbstractDispatcher, which contains some useful
+ * common code.
+ */
+class IDispatcher {
 
 	enum Tag_Function {tag_function};
 	enum Tag_Promise {tag_promise};
@@ -51,8 +57,7 @@ class AbstractDispatcher {
 
 public:
 
-	AbstractDispatcher();
-
+	///Generic action
 	class IDispatchAction: public ICloneable {
 	public:
 		LIGHTSPEED_CLONEABLEDECL(IDispatchAction);
@@ -129,23 +134,12 @@ public:
 	Promise<RetVal> dispatch(const Object &obj, RetVal (Object::*memberfn)(Arg arg), const typename FastParam<Arg>::T arg);
 
 
-	virtual ~AbstractDispatcher() {cleanup();}
-
 protected:
+
+	virtual void promiseRegistered(PPromiseControl ppromise) = 0;
+
+
 	template<typename T> class PromiseDispatch;
-	class PromiseReg {
-	public:
-		PromiseReg *next;
-		PromiseReg *prev;
-
-		PromiseReg():next(0),prev(0) {}
-		virtual void cancel() = 0;
-	};
-
-
-	void registerPromise(PromiseReg *reg);
-	void unregisterPromise(PromiseReg *reg);
-	void cleanup();
 
 	template<typename Arg>
 	Promise<typename DispatchHelper<Arg>::RetV> dispatch2(const Arg &arg, Tag_Function);
@@ -153,8 +147,54 @@ protected:
 	Promise<typename DispatchHelper<Arg>::RetV> dispatch2(const Arg &arg, Tag_Promise);
 
 
-	FastLock unregLock;
-	PromiseReg *regChain;
+};
+
+///Abstract dispatcher implements some common but very low level features
+/** It for example handles Promise dispatching and registration.
+ *
+ * Most of dispatch requests are performed immediatelly in time of execution, so it
+ * expects, that program will not try to access dispatcher when it is being destroyed
+ * or has been destroyed.
+ *
+ * But if you dispatch a Promise, program cannot rely on that promise will be resolved
+ * before the live of the dispatcher reaches its final destination.
+ *
+ * So if you dispatch Promise, it is registered on the dispatcher and once dispatcher
+ * is being destroyed, all registered promises are canceled and detached, so future
+ * resolution cannot access to already destroyed dispatcher.
+ */
+class AbstractDispatcher: public IDispatcher {
+public:
+	AbstractDispatcher();
+
+	virtual ~AbstractDispatcher();
+
+protected:
+	typedef RefCntPtr<IPromiseControl> PPromiseControl;
+	typedef AutoArray<PPromiseControl> DispatchedPromises;
+
+
+	///called when promise is registered on the dispatcher
+	/**
+	 * @param ppromise pointer to interface that control the promise
+	 *
+	 * There is no function handling removing registration. Dispatcher
+	 * can remove registration after promise is resolved, but not necesery immediatelly.
+	 * Dispatcher time to time checks all registered promisses and removes resolved ones.
+	 */
+	void promiseRegistered(PPromiseControl ppromise);
+	///Check and removes resolved promises when it is necesery
+	void pruneRegPromises();
+	///Cancels all unresolved promises
+	/** Function is called in the destructor, but you should call it sooner to prevent
+	 * posting messages while message queue is being destroyed. Once all promises are canceled,
+	 * none of them are dispatched.
+	 */
+	void cancelAllPromises();
+
+	DispatchedPromises dprom;
+	FastLock lock;
+	natural nextCheck;
 
 };
 

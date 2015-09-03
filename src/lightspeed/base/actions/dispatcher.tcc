@@ -14,16 +14,16 @@
 namespace LightSpeed {
 
 template<typename Arg>
-Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractDispatcher::dispatch(
+Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dispatch(
 		const Arg& arg) {
 	return dispatch2(arg,DispatchHelper<Arg>::tag);
 }
 
 template<typename Arg>
-inline Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractDispatcher::dispatch2(
+inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dispatch2(
 		const Arg& arg, Tag_Function) {
 
-	typedef typename AbstractDispatcher::DispatchHelper<Arg>::RetV T;
+	typedef typename IDispatcher::DispatchHelper<Arg>::RetV T;
 
 	class Action: public IDispatchAction {
 	public:
@@ -64,7 +64,7 @@ inline Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractD
 
 
 template<typename Object, typename RetVal>
-inline Promise<RetVal> LightSpeed::AbstractDispatcher::dispatch(
+inline Promise<RetVal> LightSpeed::IDispatcher::dispatch(
 		const Object& obj, RetVal (Object::*memberfn)()) {
 
 	typedef RetVal T;
@@ -106,7 +106,7 @@ inline Promise<RetVal> LightSpeed::AbstractDispatcher::dispatch(
 
 
 
-template<typename T> class AbstractDispatcher::PromiseDispatch: public Promise<T>::Resolution, public DynObject {
+template<typename T> class IDispatcher::PromiseDispatch: public Promise<T>::IObserver, public DynObject {
 public:
 
 	class DispatchResult: public IDispatchAction {
@@ -139,7 +139,7 @@ public:
 		}
 	};
 
-	PromiseDispatch(AbstractDispatcher &dispatcher, PromiseResolution<T> pr):dispatcher(dispatcher),pr(pr) {
+	PromiseDispatch(IDispatcher &dispatcher, PromiseResolution<T> pr):dispatcher(dispatcher),pr(pr) {
 	}
 	virtual void resolve(const T &result) throw() {
 		dispatcher.dispatchAction(DispatchResult(pr,result));
@@ -152,7 +152,7 @@ public:
 
 
 protected:
-	AbstractDispatcher &dispatcher;
+	IDispatcher &dispatcher;
 	PromiseResolution<T> pr;
 
 };
@@ -160,23 +160,35 @@ protected:
 
 
 template<typename Arg>
-inline Promise<typename AbstractDispatcher::DispatchHelper<Arg>::RetV> AbstractDispatcher::dispatch2(
+inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dispatch2(
 		const Arg& arg, Tag_Promise) {
 
+	//origin -> isolated -> |dispatcher| -> returned -> (user callbacks)
+	//
+	//when dispatcher exits, isolated is canceled
+	//
+	//origin -> isolated
+	//
+	//this prevents asking the dispatcher after it is destroyed
 
-	typedef typename AbstractDispatcher::DispatchHelper<Arg>::RetV T;
+
+	typedef typename IDispatcher::DispatchHelper<Arg>::RetV T;
 
 	Promise<T> src = arg;
+	Promise<T> isolated = src.isolate();
 	PromiseResolution<T> pr;
 	Promise<T> ret(pr);
-	src.registerCb(new(*getPromiseAlocator()) PromiseDispatch<T>(*this,pr));
-	return ret;
+	isolated.addObserver(new(*getPromiseAlocator()) PromiseDispatch<T>(*this,pr));
+
+	promiseRegistered(isolated.getControlInterface());
+
+	return isolated;
 
 
 }
 
 template<typename Object, typename RetVal, typename Arg>
-inline Promise<RetVal> LightSpeed::AbstractDispatcher::dispatch(
+inline Promise<RetVal> IDispatcher::dispatch(
 		const Object& obj, RetVal (Object::*memberfn)(Arg arg),
 		const typename FastParam<Arg>::T arg) {
 
