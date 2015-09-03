@@ -29,7 +29,7 @@ inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dis
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
-		Action(const Arg fn, const PromiseResolution<T> &res):fn(fn),res(res) {}
+		Action(const Arg fn, const typename Promise<T>::Result &res):fn(fn),res(res) {}
 		void run() throw() {
 			try {
 				res.resolve((T)fn());
@@ -47,12 +47,11 @@ inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dis
 
 	protected:
 		Arg fn;
-		PromiseResolution<T> res;
+		typename Promise<T>::Result res;
 	};
 
-	PromiseResolution<T> pres;
-	Promise<T> promise(pres);
-	Action a(arg,pres);
+	Promise<T> promise;
+	Action a(arg,promise.createResult());
 	const IDispatchAction &da = a;
 	dispatchAction(da);
 	return promise;
@@ -74,7 +73,7 @@ inline Promise<RetVal> LightSpeed::IDispatcher::dispatch(
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
-		Action(const Object &obj,  Fn fn, const PromiseResolution<T> &res):obj(obj),fn(fn),res(res) {}
+		Action(const Object &obj,  Fn fn, const typename Promise<T>::Result &res):obj(obj),fn(fn),res(res) {}
 		void run() throw() {
 			try {
 				res.resolve((T)(obj.*fn)());
@@ -93,12 +92,11 @@ inline Promise<RetVal> LightSpeed::IDispatcher::dispatch(
 	protected:
 		Object obj;
 		Fn fn;
-		PromiseResolution<T> res;
+		typename Promise<T>::Result res;
 	};
 
-	PromiseResolution<T> pres;
-	Promise<T> promise(pres);
-	Action a(obj,memberfn,pres);
+	Promise<T> promise;
+	Action a(obj,memberfn,promise.createResult());
 	const IDispatchAction &da = a;
 	dispatchAction(da);
 	return promise;
@@ -112,9 +110,9 @@ public:
 	class DispatchResult: public IDispatchAction {
 	public:
 		LIGHTSPEED_CLONEABLECLASS;
-		PromiseResolution<T> pr;
+		typename Promise<T>::Result pr;
 		T result;
-		DispatchResult(PromiseResolution<T> pr,	T result):pr(pr),result(result) {}
+		DispatchResult(const typename Promise<T>::Result &pr,	T result):pr(pr),result(result) {}
 
 		virtual void run() throw() {
 			pr.resolve(result);
@@ -127,9 +125,9 @@ public:
 	class DispatchReject: public IDispatchAction {
 	public:
 		LIGHTSPEED_CLONEABLECLASS;
-		PromiseResolution<T> pr;
+		typename Promise<T>::Result  pr;
 		PException result;
-		DispatchReject(PromiseResolution<T> pr,	PException result):pr(pr),result(result) {}
+		DispatchReject(const typename Promise<T>::Result &pr,	PException result):pr(pr),result(result) {}
 
 		virtual void run() throw() {
 			pr.reject(result);
@@ -139,7 +137,7 @@ public:
 		}
 	};
 
-	PromiseDispatch(IDispatcher &dispatcher, PromiseResolution<T> pr):dispatcher(dispatcher),pr(pr) {
+	PromiseDispatch(IDispatcher &dispatcher, const typename Promise<T>::Result &pr):dispatcher(dispatcher),pr(pr) {
 	}
 	virtual void resolve(const T &result) throw() {
 		dispatcher.dispatchAction(DispatchResult(pr,result));
@@ -153,7 +151,7 @@ public:
 
 protected:
 	IDispatcher &dispatcher;
-	PromiseResolution<T> pr;
+	const typename Promise<T>::Result pr;
 
 };
 
@@ -176,9 +174,8 @@ inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dis
 
 	Promise<T> src = arg;
 	Promise<T> isolated = src.isolate();
-	PromiseResolution<T> pr;
-	Promise<T> ret(pr);
-	isolated.addObserver(new(*getPromiseAlocator()) PromiseDispatch<T>(*this,pr));
+	Promise<T> ret;
+	isolated.addObserver(new(*getPromiseAlocator()) PromiseDispatch<T>(*this,ret.createResult()));
 
 	promiseRegistered(isolated.getControlInterface());
 
@@ -200,7 +197,7 @@ inline Promise<RetVal> IDispatcher::dispatch(
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
-		Action(const Object &obj,  Fn fn, Arg arg, const PromiseResolution<T> &res)
+		Action(const Object &obj,  Fn fn, Arg arg, const typename  Promise<T>::Result &res)
 				:obj(obj),fn(fn),arg(arg),res(res) {}
 		void run() throw() {
 			try {
@@ -221,12 +218,11 @@ inline Promise<RetVal> IDispatcher::dispatch(
 		Object obj;
 		Fn fn;
 		Arg arg;
-		PromiseResolution<T> res;
+		const typename Promise<T>::Result res;
 	};
 
-	PromiseResolution<T> pres;
-	Promise<T> promise(pres);
-	Action a(obj,memberfn,arg,pres);
+	Promise<T> promise;
+	Action a(obj,memberfn,arg,promise.createResult());
 	const IDispatchAction &da = a;
 	dispatchAction(da);
 	return promise;

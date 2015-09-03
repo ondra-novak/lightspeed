@@ -12,10 +12,6 @@
 namespace LightSpeed {
 
 
-template<typename T> class Promise;
-template<typename T> class PromiseResolution;
-
-
 
 IRuntimeAlloc *getPromiseAlocator();
 
@@ -73,7 +69,6 @@ typedef RefCntPtr<IPromiseControl> PPromiseControl;
 
 ///Promise object
 /** Promise can be used instead result of asynchronous task in case, that result is not yet known.
- * You can construct Promise object from PromiseResolution. You have to pass PromiseResolution to the
  * asynchronous task and you should return Promise object as result.
  *
  * Promise object can be copied. Copying just increases count of references.
@@ -91,10 +86,14 @@ template<typename T>
 class Promise
 	:public ComparableLess<Promise<T> > //< you can compare promises
 {
+
+protected:	class Future;
 public:
 
 	class IObserver;
 	class Resolution;
+	class Result;
+
 
 	///Construct empty promise object
 	/** Use this to create variable that will later hold a promise. 
@@ -103,8 +102,6 @@ public:
 	   rule causes application crash */
 	Promise() {}
 
-	Promise(PromiseResolution<T> &resolution);
-	Promise(PromiseResolution<T> &resolution, IRuntimeAlloc &alloc);
 
 
 	///Reads value from the promise
@@ -175,7 +172,7 @@ public:
 	 *
 	 * @return function returns this promise
 	 */
-	Promise then(const PromiseResolution<T> &resolution);
+	Promise then(const Result &resolution);
 
 	///Define what happens when promise is resolved
 	/**
@@ -532,11 +529,58 @@ public:
 
 	};
 
+	class Result: public SharedResource, public Resolution {
+	public:
+		Result():ptr(0) {}
+		Result(const Result &other):SharedResource(other,other.ptr?other.ptr->getLockPtr():0) {}
+		~Result();
 
+		using Resolution::resolve;
+		using Resolution::reject;
+		virtual void resolve(const T &result) throw() {
+			Resolution *ptr = grabPtr();
+			if (ptr) ptr->resolve(result);
+		}
+		virtual void resolve(const IConstructor<T> &result) throw() {
+			Resolution *ptr = grabPtr();
+			if (ptr) ptr->resolve(result);
+		}
+		virtual void reject(const PException &e) throw() {
+			Resolution *ptr = grabPtr();
+			if (ptr) ptr->reject(e);
+		}
 
+		const T &operator=(const T & v) {
+			resolve(v);
+			return v;
+		}
+
+	protected:
+		friend class Promise<T>;
+		Result(Future *r):ptr(r) {}
+
+		Future *ptr;
+		Future *grabPtr() {
+			Future *p = ptr;
+			forEachInstance(&setPtrToNull);
+			return p;
+		}
+
+		static bool setPtrToNull(SharedResource *x, SharedResource *) {
+			Result *c = static_cast<Result *>(x);
+			c->ptr = 0;
+			return true;
+		}
+
+	};
+
+	Result createResult();
+	Result createResult(IRuntimeAlloc &alloc);
+
+	void init();
+	void init(IRuntimeAlloc &alloc);
 
 protected:
-	friend class PromiseResolution<T>;
 	friend class ComparableLess<Promise<T> >;
 
 	bool lessThan(const Promise<T> &other) const {return future.lessThan(other.future);}
@@ -545,7 +589,8 @@ protected:
 	class Future:public IPromiseControl, public Resolution, public DynObject  {
 	public:
 		
-		Future(IRuntimeAlloc &alloc):alloc(alloc) {}
+		Future(IRuntimeAlloc &alloc):alloc(alloc),internal(true) {}
+		~Future();
 		virtual bool resolved() const throw ();
 		virtual void resolve(const T &result) throw() ;
 		virtual void resolve(const IConstructor<T> &result) throw ();
@@ -555,6 +600,10 @@ protected:
 		virtual void cancel(const PException &e) throw();
 		virtual void cancel() throw ();
 		IRuntimeAlloc &alloc;
+		bool isInternal() const;
+		void loadObservers(const Future &internal);
+		void makeExternal();
+
 
 
 		FastLock *getLockPtr();
@@ -565,6 +614,7 @@ protected:
 
 		typedef AutoArray<IObserver *, SmallAlloc<4> > Observers;
 		Observers observers;
+		bool internal;
 
 
 		template<typename X>
@@ -577,71 +627,6 @@ protected:
 	static X transformHelper(const T &value);
 
 	template<typename X> friend class Promise;
-};
-
-///Represents result of an asynchronous task. It should be passed to the code that process the task
-/**
- * You need the PromiseResolution object to construct promise object. PromiseResolution can be
- * copied similar to Promise. After copying the copy still connected with original promise.
- */
-template<class T>
-class PromiseResolution: public SharedResource, public Promise<T>::Resolution {
-public:
-
-	typedef typename Promise<T>::Resolution Resolution;
-	typedef typename Promise<T>::Future Future;
-
-	PromiseResolution():ptr(0) {}
-	PromiseResolution(const PromiseResolution &other):SharedResource(other,other.ptr?other.ptr->getLockPtr():0) {}
-	~PromiseResolution();
-
-	using Promise<T>::Resolution::resolve;
-	using Promise<T>::Resolution::reject;
-	virtual void resolve(const T &result) throw() {
-		Resolution *ptr = grabPtr();
-		if (ptr) ptr->resolve(result);
-	}
-	virtual void resolve(const IConstructor<T> &result) throw() {
-		Resolution *ptr = grabPtr();
-		if (ptr) ptr->resolve(result);
-	}
-	virtual void reject(const PException &e) throw() {
-		Resolution *ptr = grabPtr();
-		if (ptr) ptr->reject(e);
-	}
-
-	const T &operator=(const T & v) {
-		resolve(v);
-		return v;
-	}
-
-protected:
-	friend class Promise<T>;
-	PromiseResolution(Future *r):ptr(r) {}
-
-	Future *ptr;
-	Future *grabPtr() {
-		Future *p = ptr;
-		forEachInstance(&setPtrToNull);
-		return p;
-	}
-
-	static bool setPtrToNull(SharedResource *x, SharedResource *) {
-		PromiseResolution<T> *c = static_cast<PromiseResolution<T> *>(x);
-		c->ptr = 0;
-		return true;
-	}
-};
-
-template<>
-class PromiseResolution<void>: public PromiseResolution<Empty> {
-public:
-
-	using PromiseResolution<Empty>::resolve;
-	using PromiseResolution<Empty>::reject;
-	void resolve() throw() {
-		resolve(Empty());
-	}
 };
 
 
@@ -672,6 +657,23 @@ public:
  */
 template<>
 class Promise<void>: public Promise<Empty> {
+public:
+
+	Promise() {}
+	Promise(const Promise<Empty> &e):Promise<Empty>(e) {}
+
+	class Result: public Promise<Empty>::Result {
+	public:
+		typedef Promise<Empty>::Result Super;
+		Result() {}
+		Result(const Super &other):Super(other) {}
+		using Super::resolve;
+		virtual void resolve() throw() {
+			Empty x;
+			Super::resolve(x);
+		}
+
+	};
 
 	template<typename Fn>
 	struct EmptyCallVoid {
@@ -697,7 +699,7 @@ class Promise<void>: public Promise<Empty> {
 	 * @return this promise
 	 *
 	 */
-	Promise then(const PromiseResolution<void> &resolution);
+	Promise then(const Result &resolution);
 
 	///Transforms any promise into Promise<void>
 	/** This can be used to create a notification about resolution without carrying the value.
@@ -717,10 +719,11 @@ class Promise<void>: public Promise<Empty> {
 	 */
 	void wait(const Timeout &tm) {Promise<Empty>::wait(tm);}
 
-	Promise() {}
-	Promise(const Promise<Empty> &x):Promise<Empty>(x) {}
-	Promise(PromiseResolution<void> &resolution):Promise<Empty>(resolution) {}
-	Promise(PromiseResolution<void> &resolution, IRuntimeAlloc &alloc):Promise<Empty>(resolution,alloc) {}
+
+
+
+	Result createResult() {return Promise<Empty>::createResult();}
+	Result createResult(IRuntimeAlloc &alloc) {return Promise<Empty>::createResult(alloc);}
 
 };
 

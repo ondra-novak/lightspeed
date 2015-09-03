@@ -43,7 +43,7 @@ public:
 };
 
 
-static void testThread(PromiseResolution<int> resolution) {
+static void testThread(Promise<int>::Result resolution) {
 
 	LS_LOGOBJ(lg);
 	lg.progress("Async task started");
@@ -53,7 +53,7 @@ static void testThread(PromiseResolution<int> resolution) {
 
 }
 
-static void rejectThread(PromiseResolution<int> resolution) {
+static void rejectThread(Promise<int>::Result resolution) {
 
 	LS_LOGOBJ(lg);
 	lg.progress("Rejecting");
@@ -64,9 +64,8 @@ static void rejectThread(PromiseResolution<int> resolution) {
 
 Promise<int> PromiseTest::callTestAsync() {
 
-	PromiseResolution<int> r;
-	Promise<int> p(r);
-	th.start(ThreadFunction::create(&testThread,r));
+	Promise<int> p;
+	th.start(ThreadFunction::create(&testThread,p.createResult()));
 	return p;
 
 
@@ -74,9 +73,8 @@ Promise<int> PromiseTest::callTestAsync() {
 
 Promise<int> PromiseTest::callRejectAsync() {
 
-	PromiseResolution<int> r;
-	Promise<int> p(r);
-	th.start(ThreadFunction::create(&rejectThread,r));
+	Promise<int> p;
+	th.start(ThreadFunction::create(&rejectThread,p.createResult()));
 	return p;
 
 
@@ -95,7 +93,7 @@ int PromiseTest::test_thenStd( int value )
 	return value*value;
 }
 
-static void asyncCall(std::pair<int, PromiseResolution<int> > arg) {
+static void asyncCall(std::pair<int, Promise<int>::Result > arg) {
 	LS_LOG.progress("async call start");
 	Thread::deepSleep(2500);
 	LS_LOG.progress("async call finished");
@@ -106,10 +104,9 @@ static void asyncCall(std::pair<int, PromiseResolution<int> > arg) {
 Promise<int> PromiseTest::test_thenPromise( int value )
 {
 	LS_LOG.progress("Called thenPromise with value: %1") << value;
-	PromiseResolution<int> rptr;
-	Promise<int> res(rptr);
+	Promise<int> res;
 
-	th2.start(ThreadFunction::create(&asyncCall,std::make_pair(value,rptr)));
+	th2.start(ThreadFunction::create(&asyncCall,std::make_pair(value,res.createResult())));
 	return res;
 
 }
@@ -128,10 +125,9 @@ const PException &PromiseTest::test_catchStd( const PException &e )
 Promise<int> PromiseTest::test_catchPromise( const PException &e )
 {
 	LS_LOG.error("Promise rejected %1, supplying alternative result") << e->what();
-	PromiseResolution<int> rptr;
-	Promise<int> res(rptr);
+	Promise<int> res;
 	//resolve promise now!
-	rptr.resolve(0);
+	res.createResult().resolve(0);
 	return res;
 	
 }
