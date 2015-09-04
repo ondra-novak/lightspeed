@@ -284,7 +284,8 @@ bool TCPServer::isRunning()
 
 void TCPServer::workerEx(Connection *owner, natural eventId) {
 
-		ITCPServerConnHandler::Command cmdout;
+	ITCPServerConnHandler::Command cmdout;
+	try {
 		switch (eventId) {
 		case INetworkResource::waitForInput:
 			cmdout = handler2->onDataReady(owner->getStream(),owner->getContext());break;
@@ -295,14 +296,16 @@ void TCPServer::workerEx(Connection *owner, natural eventId) {
 		default:
 			cmdout = ITCPServerConnHandler::cmdRemove;
 		}
+	} catch (...) {
+		cmdout = ITCPServerConnHandler::cmdRemove;
+	}
 
+	reuse(owner,cmdout);
 
-		reuse(owner,cmdout);
-
-		if (cmdout == ITCPServerConnHandler::cmdWaitUserWakeup) {
-			owner->setUserWakeupState(owner->userWakeupEnabled);
-			checkUserWakeup(owner);
-		}
+	if (cmdout == ITCPServerConnHandler::cmdWaitUserWakeup) {
+		owner->setUserWakeupState(owner->userWakeupEnabled);
+		checkUserWakeup(owner);
+	}
 }
 
 void TCPServer::workerDisconnect(Connection *owner) {
