@@ -209,6 +209,7 @@ void ParallelExecutor::Worker::runAction(const IExecAction *action) {
 	AllocPointer<IExecAction> a(action->clone(abuff));
 	//store last exception
 	owner.lastException = lastException;
+	lastException = nil;
 	//notify caller, action taken, worker starting to work
 	owner.callerNtf->wakeUp(0);
 	try {
