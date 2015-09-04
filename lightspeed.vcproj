@@ -342,19 +342,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\mt\atomic.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\atomic_type.h"
+				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\atomic_type.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\windows\atomic_type.h"
 				>
 			</File>
 			<File
@@ -411,14 +411,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\containers\buffer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\streams\bufferedio.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\streams\bufferedio_ifc.h"
 				>
 			</File>
 			<File
@@ -518,6 +510,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\actions\dispatcher.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\actions\distributor.h"
 				>
 			</File>
@@ -598,11 +594,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\fileio.h"
+				RelativePath=".\src\lightspeed\base\streams\fileio.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\fileio.h"
+				RelativePath=".\src\lightspeed\base\windows\fileio.h"
 				>
 			</File>
 			<File
@@ -722,11 +718,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\iterator.h"
+				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
+				RelativePath=".\src\lightspeed\base\iter\iterator.h"
 				>
 			</File>
 			<File
@@ -746,11 +742,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json\json.h"
+				RelativePath=".\src\lightspeed\utils\json.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json.h"
+				RelativePath=".\src\lightspeed\utils\json\json.h"
 				>
 			</File>
 			<File
@@ -986,15 +982,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\parallelExecutor2.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\iter\placeholders.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\mt\platform.h"
 				>
 			</File>
 			<File
@@ -1006,11 +994,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\pointer.h"
+				RelativePath=".\src\lightspeed\mt\platform.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\pointer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\memory\pointer.h"
 				>
 			</File>
 			<File
@@ -1374,11 +1366,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\threadId.h"
+				RelativePath=".\src\lightspeed\mt\threadId.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\threadId.h"
+				RelativePath=".\src\lightspeed\mt\windows\threadId.h"
 				>
 			</File>
 			<File
@@ -1466,11 +1458,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\utf.h"
+				RelativePath=".\src\lightspeed\base\streams\utf.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\utf.h"
+				RelativePath=".\src\lightspeed\base\exceptions\utf.h"
 				>
 			</File>
 			<File
@@ -1490,11 +1482,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				RelativePath=".\src\lightspeed\base\windows\winpch.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\winpch.h"
+				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
 				>
 			</File>
 			<File
@@ -1550,10 +1542,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\bufferedio.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\memory\clusterAlloc.cpp"
 				>
 			</File>
@@ -1583,6 +1571,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\containers\deque.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\dispatcher.cpp"
 				>
 			</File>
 			<File
@@ -1735,10 +1727,6 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\actions\parallelExecutor.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\src\lightspeed\base\actions\parallelExecutor2.cpp"
 				>
 			</File>
 			<File
@@ -1980,6 +1968,10 @@
 		</File>
 		<File
 			RelativePath=".\src\lightspeed\base\containers\deque.tcc"
+			>
+		</File>
+		<File
+			RelativePath=".\src\lightspeed\base\actions\dispatcher.tcc"
 			>
 		</File>
 		<File

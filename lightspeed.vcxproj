@@ -139,6 +139,7 @@
   <ItemGroup>
     <ClInclude Include="src\lightspeed\base\actions\argument.h" />
     <ClInclude Include="src\lightspeed\base\actions\directExecutor.h" />
+    <ClInclude Include="src\lightspeed\base\actions\dispatcher.h" />
     <ClInclude Include="src\lightspeed\base\actions\distributor.h" />
     <ClInclude Include="src\lightspeed\base\actions\distributor_mt.h" />
     <ClInclude Include="src\lightspeed\base\actions\executor.h" />
@@ -447,6 +448,7 @@
     <ClInclude Include="src\lightspeed\utils\xmlparser.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\lightspeed\base\actions\dispatcher.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\distributor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\InfParallelExecutor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\job.cpp" />
@@ -552,6 +554,7 @@
     <ClCompile Include="src\tests\PromiseTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\lightspeed\base\actions\dispatcher.tcc" />
     <None Include="src\lightspeed\base\actions\distrubutor.tcc" />
     <None Include="src\lightspeed\base\actions\promise.tcc" />
     <None Include="src\lightspeed\base\containers\arraySet.tcc" />
