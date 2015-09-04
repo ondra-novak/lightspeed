@@ -162,6 +162,11 @@ enum SimpleManipulators {
 			natural length;
 			ParamItem(const T *ptr,natural length):ptr(ptr),length(length) {}
 			ParamItem(natural length):ptr(0),length(length) {}
+			bool isDirectRef() const {
+				return ptr != 0 || length == 0;
+			}
+
+
 		};
 
 		typedef AutoArray<T,Alloc> Buff;

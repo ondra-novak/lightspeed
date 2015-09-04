@@ -302,7 +302,8 @@ TextFormat<T,Alloc> &TextFormat<T,Alloc>::output(WriteIter &iter) {
 				if (idx >= 1 && idx <= paramList.length()) {
 					idx--;
 					const ParamItem &itm = paramList[idx];
-					if (itm.ptr) fragment = ConstStringT<T> (itm.ptr, itm.length);
+					if (itm.isDirectRef())
+						fragment = ConstStringT<T> (itm.ptr, itm.length);
 					else if (idx == 0)
 						fragment = buff.head(itm.length);
 					else {
@@ -311,7 +312,7 @@ TextFormat<T,Alloc> &TextFormat<T,Alloc>::output(WriteIter &iter) {
 						natural p = idx;
 						do {
 							p--;
-							if (paramList[p].ptr == 0) {
+							if (!paramList[p].isDirectRef()) {
 								from = paramList[p].length;
 								break;
 							}
