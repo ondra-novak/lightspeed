@@ -66,9 +66,29 @@ bool HeapSort<Container,Cmp>::pop() {
 }
 
 template<class Container,class Cmp>
+bool HeapSort<Container,Cmp>::pop(natural at) {
+    if (heapSize > at) {
+        heapSize--;
+        if (heapSize > at) {
+            std::swap(cont(at),cont(heapSize));
+            shiftDown();
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+template<class Container,class Cmp>
 void HeapSort<Container,Cmp>::shiftDown() {
-    if (heapSize > 1) {
-        natural root = 0;
+	shiftDown(0);
+}
+
+template<class Container,class Cmp>
+void HeapSort<Container,Cmp>::shiftDown(natural from) {
+    if (heapSize > from*2+1) {
+        natural root = from;
         natural child;
         while ((child = root * 2 + 1) < heapSize) {
             if (child + 1 < heapSize && isLess(cont[child],cont[child+1]))

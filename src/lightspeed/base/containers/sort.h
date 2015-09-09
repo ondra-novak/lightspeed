@@ -61,6 +61,7 @@ namespace LightSpeed {
 
 
         bool pop();
+        bool pop(natural at);
 
 
         ///Rebuilds heap due changing value of the top item
@@ -70,6 +71,7 @@ namespace LightSpeed {
          * placed as first item
          */
         void shiftDown();
+        void shiftDown(natural from );
 
         ///Tests, whether specified item is better than heap
         /**
