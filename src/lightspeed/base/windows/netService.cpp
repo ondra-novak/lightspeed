@@ -20,6 +20,7 @@
 #include "../debug/dbglog.h"
 #include "namedPipe.h"
 #include "securityattrs.h"
+#include "netEventListener2.h"
 
 namespace LightSpeed {
 
@@ -41,7 +42,7 @@ PNetworkAddress WindowsNetService::createAddr(const void *addr, natural len)
 	return WindowsNetAddress::createAddr(addr,len);	
 }
 
-LightSpeed::PNetworkAddress WindowsNetService::createAddr( ConstStrA remoteAddr,natural port )
+PNetworkAddress WindowsNetService::createAddr( ConstStrA remoteAddr,natural port )
 {
 	if (remoteAddr == INetworkAddress::getLocalhost())
 		return createAddr(getLoopbackAddr(ipVerAny),port);
@@ -49,7 +50,7 @@ LightSpeed::PNetworkAddress WindowsNetService::createAddr( ConstStrA remoteAddr,
 		return WindowsNetService::createAddr(remoteAddr,port,ipVerAny);
 }
 
-LightSpeed::PNetworkAddress WindowsNetService::createAddr( ConstStrA remoteAddr,ConstStrA service )
+PNetworkAddress WindowsNetService::createAddr( ConstStrA remoteAddr,ConstStrA service )
 {
 	if (remoteAddr == INetworkAddress::getLocalhost())
 		return createAddr(getLoopbackAddr(ipVerAny),service);
@@ -82,7 +83,7 @@ void INetworkServices::setIOServices(INetworkServices *newServices)
 
 PNetworkEventListener WindowsNetService::createEventListener()
 {
-	return new WindowsNetworkEventListener;
+	return new WindowsNetworkEventListener2;
 }
 
 
@@ -133,7 +134,7 @@ WindowsNetService::IPVersion WindowsNetService::getAvailableVersions() const
 	return useIPv4?ipVer4:ipVerAny;
 }
 
-LightSpeed::ConstStrA WindowsNetService::getLoopbackAddr( IPVersion ver ) const
+ConstStrA WindowsNetService::getLoopbackAddr( IPVersion ver ) const
 {
 	switch (ver) {
 		case ipVer4: return "127.0.0.1";
@@ -143,7 +144,7 @@ LightSpeed::ConstStrA WindowsNetService::getLoopbackAddr( IPVersion ver ) const
 	throw;
 }
 
-LightSpeed::PNetworkWaitingObject WindowsNetService::createWaitingObject()
+PNetworkWaitingObject WindowsNetService::createWaitingObject()
 {
 	throwUnsupportedFeature(THISLOCATION,this,"createWaitingObject is not supported yet under Windows Platform");
 	throw;

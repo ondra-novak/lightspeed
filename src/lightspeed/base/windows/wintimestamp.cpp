@@ -44,7 +44,7 @@ namespace LightSpeed {
 		return utc;
 	}
 
-	TimeStamp LightSpeed::TimeStamp::fromYMDhms(natural Y, natural M, natural D,
+	TimeStamp TimeStamp::fromYMDhms(natural Y, natural M, natural D,
 			natural h, natural m, natural s) {
 		if (Y == 0) {
 			natural daysec = ((((h * 60) + m) * 60) + s);

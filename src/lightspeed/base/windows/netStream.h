@@ -15,7 +15,7 @@ namespace LightSpeed {
 
 
 
-class WindowsNetStream: public WindowsSocketResource<LightSpeed::INetworkStream>, public INetworkSocket {
+class WindowsNetStream: public WindowsSocketResource<INetworkStream>, public INetworkSocket {
 public:
 	WindowsNetStream(UINT_PTR socket, natural timeout);
 	virtual ~WindowsNetStream();

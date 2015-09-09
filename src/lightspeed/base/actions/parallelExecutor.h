@@ -136,9 +136,6 @@ public:
 	 */
 	virtual void onThreadIdle(const Notifier &) {}
 
-	///checks exception state throwing any exception out of function
-
-	void checkException();
 
 	natural getIdleCount() const {return idleCount;}
 
@@ -168,9 +165,18 @@ protected:
 	const Message<void>::Ifc * volatile curAction;
 	SyncPt waitPt;
 	FastLock executeLock;
-	PException lastException;
 	bool orderStop;
-	void startNewThread();
+	virtual void startNewThread();
+	///Called when executor wants to wake one thread from the pool of the waiting threads
+	/** Function tries to wake one thread
+	  @retval true one thread woken up
+	  @retval false thread pool is empty, there is no running thread, or all threads are busy
+
+	  Descendant class can re-implement this function to introduce own way how to wake threads. For 
+	  example if threads is waiting for other event and executor want to give them some work
+	  */
+	virtual bool wakeThread();
+
 
 private:
 	void cleanUp();

@@ -13,7 +13,7 @@
 #include "../streams/netio.h"
 namespace LightSpeed {
 
-PInOutStream LightSpeed::TcpHandler::openSeqFile(ConstStrW fname, FileOpenMode, OpenFlags::Type) {
+PInOutStream TcpHandler::openSeqFile(ConstStrW fname, FileOpenMode, OpenFlags::Type) {
 
 	StringA netname = String::getUtf8(fname);
 	TextParser<char> parser;
@@ -53,7 +53,7 @@ PInOutStream LightSpeed::TcpHandler::openSeqFile(ConstStrW fname, FileOpenMode, 
 	return stream.get();
 }
 
-void LightSpeed::TcpHandler::unsupported() const {
+void TcpHandler::unsupported() const {
 	throwUnsupportedFeature(THISLOCATION,this,"tcp:// protocol doesn't support this feature");
 }
 

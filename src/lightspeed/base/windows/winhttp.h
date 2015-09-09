@@ -311,7 +311,7 @@ namespace LightSpeed {
 		AutoArray<byte> postBuffer;
 		
 
-		LightSpeed::natural WinHttpStream::readInternal( void * buffer, natural size ) ;
+		natural WinHttpStream::readInternal( void * buffer, natural size ) ;
 	};
 
 

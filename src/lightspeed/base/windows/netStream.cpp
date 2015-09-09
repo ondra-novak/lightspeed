@@ -17,7 +17,7 @@ namespace LightSpeed {
 
 
 WindowsNetStream::WindowsNetStream(UINT_PTR socket, natural timeout)
-:WindowsSocketResource<LightSpeed::INetworkStream>(socket,waitForInput),foundEof(false),countReady(0)
+:WindowsSocketResource<INetworkStream>(socket,waitForInput),foundEof(false),countReady(0)
 ,outputClosed(false) {
 	setTimeout(timeout);
 }
@@ -116,11 +116,11 @@ natural WindowsNetStream::dataReady() const {
 	}
 }
 
-LightSpeed::natural WindowsNetStream::getReadyBytes() const
+natural WindowsNetStream::getReadyBytes() const
 {
 	u_long res = 0;
 	ioctlsocket(sock,FIONREAD,&res);
-	return (LightSpeed::natural)res;
+	return (natural)res;
 }
 
 void WindowsNetStream::closeOutput()

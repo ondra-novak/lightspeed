@@ -125,12 +125,12 @@ namespace LightSpeed{
 		connectTimeout = time_in_ms;
 	}
 
-	LightSpeed::natural NamedPipeServer::getTimeout() const
+	natural NamedPipeServer::getTimeout() const
 	{
 		return connectTimeout;
 	}
 
-	LightSpeed::natural NamedPipeServer::doWait( natural waitFor, natural timeout ) const
+	natural NamedPipeServer::doWait( natural waitFor, natural timeout ) const
 	{
 		if (waitFor & waitForInput) {
 			return WaitForSingleObject(hEvent,(DWORD)timeout) == WAIT_TIMEOUT?0:waitForInput;
@@ -309,7 +309,7 @@ namespace LightSpeed{
 	}
 
 
-	LightSpeed::natural NamedPipe::getDefaultWait() const
+	natural NamedPipe::getDefaultWait() const
 	{
 		return waitForInput;
 	}
@@ -506,7 +506,7 @@ namespace LightSpeed{
 		this->pipeName = pipeName;
 	}
 
-	LightSpeed::natural NamedPipeServerAddr::getSockAddress( void *buffer, natural size ) const
+	natural NamedPipeServerAddr::getSockAddress( void *buffer, natural size ) const
 	{
 		return 0;
 	}
@@ -526,7 +526,7 @@ namespace LightSpeed{
 
 	}
 
-	LightSpeed::StringA NamedPipeServerAddr::asString( bool resolve /*= false*/ )
+	StringA NamedPipeServerAddr::asString( bool resolve /*= false*/ )
 	{
 		return pipeName.getUtf8();
 	}
@@ -544,7 +544,7 @@ namespace LightSpeed{
 		return maxInstances>0;
 	}
 
-	LightSpeed::PNetworkStream NamedPipeClient::getNext()
+	PNetworkStream NamedPipeClient::getNext()
 	{
 		prepare();
 		PNetworkStream stream = new NamedPipe(name,hPrepared,(openMode & GENERIC_READ)!=0,(openMode & GENERIC_WRITE) !=0);
@@ -554,17 +554,17 @@ namespace LightSpeed{
 		return stream;
 	}
 
-	LightSpeed::PNetworkAddress NamedPipeClient::getPeerAddr() const
+	PNetworkAddress NamedPipeClient::getPeerAddr() const
 	{
 		return new NamedPipeServerAddr(name);
 	}
 
-	LightSpeed::PNetworkAddress NamedPipeClient::getLocalAddr() const
+	PNetworkAddress NamedPipeClient::getLocalAddr() const
 	{
 		return new NamedPipeServerAddr(name);
 	}
 
-	LightSpeed::natural NamedPipeClient::getDefaultWait() const
+	natural NamedPipeClient::getDefaultWait() const
 	{
 		return waitForOutput;
 	}

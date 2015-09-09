@@ -17,7 +17,7 @@ namespace LightSpeed {
 
 
 
-LightSpeed::SendMail::SendMail(ConstStrA sender, ConstStrA receiver, ConstStrA textMsg)
+SendMail::SendMail(ConstStrA sender, ConstStrA receiver, ConstStrA textMsg)
 	:sender(sender) {
 	message.setStaticObj();
 	SeqTextOutA txtout(openMessage(true));
@@ -26,15 +26,15 @@ LightSpeed::SendMail::SendMail(ConstStrA sender, ConstStrA receiver, ConstStrA t
 
 }
 
-LightSpeed::SendMail::SendMail(ConstStrA sender):sender(sender) {
+SendMail::SendMail(ConstStrA sender):sender(sender) {
 	message.setStaticObj();
 }
 
-void LightSpeed::SendMail::addReceiver(ConstStrA receiver) {
+void SendMail::addReceiver(ConstStrA receiver) {
 	receivers.add(receiver);
 }
 
-SeqFileOutput LightSpeed::SendMail::openMessage(bool create) {
+SeqFileOutput SendMail::openMessage(bool create) {
 	if (create) message.clear();
 	return SeqFileOutput(&message);
 }
@@ -49,7 +49,7 @@ static void handleError(ScanTextA &netscan,PrintTextA &netprint, ConstStrA desc)
 	}
 }
 
-void LightSpeed::SendMail::send(SendMailConnection &stream, natural resetMode) {
+void SendMail::send(SendMailConnection &stream, natural resetMode) {
 
 	const char *state = "Init error";
 
@@ -117,7 +117,7 @@ void LightSpeed::SendMail::send(SendMailConnection &stream, natural resetMode) {
 
 }
 
-void LightSpeed::SendMail::reset(natural resetMode) {
+void SendMail::reset(natural resetMode) {
 	if (resetMode & resetMessage) message.clear();
 	if (resetMode & resetReceivers) receivers.clear();
 }

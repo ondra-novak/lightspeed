@@ -174,7 +174,7 @@ bool WindowsNetAddress::enableReuseAddr( bool enable )
 	return true;
 }
 
-LightSpeed::natural WindowsNetAddress::getPortNumber() const
+natural WindowsNetAddress::getPortNumber() const
 {
 	if (addrinfo == 0) return naturalNull;
 	if (addrinfo->ai_addr->sa_family == AF_INET) {

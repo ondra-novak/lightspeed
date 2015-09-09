@@ -102,7 +102,7 @@ IHTTPStream & WinHttpStream::connect()
 	return *this;
 }
 
-LightSpeed::natural WinHttpStream::getStatusCode()
+natural WinHttpStream::getStatusCode()
 {
 	setState(stReadResponse);
 	DWORD statusCode = 0;
@@ -152,7 +152,7 @@ natural WinHttpStream::read( void *buffer, natural size )
 	}
 }
 
-LightSpeed::natural WinHttpStream::peek( void *buffer, natural size ) const
+natural WinHttpStream::peek( void *buffer, natural size ) const
 {
 	const_cast<WinHttpStream *>(this)->setState(stReadResponse);
 	if (size <= peekBuffer.length()) {
@@ -168,7 +168,7 @@ LightSpeed::natural WinHttpStream::peek( void *buffer, natural size ) const
 	return peek(buffer,r);
 }
 
-LightSpeed::natural WinHttpStream::readInternal( void * buffer, natural size ) 
+natural WinHttpStream::readInternal( void * buffer, natural size ) 
 {
 	DWORD rd;
 	BOOL res = InternetReadFile(hHTTPConn,buffer,(DWORD)size,&rd);
@@ -179,7 +179,7 @@ LightSpeed::natural WinHttpStream::readInternal( void * buffer, natural size )
 	return rd;
 }
 
-LightSpeed::natural WinHttpStream::write( const void *buffer, natural size )
+natural WinHttpStream::write( const void *buffer, natural size )
 {
 	postBuffer.append(ArrayRef<const byte>(reinterpret_cast<const byte *>(buffer),size));
 	if (method == ConstStrA("GET")) method = ConstStrA("POST");
@@ -351,7 +351,7 @@ bool WinHttpStream::inConnected() const
 	return curState != stIdle;
 }
 
-LightSpeed::ConstStrA WinHttpStream::getHeader( ConstStrA field )
+ConstStrA WinHttpStream::getHeader( ConstStrA field )
 {
 	class FillHdrMap: public IEnumHeaders {
 	public:

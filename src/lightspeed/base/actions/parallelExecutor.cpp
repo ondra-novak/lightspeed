@@ -12,6 +12,7 @@
 #include "../memory/allocPointer.h"
 #include "../exceptions/stdexception.h"
 #include "../actions/parallelExecutor.h"
+#include "../framework/iapp.h"
 
 namespace LightSpeed {
 
@@ -82,7 +83,6 @@ class ParallelExecutor::Worker {
 protected:
 	ParallelExecutor &owner;
 	Pointer<Worker> nextWorker;
-	PException lastException;
 	Thread thr;
 
 	friend class ParallelExecutor;
@@ -104,13 +104,6 @@ void ParallelExecutor::cleanUp() {
 	}
 }
 
-void ParallelExecutor::checkException() {
-	if (lastException != nil) {
-		PException e = lastException;
-		lastException = 0;
-		e->throwAgain(THISLOCATION);
-	}
-}
 
 void ParallelExecutor::execute(const IExecAction &action) {
 
@@ -118,7 +111,6 @@ void ParallelExecutor::execute(const IExecAction &action) {
 
 	orderStop = false;
 
-	checkException();
 	//create notifier
 	Notifier ntf;
 	//register notifier
@@ -139,7 +131,7 @@ void ParallelExecutor::execute(const IExecAction &action) {
 	cleanUp();
 
 	//notify wait sync point to release one thread
-	if (waitPt.notifyOne()) {
+	if (wakeThread()) {
 		//if success, at least one thread MUST take a message - disable new thread creation
 		ct = false;
 		//use maxWait as timeout
@@ -208,8 +200,6 @@ void ParallelExecutor::Worker::runAction(const IExecAction *action) {
 	//clone action into the buffer in the stack
 	AllocPointer<IExecAction> a(action->clone(abuff));
 	//store last exception
-	owner.lastException = lastException;
-	lastException = nil;
 	//notify caller, action taken, worker starting to work
 	owner.callerNtf->wakeUp(0);
 	try {
@@ -217,14 +207,11 @@ void ParallelExecutor::Worker::runAction(const IExecAction *action) {
 		//execute action
 		proc();
 	} catch (Exception &x) {
-		//store exception
-		lastException = x.clone();
+		IApp::threadException(x);
 	} catch (std::exception &e) {
-		//store exception
-		lastException = new StdException(THISLOCATION, e);
+		IApp::threadException(StdException(THISLOCATION, e));
 	} catch (...) {
-		//store exception
-		lastException = new UnknownException(THISLOCATION);
+		IApp::threadException(UnknownException(THISLOCATION));
 	}
 
 }
@@ -333,7 +320,6 @@ bool ParallelExecutor::stopAll(natural timeout) {
 		if (!topWorker->stop(timeout)) return false;
 		cleanUp();
 	}
-	checkException();
 	return true;
 }
 
@@ -390,6 +376,10 @@ void ParallelExecutor::startNewThread() {
 		topWorker = w.detach();
 		lockInc(curThreadCount);
 	}
+}
+
+bool ParallelExecutor::wakeThread() {
+	return waitPt.notifyOne();
 }
 
 
