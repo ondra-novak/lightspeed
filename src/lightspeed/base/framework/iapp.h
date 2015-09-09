@@ -151,6 +151,13 @@ namespace LightSpeed {
 
 		 static IApp *currentPtr();	
 
+		 static void threadException(const Exception &e) throw() {
+			 IApp *a = currentPtr();
+			 if (a) a->onThreadException(e);
+			 else std::unexpected();
+		 }
+
+
 		 virtual ~IApp() {}
 
 
