@@ -373,6 +373,7 @@
     <ClInclude Include="src\lightspeed\base\windows\namedPipe.h" />
     <ClInclude Include="src\lightspeed\base\windows\netAddress.h" />
     <ClInclude Include="src\lightspeed\base\windows\netDgramSource.h" />
+    <ClInclude Include="src\lightspeed\base\windows\netEventListener2.h" />
     <ClInclude Include="src\lightspeed\base\windows\netService.h" />
     <ClInclude Include="src\lightspeed\base\windows\netStream.h" />
     <ClInclude Include="src\lightspeed\base\windows\netStreamSource.h" />
@@ -510,6 +511,7 @@
     <ClCompile Include="src\lightspeed\base\windows\namedPipe.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\netAddress.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\netDgramSource.cpp" />
+    <ClCompile Include="src\lightspeed\base\windows\netEventListener2.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\netService.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\netStream.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\netStreamSource.cpp" />

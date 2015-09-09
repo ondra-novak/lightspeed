@@ -32,6 +32,7 @@ namespace LightSpeed {
 	 *
 	 * @note listener starts new thread internally which handles all operations.
 	 *
+	 *
 	 * @see NetworkEventListener
 	 */
 	class INetworkEventListener: public RefCntObj {
@@ -79,8 +80,8 @@ namespace LightSpeed {
 			set(Request(rsrc,notify,waitFor,timeout_ms,reqNotify));
 		}
 
-		void remove(INetworkResource *rsrc, ISleepingObject *notify) {
-			set(Request(rsrc,notify,0,naturalNull,0));
+		void remove(INetworkResource *rsrc, ISleepingObject *notify, ISleepingObject *reqNotify = 0) {
+			set(Request(rsrc,notify,0,naturalNull,reqNotify));
 		}
 
 
