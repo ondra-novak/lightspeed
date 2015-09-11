@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include "../../mt/exceptions/threadException.h"
+#include "../containers/autoArray.tcc"
 #include "../exceptions/stdexception.h"
 #include "../containers/map.h"
 #include "../interface.tcc"
@@ -46,6 +47,7 @@ void LinuxNetworkEventListener::set(const Request& request) {
 	if (r && worker.getThreadId() == ThreadId::current()) {
 		doRequest(request);
 	} else {
+		Synchronized<FastLock> _(lock);
 		if (!r) {
 
 			fdSelect.enableWakeUp(true);
@@ -82,7 +84,12 @@ void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getData(sck));
 		if (dta == 0) return; ///< not in map - dummy action
 
-		dta->listeners.erase(r.notify);
+		for (natural i = 0; i < dta->listeners.length(); i++) {
+			if (dta->listeners[i].notify == r.notify) {
+				dta->listeners.erase(i);
+				break;
+			}
+		}
 		updateFdData(dta,sck);
 
 
@@ -91,11 +98,22 @@ void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getData(sck));
 		AllocPointer<FdData> dta_close;
 		if (dta == 0) {
-			dta = new(*factory) FdData(factory);
+			dta = new(*factory) FdData;
 			dta_close = dta;
 		}
 
-		dta->listeners.replace(r.notify,FdListener(r));
+		bool found = false;
+		for (natural i = 0; i < dta->listeners.length(); i++) {
+			if (dta->listeners[i].notify == r.notify) {
+				dta->listeners(i) = FdListener(r);
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			dta->listeners.add(FdListener(r));
+		}
+
 		updateFdData(dta,sck);
 		dta_close.detach();
 	}
@@ -104,14 +122,14 @@ void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 void LinuxNetworkEventListener::updateFdData(FdData* dta, int sck) {
 	ListenerMap::Iterator iter = dta->listeners.getFwIter();
 	if (iter.hasItems()) {
-		const ListenerMap::Entity &e = iter.getNext();
-		Timeout lowestTm = e.value.waitTimeout;
-		natural waitMask = e.value.waitMask;
+		const FdListener &e = iter.getNext();
+		Timeout lowestTm = e.waitTimeout;
+		natural waitMask = e.waitMask;
 		while (iter.hasItems()) {
-			const ListenerMap::Entity &e = iter.getNext();
-			Timeout t = e.value.waitTimeout;
+			const FdListener &e = iter.getNext();
+			Timeout t = e.waitTimeout;
 			if (t < lowestTm) lowestTm = t;
-			waitMask |= e.value.waitMask;
+			waitMask |= e.waitMask;
 		}
 
 		fdSelect.set(sck,waitMask,dta,lowestTm);
@@ -132,21 +150,29 @@ void LinuxNetworkEventListener::workerProc() {
 				while (pumpMessage());
 			} else {
 
+				AutoArray<std::pair<ISleepingObject *, natural>,SmallAlloc<32> > tocall;
+
 				SysTime tm  = SysTime::now();
 				FdData *listeners = reinterpret_cast<FdData *>(con.data);
 				for (ListenerMap::Iterator iter = listeners->listeners.getFwIter(); iter.hasItems();) {
-					FdListener l = iter.peek().value;
+					const FdListener &l = iter.peek();
 					if (con.waitMask & l.waitMask) {
+						tocall.add(std::make_pair(l.notify,con.waitMask & l.waitMask));
 						listeners->listeners.erase(iter);
-						l.notify->wakeUp(con.waitMask & l.waitMask);
+//						l.notify->wakeUp(con.waitMask & l.waitMask);
 					} else if (l.waitTimeout.expired(tm)) {
+						tocall.add(std::make_pair(l.notify,0));
 						listeners->listeners.erase(iter);
-						l.notify->wakeUp(0);
+	//					l.notify->wakeUp(0);
 					} else {
 						iter.skip();
 					}
 				}
 				updateFdData(listeners,con.fd);
+
+				for (natural i = 0; i < tocall.length(); i++) {
+					tocall[i].first->wakeUp(tocall[i].second);
+				}
 			}
 		} catch (const Exception &e) {
 			AppBase::current().onThreadException(e);

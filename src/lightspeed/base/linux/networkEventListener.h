@@ -50,13 +50,12 @@ protected:
 			:notify(r.notify),waitTimeout(r.timeout_ms),waitMask(r.waitFor) {}
 	};
 
-	typedef Map<ISleepingObject *, FdListener, std::less<ISleepingObject *> > ListenerMap;
+	typedef AutoArray<FdListener, SmallAlloc<4> > ListenerMap;
 
 	class FdData: public DynObject {
 	public:
 		ListenerMap listeners;
 
-		FdData(const NodeAlloc &factory):listeners(std::less<ISleepingObject *>(),factory) {}
 	};
 
 
@@ -67,6 +66,7 @@ protected:
 	LinuxFdSelect fdSelect;
 	NodeAlloc factory;
 	PoolAlloc reqAlloc;
+	FastLock lock;
 
 
 	void doRequest(const Request &r);
