@@ -5,6 +5,7 @@
 #include "..\memory\poolalloc.h"
 #include "..\actions\msgQueue.h"
 #include "..\sync\threadVar.h"
+#include "..\memory\smallAlloc.h"
 
 
 namespace LightSpeed {
@@ -24,6 +25,17 @@ namespace LightSpeed {
 
 		ParallelExecutor threadPool;
 
+		class Observer {
+		public:
+			ISleepingObject *wk;
+			Timeout timeout;
+			DWORD flags;			
+
+			Observer(ISleepingObject *wk, const Timeout &timeout, DWORD flags)
+				:wk(wk), timeout(timeout), flags(flags) {}
+		};
+
+		class SocketInfoTmRef;
 
 		class SocketInfo: public RefCntObj, public DynObject {
 		public:
@@ -34,18 +46,38 @@ namespace LightSpeed {
 			///reference kept during waiting to prevent closing resource outside
 			RefCntPtr<INetworkResource> resource;
 			///
-			ISleepingObject *wk;
+			DWORD flags;
+			///
+			AutoArray<Observer, SmallAlloc<4> > observers;
+
+			FastLockR *ownerLock;
 
 			bool deleted;
 			bool timeouted;
+			bool dirty;
 
 			SocketInfo();
 			~SocketInfo();
+
+			void updateObserver(const Observer &observer);
+
+			SocketInfoTmRef *tmRef;
+			
 		};
 
-
-
 		typedef RefCntPtr<SocketInfo> PSocketInfo;
+
+		class SocketInfoTmRef : public PSocketInfo {
+		public:
+			SocketInfoTmRef(const PSocketInfo &other) :PSocketInfo(other) { get()->tmRef = this; }
+			SocketInfoTmRef(const SocketInfoTmRef &other) :PSocketInfo(other) { get()->tmRef = this; }
+			SocketInfoTmRef &operator=(const SocketInfoTmRef &other) {
+				PSocketInfo::operator=(other);
+				get()->tmRef = this;
+				return *this;
+			}
+		};
+
 
 		struct CmpTimeout {
 			bool operator()(const PSocketInfo &a, const PSocketInfo &b) const;

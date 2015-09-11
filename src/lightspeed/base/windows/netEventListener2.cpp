@@ -7,9 +7,27 @@
 #include "..\interface.tcc"
 #include "..\debug\dbglog.h"
 
+
 namespace LightSpeed {
 
 	const natural WindowsNetworkEventListener2::maxWaitEvents = WSA_MAXIMUM_WAIT_EVENTS;
+
+	static DWORD convertEventFlags(natural waitFor) {
+		DWORD waitFlags = 0;
+		if (waitFor & INetworkResource::waitForInput)
+			waitFlags |= FD_ACCEPT | FD_READ | FD_CLOSE;
+		if (waitFor & INetworkResource::waitForOutput)
+			waitFlags |= FD_CONNECT | FD_WRITE;
+		return waitFlags;
+	}
+
+	static natural flagsToLSEvent(DWORD flags)
+	{
+		natural r = 0;
+		if (flags & (FD_ACCEPT | FD_READ | FD_CLOSE)) r |= INetworkResource::waitForInput;
+		if (flags & (FD_CONNECT | FD_WRITE)) r |= INetworkResource::waitForOutput;
+	}
+
 
 	WindowsNetworkEventListener2::WindowsNetworkEventListener2() :workers(integerNull,30000,0,1000)
 	{
@@ -47,23 +65,32 @@ namespace LightSpeed {
 		typedef AutoArray<HANDLE, StaticAlloc<maxWaitEvents> > HandleSet;
 		typedef AutoArray<PSocketInfo, StaticAlloc<maxWaitEvents> > SockInfoSet;
 		typedef AutoArray<SOCKET, StaticAlloc<maxWaitEvents> > SocketSet;		
-		typedef HeapSort<SockInfoSet, CmpTimeout> TimeoutHeap;
+		typedef AutoArray<SocketInfoTmRef, StaticAlloc<maxWaitEvents> > TimeoutsCont;
+		typedef HeapSort<TimeoutsCont, CmpTimeout> TimeoutHeap;
 
-		void eraseSocket( natural index);
+		bool eraseSocket( natural index, bool whenEmpty);
 		natural addSocket(SOCKET socket, PSocketInfo sinfo);
+		void updateTmHeapOnDirty(PSocketInfo updatedRef);
+		void updateTmHeapOnRemove(PSocketInfo updatedRef);
 
 
 		SocketSet socketSet;
 		SockInfoSet sockInfoSet;
 		HandleSet handleSet;
-		SockInfoSet timeoutsCont;
+		TimeoutsCont timeoutsCont;
 		TimeoutHeap timeoutsHeap;
 		WindowsNetworkEventListener2 *owner;
+		//prevent changes of this state outside of waiting 
+		//only during waiting, the internal state can be updated, because thread is not touching it
+		//once the internal state is updated, foreign thread must wake up this thread to apply changes
+		FastLockR lock;
 		Helper(WindowsNetworkEventListener2 *owner) :owner(owner),timeoutsHeap(timeoutsCont) {}
 	};
 
 	void WindowsNetworkEventListener2::worker()
 	{
+
+		AutoArray <std::pair<ISleepingObject *, DWORD> > tmpObservers;
 
 		DbgLog::setThreadName("network", true);
 		LS_LOGOBJ(lg);
@@ -73,6 +100,9 @@ namespace LightSpeed {
 		Helper helper(this);
 		workerContext.set(ITLSTable::getInstance(), &helper);
 
+		Synchronized<FastLockR> _(helper.lock);
+
+
 		natural havePickHandle = 0;
 
 		do {
@@ -81,14 +111,14 @@ namespace LightSpeed {
 			if (havePickHandle < maxWaitEvents) {
 				lockInc(readyToPick);
 				helper.handleSet.add(hPick);
-				lg.debug("Pick used");
 			}
 
 			DWORD minTimeout = INFINITE;
 			DWORD waitRes;
 			if (helper.sockInfoSet.length() == 0) {
 				lg.debug("Idle waiting");
-					waitRes = WaitForMultipleObjects(helper.handleSet.length(), helper.handleSet.data(), FALSE, 0);
+				SyncReleased<FastLockR> _(helper.lock);
+					waitRes = WaitForMultipleObjects(helper.handleSet.length(), helper.handleSet.data(), FALSE, 100);
 				if (waitRes == WAIT_TIMEOUT) break;
 			}
 			else {
@@ -100,7 +130,8 @@ namespace LightSpeed {
 				}
 
 				lg.debug("Waiting for events: timeout=%1") << (natural)mintimeout;
-				waitRes = WSAWaitForMultipleEvents(helper.handleSet.length(), helper.handleSet.data(), FALSE, mintimeout,FALSE);
+				SyncReleased<FastLockR> _(helper.lock);
+				waitRes = WSAWaitForMultipleEvents(helper.handleSet.length(), helper.handleSet.data(), FALSE, mintimeout, FALSE);
 			}
 			if (havePickHandle < maxWaitEvents) {
 				lockDec(readyToPick);
@@ -113,15 +144,20 @@ namespace LightSpeed {
 					exp = true;
 					PSocketInfo itm = helper.timeoutsHeap.top();
 					lg.debug("timeouted: %1") << (natural)itm.get();
-					helper.timeoutsHeap.pop();
 					itm->timeouted = true;
 					SetEvent(itm->hSockEvent);
-					helper.timeoutsCont.resize(helper.timeoutsHeap.getSize());
+					helper.timeoutsHeap.pop();
+					helper.timeoutsCont.trunc(1);
+					itm->tmRef = 0; //< we removed timeout from top, so reset tmRef to prevent mistakenly update timeoutsHeap
 				}
 			}
 			else if (waitRes == havePickHandle) {
+				SyncReleased<FastLockR> __(helper.lock);
 				Sync _(lock);
-				while (pumpMessage()) {}
+				while (pumpMessage()) {
+					if (helper.sockInfoSet.length() == maxWaitEvents) 
+						break;
+				}
 			}
 			else {
 				natural index = waitRes - WAIT_OBJECT_0;
@@ -130,69 +166,74 @@ namespace LightSpeed {
 
 				PSocketInfo itm = helper.sockInfoSet[index];
 				if (itm->timeouted) {
-					eventNum = 0;
-					lg.debug("timeouted: %1") << (natural)itm.get();
-
+					for (natural i = 0; i < itm->observers.length();) {
+						if (itm->observers[i].timeout.expired()) {
+							tmpObservers.add(std::make_pair(itm->observers[i].wk, DWORD(0)));
+							itm->observers.erase(i);
+						}
+						else {
+							i++;
+						}
+					}
+					for (natural i = 0; i < tmpObservers.length(); i++) {
+						tmpObservers[i].first->wakeUp(0);
+					}
+					tmpObservers.clear();
+					if (itm->observers.empty()) {
+						//remove timeout from heap as well
+						helper.eraseSocket(index,true);
+					}
 				}
-				else if (!itm->deleted) {
+				else if (itm->deleted) {
+					//remove timeout from heap as well					
+					helper.eraseSocket(index,false);
+				}
+				else {
+
+					PSocketInfo itm = helper.sockInfoSet[index];
 
 					//otherwise index points on descriptor with an event
 					WSANETWORKEVENTS ev;
 					ev.lNetworkEvents = 0;
 					//read events
 					WSAEnumNetworkEvents(helper.socketSet[index], helper.handleSet[index], &ev);
-					//reading
-					if (ev.lNetworkEvents & (FD_READ | FD_ACCEPT | FD_CLOSE)) {
-						//and writting
-						if (ev.lNetworkEvents & (FD_CONNECT | FD_WRITE)) {
-							eventNum = INetworkResource::waitForInput | INetworkResource::waitForOutput;
-						}
-						//reading only
-						else {
-							eventNum = INetworkResource::waitForInput;
-						}
-					}
-					//writing only
-					else if (ev.lNetworkEvents & (FD_CONNECT | FD_WRITE)) {
-						eventNum = INetworkResource::waitForOutput;
-					}
-					lg.debug("event on: %1 - %2") << (natural)itm.get() << eventNum;
-				}
-				else {
-					lg.debug("deleting: %1") << (natural)itm.get();
-				}
-				if (!itm->timeout.isInfinite()) {
-					natural pos = helper.timeoutsCont.find(itm);
-					if (pos != naturalNull) {
-						helper.timeoutsHeap.pop(pos);
-						helper.timeoutsCont.resize(helper.timeoutsHeap.getSize());
-					}
-				}
-				//and finally, erase socket from the pool
-				helper.eraseSocket(index);
-			
-				if (eventNum != naturalNull) {
-					//now, we can call the callback
-					lg.debug("call handler: %1") << (natural)itm.get();
 
-					itm->wk->wakeUp(eventNum);
+					for (natural i = 0; i < itm->observers.length();) {
+						const Observer &o = itm->observers[i];
+						if (o.flags & ev.lNetworkEvents) {
+							tmpObservers.add(std::make_pair(o.wk, o.flags & ev.lNetworkEvents));
+							itm->observers.erase(i);
+						}
+						else {
+							i++;
+						}
+					}
+					for (natural i = 0; i < tmpObservers.length(); i++) {
+						tmpObservers[i].first->wakeUp(tmpObservers[i].second);
+					}
+					tmpObservers.clear();
+					helper.eraseSocket(index,true);
 				}
 			}
-
 		} while (true);
 
-		if (havePickHandle) {
+		if (havePickHandle < maxWaitEvents) {
 			lockDec(readyToPick);
 		}
 
 		lg.debug("Thread exited");
 	}
 
-	void WindowsNetworkEventListener2::Helper::eraseSocket(natural index)
+	bool WindowsNetworkEventListener2::Helper::eraseSocket(natural index, bool whenEmpty)
 	{
 		{
+			SyncReleased<FastLockR> __(lock);
 			Sync _(owner->lock);
+			if (whenEmpty && !sockInfoSet[index]->observers.empty()) return false;
 			owner->socketMap.erase(socketSet[index]);
+		}
+		if (!sockInfoSet[index]->timeout.isInfinite()) {
+			updateTmHeapOnRemove(sockInfoSet[index]);
 		}
 		natural last = sockInfoSet.length() - 1;
 		if (last != index) {
@@ -203,6 +244,7 @@ namespace LightSpeed {
 		handleSet.resize(last);
 		socketSet.resize(last);
 		sockInfoSet.resize(last);
+		return true;
 	}
 
 	natural WindowsNetworkEventListener2::Helper::addSocket(SOCKET socket, PSocketInfo sinfo)
@@ -215,6 +257,38 @@ namespace LightSpeed {
 		handleSet.add(sinfo->hSockEvent);
 		return index;
 
+	}
+
+	void WindowsNetworkEventListener2::Helper::updateTmHeapOnDirty(PSocketInfo updatedRef)
+	{
+		if (updatedRef->tmRef == 0) {
+			timeoutsCont.add(updatedRef);
+			timeoutsHeap.push();
+		}
+		natural index = updatedRef->tmRef - timeoutsCont.data();
+		if (index >= timeoutsCont.length()) {
+			timeoutsHeap.makeHeap();
+		}
+		else {
+			timeoutsHeap.pop(index);
+			timeoutsHeap.push();
+		}
+	}
+
+	void WindowsNetworkEventListener2::Helper::updateTmHeapOnRemove(PSocketInfo updatedRef)
+	{
+		if (updatedRef->tmRef == 0) return;
+		natural index = updatedRef->tmRef - timeoutsCont.data();
+		if (index >= timeoutsCont.length()) {
+			index = timeoutsCont.find(updatedRef);
+			if (index >= timeoutsCont.length())
+				return;
+		}
+		else {
+			timeoutsHeap.pop(index);
+			timeoutsCont.trunc(1);
+			updatedRef->tmRef = 0;
+		}
 	}
 
 	void WindowsNetworkEventListener2::cancelAll()
@@ -239,7 +313,7 @@ namespace LightSpeed {
 	}
 
 
-	WindowsNetworkEventListener2::SocketInfo::SocketInfo() :deleted(false),timeouted(false)
+	WindowsNetworkEventListener2::SocketInfo::SocketInfo() :deleted(false), timeouted(false), tmRef(0)
 	{
 		hSockEvent = WSACreateEvent();
 		LS_LOG.debug("Created socket info: %1 ") << (natural)this;
@@ -250,6 +324,32 @@ namespace LightSpeed {
 		CloseHandle(hSockEvent);
 		LS_LOG.debug("Deleted socket info: %1 ") << (natural)this;
 	}
+
+	void WindowsNetworkEventListener2::SocketInfo::updateObserver(const Observer &observer)
+	{
+		Timeout minTm;
+		DWORD flags = 0;
+		natural l = observers.length();
+		for (natural i = 0; i < l; i++) {
+			if (observers[i].wk == observer.wk) {
+				if (i + 1 < l) std::swap(observers(i), observers(l - 1));
+				observers.trunc(1);
+				l--;
+			}
+			else {
+				if (observers[i].timeout < minTm) minTm = observers[i].timeout;
+				flags |= observers[i].flags;
+			}
+		}
+		if (observer.flags) {
+			observers.add(observer);
+			flags |= observer.flags;
+			if (observer.timeout < minTm) minTm = observer.timeout;
+		}
+		timeout = minTm;
+		this->flags = flags;
+	}
+
 
 	void WindowsNetworkEventListener2::onRequest(const RequestWithSocketIndex &request)
 	{
@@ -272,22 +372,26 @@ namespace LightSpeed {
 
 				const PSocketInfo *sinfoPtr = socketMap.find(s);
 				if (sinfoPtr) {
-					PSocketInfo sinfo = *sinfoPtr;
-					sinfo->deleted = true;
-					WSASetEvent(sinfo->hSockEvent);
-				}
-				if (request.waitFor != 0) {
+
+					PSocketInfo si = *sinfoPtr;
+					Synchronized<FastLockR> _(*si->ownerLock);
+					si->updateObserver(Observer(request.notify, Timeout(request.timeout_ms), convertEventFlags(request.waitFor)));
+					if (si->flags) {
+						if (WSAEventSelect(s, si->hSockEvent, si->flags) == SOCKET_ERROR) {
+							throw ErrNoException(THISLOCATION, GetLastError());
+						}
+					}
+					else {
+						si->deleted = true;
+						WSASetEvent(si->hSockEvent);
+					}
+				} else if (request.waitFor != 0) {
 					PSocketInfo sinfo = new (allocPool)SocketInfo;
-					sinfo = sinfo.getMT();
-					sinfo->timeout = request.timeout_ms == naturalNull ? Timeout() : Timeout(request.timeout_ms);
-					sinfo->resource = request.rsrc;
-					sinfo->wk = request.notify;
-					DWORD waitFlags = 0;
-					if (request.waitFor & INetworkResource::waitForInput)
-						waitFlags |= FD_ACCEPT | FD_READ | FD_CLOSE;
-					if (request.waitFor & INetworkResource::waitForOutput)
-						waitFlags |= FD_CONNECT | FD_WRITE;
-					if (WSAEventSelect(s, sinfo->hSockEvent, waitFlags) == SOCKET_ERROR) {
+					sinfo = sinfo.getMT();					
+					sinfo->ownerLock = &helper->lock;
+					sinfo->updateObserver(Observer(request.notify, Timeout(request.timeout_ms), convertEventFlags(request.waitFor)));
+
+					if (WSAEventSelect(s, sinfo->hSockEvent, sinfo->flags) == SOCKET_ERROR) {
 						throw ErrNoException(THISLOCATION, GetLastError());
 					}
 
