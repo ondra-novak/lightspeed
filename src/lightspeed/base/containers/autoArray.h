@@ -131,7 +131,10 @@ namespace LightSpeed {
          * slow for large arrays 
          */
         void erase(natural at);
-        ///Erases items at position
+
+        ///Erases item at position referenced by the iterator
+        void erase(const typename Super::Iterator &iter);
+		///Erases items at position
         /**
          * @param at position of item to remove
          * @param count count of items. If at + count is above size, count is corrected

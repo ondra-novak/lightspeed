@@ -8,6 +8,7 @@ CC_SRCS += \
 
 CPP_SRCS += \
 ../src/lightspeed/base/linux/break.cpp \
+../src/lightspeed/base/linux/epollSelect.cpp \
 ../src/lightspeed/base/linux/fileio.cpp \
 ../src/lightspeed/base/linux/firstchancex.cpp \
 ../src/lightspeed/base/linux/lintimestamp.cpp \
@@ -23,6 +24,7 @@ CPP_SRCS += \
 ../src/lightspeed/base/linux/networkEventListener.cpp \
 ../src/lightspeed/base/linux/newline.cpp \
 ../src/lightspeed/base/linux/parallelExecutor.cpp \
+../src/lightspeed/base/linux/pollSelect.cpp \
 ../src/lightspeed/base/linux/secureRandom.cpp \
 ../src/lightspeed/base/linux/seh.cpp \
 ../src/lightspeed/base/linux/serviceapp.cpp \
@@ -37,6 +39,7 @@ CC_DEPS += \
 
 OBJS += \
 ./src/lightspeed/base/linux/break.o \
+./src/lightspeed/base/linux/epollSelect.o \
 ./src/lightspeed/base/linux/fileio.o \
 ./src/lightspeed/base/linux/firstchancex.o \
 ./src/lightspeed/base/linux/lintimestamp.o \
@@ -52,6 +55,7 @@ OBJS += \
 ./src/lightspeed/base/linux/networkEventListener.o \
 ./src/lightspeed/base/linux/newline.o \
 ./src/lightspeed/base/linux/parallelExecutor.o \
+./src/lightspeed/base/linux/pollSelect.o \
 ./src/lightspeed/base/linux/proginstance.o \
 ./src/lightspeed/base/linux/secureRandom.o \
 ./src/lightspeed/base/linux/seh.o \
@@ -64,6 +68,7 @@ OBJS += \
 
 CPP_DEPS += \
 ./src/lightspeed/base/linux/break.d \
+./src/lightspeed/base/linux/epollSelect.d \
 ./src/lightspeed/base/linux/fileio.d \
 ./src/lightspeed/base/linux/firstchancex.d \
 ./src/lightspeed/base/linux/lintimestamp.d \
@@ -79,6 +84,7 @@ CPP_DEPS += \
 ./src/lightspeed/base/linux/networkEventListener.d \
 ./src/lightspeed/base/linux/newline.d \
 ./src/lightspeed/base/linux/parallelExecutor.d \
+./src/lightspeed/base/linux/pollSelect.d \
 ./src/lightspeed/base/linux/secureRandom.d \
 ./src/lightspeed/base/linux/seh.d \
 ./src/lightspeed/base/linux/serviceapp.d \

@@ -54,6 +54,9 @@ namespace LightSpeed {
 
         void setSize(natural size);
 
+        ///clears heap (size is truncated to zero)
+        void clear() {setSize(0);}
+
         bool empty() const {return getSize() == 0;}
 
         ///Retrieves top of head

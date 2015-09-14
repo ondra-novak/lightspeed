@@ -50,7 +50,6 @@ void LinuxNetworkEventListener::set(const Request& request) {
 		Synchronized<FastLock> _(lock);
 		if (!r) {
 
-			fdSelect.enableWakeUp(true);
 			try {
 				worker.start(ThreadFunction::create(this,&LinuxNetworkEventListener::workerProc));
 			} catch (ThreadBusyException &e) {
@@ -81,7 +80,7 @@ void LinuxNetworkEventListener::doRequest(const Request& r) {
 void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 	if (r.waitFor == 0) {
 
-		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getData(sck));
+		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData(sck));
 		if (dta == 0) return; ///< not in map - dummy action
 
 		for (natural i = 0; i < dta->listeners.length(); i++) {
@@ -95,7 +94,7 @@ void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 
 	} else {
 		//add to socket
-		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getData(sck));
+		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData(sck));
 		AllocPointer<FdData> dta_close;
 		if (dta == 0) {
 			dta = new(*factory) FdData;
@@ -132,7 +131,7 @@ void LinuxNetworkEventListener::updateFdData(FdData* dta, int sck) {
 			waitMask |= e.waitMask;
 		}
 
-		fdSelect.set(sck,waitMask,dta,lowestTm);
+		fdSelect.set(sck,waitMask,lowestTm,dta);
 	} else {
 		fdSelect.unset(sck);
 		delete dta;
@@ -140,24 +139,35 @@ void LinuxNetworkEventListener::updateFdData(FdData* dta, int sck) {
 	}
 }
 
+class LinuxNetworkEventListener::CleanUpProc {
+public:
+	CleanUpProc(LinuxNetworkEventListener *owner):owner(owner) {}
+	void operator()(int fd, void *userData) const {
+		owner->cleanFd(fd, userData);
+	}
+protected:
+	LinuxNetworkEventListener *owner;
+};
+
 void LinuxNetworkEventListener::workerProc() {
 
 	while (!Thread::canFinish()) {
 		try {
-			const LinuxFdSelect::FdInfo &con = fdSelect.getNext();
-			natural reason;
-			if (fdSelect.isWakeUpRequest(con,reason)) {
+			PollSelect::Result res;
+			PollSelect::WaitStatus wt = fdSelect.wait(nil, res);
+
+			if (wt == PollSelect::waitWakeUp) {
 				while (pumpMessage());
 			} else {
 
 				AutoArray<std::pair<ISleepingObject *, natural>,SmallAlloc<32> > tocall;
 
 				SysTime tm  = SysTime::now();
-				FdData *listeners = reinterpret_cast<FdData *>(con.data);
+				FdData *listeners = reinterpret_cast<FdData *>(res.userData);
 				for (ListenerMap::Iterator iter = listeners->listeners.getFwIter(); iter.hasItems();) {
 					const FdListener &l = iter.peek();
-					if (con.waitMask & l.waitMask) {
-						tocall.add(std::make_pair(l.notify,con.waitMask & l.waitMask));
+					if (res.flags & l.waitMask) {
+						tocall.add(std::make_pair(l.notify,res.flags & l.waitMask));
 						listeners->listeners.erase(iter);
 //						l.notify->wakeUp(con.waitMask & l.waitMask);
 					} else if (l.waitTimeout.expired(tm)) {
@@ -168,7 +178,7 @@ void LinuxNetworkEventListener::workerProc() {
 						iter.skip();
 					}
 				}
-				updateFdData(listeners,con.fd);
+				updateFdData(listeners,res.fd);
 
 				for (natural i = 0; i < tocall.length(); i++) {
 					tocall[i].first->wakeUp(tocall[i].second);
@@ -183,15 +193,18 @@ void LinuxNetworkEventListener::workerProc() {
 		}
 	}
 
-	fdSelect.dropAll();
+	fdSelect.cancelAll(CleanUpProc(this));
+/*	fdSelect.dropAll();
 	while (fdSelect.hasItems()) {
 		const LinuxFdSelect::FdInfo &con = fdSelect.getNext();
 		FdData *listeners = reinterpret_cast<FdData *>(con.data);
 		if (listeners) delete listeners;
 		fdSelect.unset(con.fd);
 	}
+	*/
 
 }
+
 
 
 void LinuxNetworkEventListener::RequestMsg::run() throw() {
@@ -204,6 +217,11 @@ void LinuxNetworkEventListener::RequestMsg::run() throw() {
 	} catch (...) {
 		AppBase::current().onThreadException(UnknownException(THISLOCATION));
 	}
+}
+
+void LinuxNetworkEventListener::cleanFd(int , void* data) {
+	FdData *listeners = reinterpret_cast<FdData *>(data);
+	if (listeners) delete listeners;
 }
 
 }

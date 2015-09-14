@@ -14,6 +14,7 @@
 #include "../memory/clusterAllocFactory.h"
 #include "../../mt/thread.h"
 #include "../memory/poolalloc.h"
+#include "pollSelect.h"
 
 
 typedef struct epoll_event EPOLL_EVENT;
@@ -58,12 +59,14 @@ protected:
 
 	};
 
+	class CleanUpProc;
+
 
 
 
 	Thread worker;
 
-	LinuxFdSelect fdSelect;
+	PollSelect fdSelect;
 	NodeAlloc factory;
 	PoolAlloc reqAlloc;
 	FastLock lock;
@@ -74,6 +77,7 @@ protected:
 	void updateFdData(FdData *dta,int sck);
 
 	void workerProc();
+	void cleanFd(int fd, void *data);
 
 
 

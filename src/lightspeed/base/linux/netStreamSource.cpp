@@ -35,7 +35,7 @@ static int createListenSocket(PNetworkAddress addr) {
 	if (ainfo == 0)
 			throw NetworkInvalidAddressException(THISLOCATION,addr);
 
-	int s = socket(ainfo->ai_family, SOCK_STREAM, ainfo->ai_protocol);
+	int s = socket(ainfo->ai_family, SOCK_STREAM | SOCK_CLOEXEC, ainfo->ai_protocol);
 	if (s == -1) throw NetworkPortOpenException(THISLOCATION,errno,getPortNumber(ainfo));
 
 	int reuse1 = 1;
@@ -81,7 +81,7 @@ PNetworkStream LinuxNetAccept::getNext()
 	char buff[256];
 	struct sockaddr *saddr = (struct sockaddr *) (buff);
 	socklen_t socklen = sizeof(buff);
-	int s = accept(acceptSock, saddr, &socklen);
+	int s = accept4(acceptSock, saddr, &socklen,SOCK_CLOEXEC);
 	if (s == -1)
 		throw NetworkIOError(THISLOCATION, errno, "accept has failed");
 
@@ -229,7 +229,7 @@ void LinuxNetConnect::setupSocket() const {
 	struct addrinfo *aif = a->getAddrInfo();
 	while (aif && asyncSocket.length() < maxWatchSockets) {
 
-		int s = socket(aif->ai_family,SOCK_STREAM, aif->ai_protocol);
+		int s = socket(aif->ai_family,SOCK_STREAM | SOCK_CLOEXEC, aif->ai_protocol);
 		if (s == -1) {
 			if (asyncSocket.empty())
 				throw NetworkIOError(THISLOCATION,errno,"socket creation failed");

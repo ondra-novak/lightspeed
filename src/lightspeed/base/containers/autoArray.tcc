@@ -157,6 +157,13 @@ void AutoArrayT<T,Alloc>::erase(natural at) {
 	return erase(at,1);
 }
 
+
+template<typename T, typename Alloc>
+void AutoArrayT<T,Alloc>::erase(const typename Super::Iterator &iter) {
+	return erase(iter.tell());
+}
+
+
 template<typename T, typename Alloc>
 void AutoArrayT<T,Alloc>::erase(natural at, natural count) {
 
