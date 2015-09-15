@@ -159,7 +159,7 @@ void AutoArrayT<T,Alloc>::erase(natural at) {
 
 
 template<typename T, typename Alloc>
-void AutoArrayT<T,Alloc>::erase(const typename Super::Iterator &iter) {
+void AutoArrayT<T,Alloc>::erase(const typename Iterator &iter) {
 	return erase(iter.tell());
 }
 

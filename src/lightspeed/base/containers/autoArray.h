@@ -133,7 +133,7 @@ namespace LightSpeed {
         void erase(natural at);
 
         ///Erases item at position referenced by the iterator
-        void erase(const typename Super::Iterator &iter);
+        void erase(const typename Iterator &iter);
 		///Erases items at position
         /**
          * @param at position of item to remove
