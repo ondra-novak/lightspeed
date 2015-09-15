@@ -334,9 +334,10 @@ namespace LightSpeed {
 		Thread &operator=(const Thread &other);
 
 
-	private:
-
+		///Override function to implement own sleep. You can for example do idle tasks while sleeping
 		virtual bool impSleep(const Timeout &tm, natural &reason);
+
+
 
 	};
 

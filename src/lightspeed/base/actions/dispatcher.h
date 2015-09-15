@@ -58,11 +58,18 @@ class IDispatcher {
 public:
 
 	///Generic action
-	class IDispatchAction: public ICloneable {
+	class AbstractAction: public ICloneable, public DynObject {
 	public:
-		LIGHTSPEED_CLONEABLEDECL(IDispatchAction);
+		LIGHTSPEED_CLONEABLEDECL(AbstractAction);
 		virtual void run() throw() = 0;
 		virtual void reject(const Exception &e) throw() = 0;
+
+
+		AbstractAction():next(0) {}
+
+		///this pointer allows to chain actions.
+		AbstractAction *next;
+
 	};
 
 
@@ -74,12 +81,18 @@ public:
 	 *  Function can block, if the dispatcher is busy.
 	 *
 	 *
-	 * @param action action to dispatch. Function can create copy of the action.
+	 * @param action action to dispatch. Action should be allocated by the allocator retrieved by function getActionAllocator.
+	 * After action is dispatched, object takes ownership of the action. You should no longer access the object
+	 * nor delete the object.
+	 *
+	 * Function can throw exception. In this case, action is destroyed without calling reject(). After function
+	 * returned, any future exception is reported through reject()
 	 *
 	 * @note function must be MT safe
 	 *
 	 */
-	virtual void dispatchAction(const IDispatchAction &action) = 0;
+	virtual void dispatchAction(AbstractAction *action) = 0;
+
 
 
 	///Dispatches the object through the dispatcher
@@ -134,7 +147,12 @@ public:
 	Promise<RetVal> dispatch(const Object &obj, RetVal (Object::*memberfn)(Arg arg), const typename FastParam<Arg>::T arg);
 
 
+	///Returns allocator for actions
+	/** You should allocate actions using this allocator */
+	virtual IRuntimeAlloc &getActionAllocator() = 0;
+
 protected:
+
 
 	virtual void promiseRegistered(PPromiseControl ppromise) = 0;
 

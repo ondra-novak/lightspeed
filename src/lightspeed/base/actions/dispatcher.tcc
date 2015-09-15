@@ -25,7 +25,7 @@ inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dis
 
 	typedef typename IDispatcher::DispatchHelper<Arg>::RetV T;
 
-	class Action: public IDispatchAction {
+	class Action: public AbstractAction {
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
@@ -51,9 +51,7 @@ inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dis
 	};
 
 	Promise<T> promise;
-	Action a(arg,promise.createResult());
-	const IDispatchAction &da = a;
-	dispatchAction(da);
+	dispatchAction(new(getActionAllocator()) Action(arg,promise.createResult()));
 	return promise;
 }
 
@@ -69,7 +67,7 @@ inline Promise<RetVal> LightSpeed::IDispatcher::dispatch(
 	typedef RetVal T;
 	typedef RetVal (Object::*Fn)();
 
-	class Action: public IDispatchAction {
+	class Action: public AbstractAction {
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
@@ -96,9 +94,7 @@ inline Promise<RetVal> LightSpeed::IDispatcher::dispatch(
 	};
 
 	Promise<T> promise;
-	Action a(obj,memberfn,promise.createResult());
-	const IDispatchAction &da = a;
-	dispatchAction(da);
+	dispatchAction(new(getActionAllocator()) Action(obj,memberfn,promise.createResult()));
 	return promise;
 }
 
@@ -107,7 +103,7 @@ inline Promise<RetVal> LightSpeed::IDispatcher::dispatch(
 template<typename T> class IDispatcher::PromiseDispatch: public Promise<T>::IObserver, public DynObject {
 public:
 
-	class DispatchResult: public IDispatchAction {
+	class DispatchResult: public AbstractAction {
 	public:
 		LIGHTSPEED_CLONEABLECLASS;
 		typename Promise<T>::Result pr;
@@ -122,7 +118,7 @@ public:
 		}
 	};
 
-	class DispatchReject: public IDispatchAction {
+	class DispatchReject: public AbstractAction {
 	public:
 		LIGHTSPEED_CLONEABLECLASS;
 		typename Promise<T>::Result  pr;
@@ -140,11 +136,11 @@ public:
 	PromiseDispatch(IDispatcher &dispatcher, const typename Promise<T>::Result &pr):dispatcher(dispatcher),pr(pr) {
 	}
 	virtual void resolve(const T &result) throw() {
-		dispatcher.dispatchAction(DispatchResult(pr,result));
+		dispatcher.dispatchAction(new(dispatcher.getActionAllocator()) DispatchResult(pr,result));
 		delete this;
 	}
 	virtual void reject(const PException &e) throw() {
-		dispatcher.dispatchAction(DispatchReject(pr,e));
+		dispatcher.dispatchAction(new(dispatcher.getActionAllocator()) DispatchReject(pr,e));
 		delete this;
 	}
 
@@ -193,7 +189,7 @@ inline Promise<RetVal> IDispatcher::dispatch(
 	typedef RetVal T;
 	typedef RetVal (Object::*Fn)();
 
-	class Action: public IDispatchAction {
+	class Action: public AbstractAction {
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
@@ -222,9 +218,7 @@ inline Promise<RetVal> IDispatcher::dispatch(
 	};
 
 	Promise<T> promise;
-	Action a(obj,memberfn,arg,promise.createResult());
-	const IDispatchAction &da = a;
-	dispatchAction(da);
+	dispatchAction(new(getActionAllocator())  Action(obj,memberfn,arg,promise.createResult()));
 	return promise;
 }
 
