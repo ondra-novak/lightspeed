@@ -20,7 +20,7 @@
 #include "../debug/dbglog.h"
 #include "namedPipe.h"
 #include "securityattrs.h"
-#include "netEventListener2.h"
+#include "networkEventListener2.h"
 
 namespace LightSpeed {
 
@@ -83,7 +83,7 @@ void INetworkServices::setIOServices(INetworkServices *newServices)
 
 PNetworkEventListener WindowsNetService::createEventListener()
 {
-	return new WindowsNetworkEventListener2;
+	return new WinNetworkEventListener;
 }
 
 
