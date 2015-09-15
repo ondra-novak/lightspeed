@@ -46,7 +46,7 @@ PollSelect::~PollSelect() {
 	close(wakeOut);
 }
 
-void PollSelect::set(int fd, natural waitFor, Timeout tm, void* userData) {
+void PollSelect::set(int fd, natural waitFor, const Timeout &tm, void* userData) {
 	if (fd < 0) throw InvalidParamException(THISLOCATION,1,"Invalid descriptor (negative value)");
 	natural fdindex = (natural)fd;
 	if (fdindex >  1024 && fdindex > socketMap.length() * 4)
@@ -253,6 +253,18 @@ void PollSelect::clearHeap() {
 	timeoutMap.clear();
 	timeoutHeap.clear();
 
+}
+
+void PollSelect::cancelAllVt(const ICancelAllCb& cb) {
+	for (natural i = 0; i < socketMap.length(); i++) {
+		if (socketMap[i].waitFor != 0) {
+			cb(i, socketMap[i].userData);
+			socketMap(i).waitFor = 0;
+			socketMap(i).tmRef = 0;
+		}
+	}
+	timeoutMap.clear();
+	timeoutHeap.clear();
 }
 
 } /* namespace LightSpeed */

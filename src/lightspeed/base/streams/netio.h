@@ -286,11 +286,11 @@ namespace LightSpeed {
 		public:
 			Request(PNetworkEventListener target,
 					INetworkResource *rsrc,
-					ISleepingObject *notify):target(target) {
+					ISleepingObject *observer):target(target) {
 				this->rsrc = rsrc;
 				this->waitFor = rsrc->getDefaultWait();
 				this->timeout_ms = naturalNull;
-				this->notify = notify;
+				this->observer = observer;
 				this->reqNotify = 0;
 			}
 
@@ -364,14 +364,14 @@ namespace LightSpeed {
 		///Create registration request on stream resource
 		/**
 		 * @param rsrc resource to watch
-		 * @param notify object notified about the event
+		 * @param observer object notified about the event
 		 * @return request object - can be modified by calling its methods
 		 */
-		Request operator()(INetworkResource *rsrc,ISleepingObject *notify) {
-			return Request(impl,rsrc,notify);
+		Request operator()(INetworkResource *rsrc,ISleepingObject *observer) {
+			return Request(impl,rsrc,observer);
 		}
-		Request operator()(NetworkStreamSource rsrc,ISleepingObject *notify) {
-			return Request(impl,rsrc.getHandle().getMT(),notify);
+		Request operator()(NetworkStreamSource rsrc,ISleepingObject *observer) {
+			return Request(impl,rsrc.getHandle().getMT(),observer);
 		}
 
 	protected:

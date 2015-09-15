@@ -48,7 +48,7 @@ namespace LightSpeed {
 			///Pointer to an ISleepingObject which will be woken up after event is recorded.
 			/** event is carried on reason
 			 * 			 * */
-			ISleepingObject *notify;
+			ISleepingObject *observer;
 			///Specifies mask of events to wait. See INetworkResource for events
 			/** use 0 to disable monitoring */
 			natural waitFor;
@@ -62,8 +62,8 @@ namespace LightSpeed {
 			ISleepingObject *reqNotify;
 
 			Request () {}
-			Request (INetworkResource *rsrc, ISleepingObject *notify, natural waitFor, natural timeout_ms,ISleepingObject *reqNotify)
-				:rsrc(rsrc),notify(notify),waitFor(waitFor),timeout_ms(timeout_ms),reqNotify(reqNotify) {}
+			Request (INetworkResource *rsrc, ISleepingObject *observer, natural waitFor, natural timeout_ms,ISleepingObject *reqNotify)
+				:rsrc(rsrc),observer(observer),waitFor(waitFor),timeout_ms(timeout_ms),reqNotify(reqNotify) {}
 
 		};
 
@@ -76,12 +76,12 @@ namespace LightSpeed {
 		 */
 		virtual void set(const Request &request) = 0;
 
-		void add(INetworkResource *rsrc, ISleepingObject *notify, natural waitFor, natural timeout_ms,ISleepingObject *reqNotify = 0) {
-			set(Request(rsrc,notify,waitFor,timeout_ms,reqNotify));
+		void add(INetworkResource *rsrc, ISleepingObject *observer, natural waitFor, natural timeout_ms,ISleepingObject *reqNotify = 0) {
+			set(Request(rsrc,observer,waitFor,timeout_ms,reqNotify));
 		}
 
-		void remove(INetworkResource *rsrc, ISleepingObject *notify, ISleepingObject *reqNotify = 0) {
-			set(Request(rsrc,notify,0,naturalNull,reqNotify));
+		void remove(INetworkResource *rsrc, ISleepingObject *observer, ISleepingObject *reqNotify = 0) {
+			set(Request(rsrc,observer,0,naturalNull,reqNotify));
 		}
 
 
@@ -817,5 +817,6 @@ namespace LightSpeed {
 		Pointer<INetworkResource::WaitHandler> waitHandler;
 		natural defTimeout;
 	};
+
 
 }

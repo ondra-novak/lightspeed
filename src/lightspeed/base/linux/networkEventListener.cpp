@@ -23,7 +23,6 @@ namespace LightSpeed {
 LinuxNetworkEventListener::LinuxNetworkEventListener()
 {
 	enableMTAccess();
-	factory = createDefaultNodeAllocator();
 }
 
 LinuxNetworkEventListener::~LinuxNetworkEventListener() {
@@ -56,7 +55,7 @@ void LinuxNetworkEventListener::set(const Request& request) {
 			}
 		}
 
-		RequestMsg *msg = new(reqAlloc) RequestMsg(*this,request);
+		RequestMsg *msg = new(alloc) RequestMsg(*this,request);
 		postMessage(msg);
 	}
 }
@@ -84,7 +83,7 @@ void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 		if (dta == 0) return; ///< not in map - dummy action
 
 		for (natural i = 0; i < dta->listeners.length(); i++) {
-			if (dta->listeners[i].notify == r.notify) {
+			if (dta->listeners[i].notify == r.observer) {
 				dta->listeners.erase(i);
 				break;
 			}
@@ -97,13 +96,13 @@ void LinuxNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData(sck));
 		AllocPointer<FdData> dta_close;
 		if (dta == 0) {
-			dta = new(*factory) FdData;
+			dta = new(alloc) FdData;
 			dta_close = dta;
 		}
 
 		bool found = false;
 		for (natural i = 0; i < dta->listeners.length(); i++) {
-			if (dta->listeners[i].notify == r.notify) {
+			if (dta->listeners[i].notify == r.observer) {
 				dta->listeners(i) = FdListener(r);
 				found = true;
 				break;
@@ -153,10 +152,10 @@ void LinuxNetworkEventListener::workerProc() {
 
 	while (!Thread::canFinish()) {
 		try {
-			PollSelect::Result res;
-			PollSelect::WaitStatus wt = fdSelect.wait(nil, res);
+			PollBase::Result res;
+			PollBase::WaitStatus wt = fdSelect.wait(nil, res);
 
-			if (wt == PollSelect::waitWakeUp) {
+			if (wt == PollBase::waitWakeUp) {
 				while (pumpMessage());
 			} else {
 

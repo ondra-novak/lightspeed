@@ -7,7 +7,7 @@
 
 #ifndef LIGHTSPEED_BASE_LINUX_EPOLLSELECT_H_
 #define LIGHTSPEED_BASE_LINUX_EPOLLSELECT_H_
-#include "../../mt/sleepingobject.h"
+#include "../streams/netSocketPoll.h"
 #include "../../mt/timeout.h"
 #include "../containers/autoArray.h"
 #include "../containers/sort.h"
@@ -24,7 +24,7 @@ namespace LightSpeed {
  *
  * Function is not MT safe (only exception is function wakeUp)
  */
-class EPollSelect : public ISleepingObject{
+class EPollSelect : public INetworkSocketPoll<int>{
 public:
 	EPollSelect();
 	~EPollSelect();
@@ -37,7 +37,7 @@ public:
 	 * @param tm timeout
 	 * @param userData user specified data
 	 */
-	void set(int fd, natural waitFor, Timeout tm, void *userData);
+	virtual void set(int fd, natural waitFor, const Timeout &tm, void *userData);
 
 	///Removes monitoring on the descriptor
 	/**
@@ -48,28 +48,6 @@ public:
 	 */
 	void unset(int fd);
 
-	///Result after waiting
-	struct Result {
-		///id of descriptor
-		int fd;
-		union {
-			///which events happened on the descriptor
-			natural flags;
-			///for result waitWakeUp, there is stored reason
-			natural reason;
-		};
-		///user data associated with the descriptor
-		void *userData;
-	};
-
-	enum WaitStatus {
-		///wait timeouted, result structure was not changed
-		waitTimeout,
-		///event detected, result structure contains details
-		waitEvent,
-		///wakeUp called, result structure contains reason.
-		waitWakeUp
-	};
 
 	///Waits for event, wakeup or timeout
 	/**
@@ -77,7 +55,7 @@ public:
 	 * @param result once function exits, there is stored result of waiting
 	 * @return reason why function exits, see WaitStatus
 	 */
-	WaitStatus wait(const Timeout &tm, Result &result);
+	virtual WaitStatus wait(const Timeout &tm, Result &result);
 
 	///Interrupts waiting
 	/** Function can be called from another thread. Function interrupts any current or future waiting.
@@ -92,15 +70,10 @@ public:
 	///Returns user data associated with the descriptor
 	void *getUserData(int fd) const;
 
-	///Cancels monitoring for all descriptors and allows to caller perform some cleanup
-	/**
-	 * @param cleanUp called for each active descriptor. Function has two parameters. First parameter
-	 * is an id of descriptor, second parameter is pointer to user data as it was passed to function set()
-	 *
-	 * Function is useful to perform cleanup operation
-	 */
-	template<typename Fn>
-	void cancelAll(Fn cleanUp);
+
+	virtual void cancelAllVt(const ICancelAllCb &cb);
+
+
 
 protected:
 
@@ -148,21 +121,8 @@ private:
 	int getFd(const FdInfo* finfo);
 	void addNewTm(FdInfo *owner);
 	void removeOldTm(FdInfo *owner);
-	void clearHeap();
 };
 
 } /* namespace LightSpeed */
-
-template<typename Fn>
-inline void LightSpeed::EPollSelect::cancelAll(Fn cleanUp) {
-	for (natural i = 0; i < socketMap.length(); i++) {
-		if (socketMap[i].waitFor != 0) {
-			cleanUp(i, socketMap[i].userData);
-			socketMap(i).waitFor = 0;
-			socketMap(i).tmRef = 0;
-		}
-	}
-	clearHeap();
-}
 
 #endif /* LIGHTSPEED_BASE_LINUX_EPOLLSELECT_H_ */

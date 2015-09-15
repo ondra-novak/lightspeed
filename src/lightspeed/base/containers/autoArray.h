@@ -17,6 +17,7 @@ namespace LightSpeed {
         typedef T ItemT;
         typedef AutoArrayT InitT;
         typedef FlatArrayBase<T, AutoArrayT<T,Alloc> > Super;
+        typedef typename Super::Iterator Iterator;
 
 		typedef typename Super::OrgItemT OrgItemT;
 		typedef typename Super::ConstItemT ConstItemT;
@@ -133,7 +134,7 @@ namespace LightSpeed {
         void erase(natural at);
 
         ///Erases item at position referenced by the iterator
-        void erase(const typename Iterator &iter);
+        void erase(const Iterator &iter);
 		///Erases items at position
         /**
          * @param at position of item to remove

@@ -9,7 +9,7 @@
 #define LIGHTSPEED_BASE_LINUX_EPOLLSELECT_H_
 #include <poll.h>
 
-#include "../../mt/sleepingobject.h"
+#include "../streams/netSocketPoll.h"
 #include "../../mt/timeout.h"
 #include "../containers/autoArray.h"
 #include "../containers/sort.h"
@@ -26,7 +26,7 @@ namespace LightSpeed {
  *
  * Function is not MT safe (only exception is function wakeUp)
  */
-class PollSelect : public ISleepingObject{
+class PollSelect : public INetworkSocketPoll<int>{
 public:
 	PollSelect();
 	~PollSelect();
@@ -39,7 +39,7 @@ public:
 	 * @param tm timeout
 	 * @param userData user specified data
 	 */
-	void set(int fd, natural waitFor, Timeout tm, void *userData);
+	void set(int fd, natural waitFor, const Timeout &tm, void *userData);
 
 	///Removes monitoring on the descriptor
 	/**
@@ -50,28 +50,6 @@ public:
 	 */
 	void unset(int fd);
 
-	///Result after waiting
-	struct Result {
-		///id of descriptor
-		int fd;
-		union {
-			///which events happened on the descriptor
-			natural flags;
-			///for result waitWakeUp, there is stored reason
-			natural reason;
-		};
-		///user data associated with the descriptor
-		void *userData;
-	};
-
-	enum WaitStatus {
-		///wait timeouted, result structure was not changed
-		waitTimeout,
-		///event detected, result structure contains details
-		waitEvent,
-		///wakeUp called, result structure contains reason.
-		waitWakeUp
-	};
 
 	///Waits for event, wakeup or timeout
 	/**
@@ -94,15 +72,7 @@ public:
 	///Returns user data associated with the descriptor
 	void *getUserData(int fd) const;
 
-	///Cancels monitoring for all descriptors and allows to caller perform some cleanup
-	/**
-	 * @param cleanUp called for each active descriptor. Function has two parameters. First parameter
-	 * is an id of descriptor, second parameter is pointer to user data as it was passed to function set()
-	 *
-	 * Function is useful to perform cleanup operation
-	 */
-	template<typename Fn>
-	void cancelAll(Fn cleanUp);
+	virtual void cancelAllVt(const ICancelAllCb &cb);
 
 protected:
 
@@ -158,17 +128,5 @@ private:
 };
 
 } /* namespace LightSpeed */
-
-template<typename Fn>
-inline void LightSpeed::PollSelect::cancelAll(Fn cleanUp) {
-	for (natural i = 0; i < socketMap.length(); i++) {
-		if (socketMap[i].waitFor != 0) {
-			cleanUp(i, socketMap[i].userData);
-			socketMap(i).waitFor = 0;
-			socketMap(i).tmRef = 0;
-		}
-	}
-	clearHeap();
-}
 
 #endif /* LIGHTSPEED_BASE_LINUX_EPOLLSELECT_H_ */

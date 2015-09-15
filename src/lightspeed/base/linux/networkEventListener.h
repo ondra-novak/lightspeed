@@ -14,7 +14,7 @@
 #include "../memory/clusterAllocFactory.h"
 #include "../../mt/thread.h"
 #include "../memory/poolalloc.h"
-#include "pollSelect.h"
+#include "epollSelect.h"
 
 
 typedef struct epoll_event EPOLL_EVENT;
@@ -29,6 +29,8 @@ public:
 
 
 protected:
+
+	typedef INetworkSocketPoll<int> PollBase;
 
 	virtual void notify() ;
 
@@ -48,7 +50,7 @@ protected:
 		natural waitMask;
 
 		FdListener(const Request &r)
-			:notify(r.notify),waitTimeout(r.timeout_ms),waitMask(r.waitFor) {}
+			:notify(r.observer),waitTimeout(r.timeout_ms),waitMask(r.waitFor) {}
 	};
 
 	typedef AutoArray<FdListener, SmallAlloc<4> > ListenerMap;
@@ -61,14 +63,10 @@ protected:
 
 	class CleanUpProc;
 
-
-
-
 	Thread worker;
 
-	PollSelect fdSelect;
-	NodeAlloc factory;
-	PoolAlloc reqAlloc;
+	EPollSelect fdSelect;
+	PoolAlloc alloc;
 	FastLock lock;
 
 
