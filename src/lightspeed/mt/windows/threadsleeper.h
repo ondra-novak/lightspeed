@@ -11,6 +11,7 @@
 #include "../../mt/timeout.h"
 #include "../../mt/sleepingobject.h"
 #include "../../base/memory/refCntPtr.h"
+#include "../threadSleeper.h"
 
 
 namespace LightSpeed {
