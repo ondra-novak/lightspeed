@@ -48,7 +48,7 @@ ParallelExecutor::ParallelExecutor(const ParallelExecutor& other)
 ParallelExecutor::~ParallelExecutor() { try {
 	stopAll(naturalNull);
 } catch (...) {
-	if (!std::uncaught_exception()) throw;
+	
 } }
 
 class ParallelExecutor::Worker {

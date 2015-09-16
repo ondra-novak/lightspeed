@@ -100,16 +100,14 @@ namespace LightSpeed {
     FilterWrite<WrIterator, Filter>::FilterWrite(WrIterator wr, Filter flt)
 		:Super(wr),flt(flt) {}
     template<typename WrIterator, typename Filter>
-    FilterWrite<WrIterator, Filter>::~FilterWrite() 
+    FilterWrite<WrIterator, Filter>::~FilterWrite() {
     	try {
     		//try flush
     		flush();
     	} catch (...) {
-    		//if there were exception
-    		//throw only, if is safe to throw exception
-    		if (std::uncaught_exception()) return;
-    	}
-    
+    	
+    	}    
+	}
 
 
     template<typename WrIterator, typename Filter>

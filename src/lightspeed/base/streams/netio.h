@@ -352,7 +352,7 @@ namespace LightSpeed {
 						try {
 							target->set(*this);
 						} catch (...) {
-							if (!std::uncaught_exception()) throw;
+							
 						}
 				}
 			}

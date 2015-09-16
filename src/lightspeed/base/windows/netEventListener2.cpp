@@ -375,7 +375,7 @@ namespace LightSpeed {
 
 					PSocketInfo si = *sinfoPtr;
 					Synchronized<FastLockR> _(*si->ownerLock);
-					si->updateObserver(Observer(request.notify, Timeout(request.timeout_ms), convertEventFlags(request.waitFor)));
+					si->updateObserver(Observer(request.observer, Timeout(request.timeout_ms), convertEventFlags(request.waitFor)));
 					if (si->flags) {
 						if (WSAEventSelect(s, si->hSockEvent, si->flags) == SOCKET_ERROR) {
 							throw ErrNoException(THISLOCATION, GetLastError());
@@ -389,7 +389,7 @@ namespace LightSpeed {
 					PSocketInfo sinfo = new (allocPool)SocketInfo;
 					sinfo = sinfo.getMT();					
 					sinfo->ownerLock = &helper->lock;
-					sinfo->updateObserver(Observer(request.notify, Timeout(request.timeout_ms), convertEventFlags(request.waitFor)));
+					sinfo->updateObserver(Observer(request.observer, Timeout(request.timeout_ms), convertEventFlags(request.waitFor)));
 
 					if (WSAEventSelect(s, sinfo->hSockEvent, sinfo->flags) == SOCKET_ERROR) {
 						throw ErrNoException(THISLOCATION, GetLastError());

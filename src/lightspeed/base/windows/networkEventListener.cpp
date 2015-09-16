@@ -246,11 +246,11 @@ void WindowsNetworkEventListener::registerHandler( const Request &r )
 		} else {
 			EventInfo &hndl = eventMap(s);
 			if (r.waitFor & INetworkResource::waitForInput) 
-				hndl.waitEvents[0] = EventHandler(r.timeout_ms,r.notify);
+				hndl.waitEvents[0] = EventHandler(r.timeout_ms,r.observer);
 			if (r.waitFor & INetworkResource::waitForOutput) 
-				hndl.waitEvents[1] = EventHandler(r.timeout_ms,r.notify);
+				hndl.waitEvents[1] = EventHandler(r.timeout_ms,r.observer);
 			if (r.waitFor & INetworkResource::waitForException) 
-				hndl.waitEvents[2] = EventHandler(r.timeout_ms,r.notify);
+				hndl.waitEvents[2] = EventHandler(r.timeout_ms,r.observer);
 			updateEvents(s,&hndl);
 		}
 	} else {
@@ -260,7 +260,7 @@ void WindowsNetworkEventListener::registerHandler( const Request &r )
 				pipeMap.erase(pipeifc);
 			} else {
 				PipeInfo nfo;
-				nfo.handler = EventHandler(r.timeout_ms,r.notify);
+				nfo.handler = EventHandler(r.timeout_ms,r.observer);
 				nfo.waitOp = r.waitFor;
 				pipeMap.insert(pipeifc,nfo);
 			}

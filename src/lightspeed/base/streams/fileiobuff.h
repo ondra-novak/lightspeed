@@ -64,7 +64,7 @@ namespace LightSpeed {
 				autoflush = nil;
 				flush();
 			} catch (...) {
-				if (!std::uncaught_exception()) throw;
+
 			}
 		}
 
