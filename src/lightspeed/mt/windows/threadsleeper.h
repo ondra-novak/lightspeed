@@ -10,11 +10,12 @@
 #include "../../base/types.h"
 #include "../../mt/timeout.h"
 #include "../../mt/sleepingobject.h"
+#include "../../base/memory/refCntPtr.h"
 
 
 namespace LightSpeed {
 
-	class ThreadSleeper: public ISleepingObject {
+	class ThreadSleeper: public IThreadSleeper {
 	public:
 
 		ThreadSleeper();

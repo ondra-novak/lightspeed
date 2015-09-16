@@ -8,7 +8,7 @@
 #ifndef LIGHTSPEED_MT_DISPATCHER_H_
 #define LIGHTSPEED_MT_DISPATCHER_H_
 #include "thread.h"
-#include "../base/actions/dispatcher.h"
+#include "../base/actions/abstractDispatcher.h"
 
 namespace LightSpeed {
 

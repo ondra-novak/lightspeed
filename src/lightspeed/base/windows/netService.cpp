@@ -83,7 +83,7 @@ void INetworkServices::setIOServices(INetworkServices *newServices)
 
 PNetworkEventListener WindowsNetService::createEventListener()
 {
-	return new WindowsNetworkEventListener2;
+	return new WindowsNetworkEventListener;
 }
 
 

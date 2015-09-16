@@ -540,14 +540,16 @@ namespace LightSpeed {
 		ctx.pOutput = ctx.pError = nil;	
 	}
 
-	Process::~Process() try 
-	{
-		ProcessContext &ctx = ProcessContext::getCtx(*context);		
-		if (ctx.hProcess != 0) join();
-	} catch (...) {
-		if (std::uncaught_exception()) return;
+	Process::~Process() {
+		try
+		{
+			ProcessContext &ctx = ProcessContext::getCtx(*context);
+			if (ctx.hProcess != 0) join();
+		}
+		catch (...) {
+	
+		}
 	}
-
 	LightSpeed::integer Process::getExitCode() const
 	{
 		DWORD exitCode;

@@ -218,23 +218,27 @@ Thread::Thread(const IThreadFunction &fn, natural stackSize):threadContext(0),jo
 
 
 
-Thread::~Thread() try {
-	/*if current thread terminates itself
-	  this is not good practice, but may happen
-	  and also this is only way how to destroy attached
-	  Thread */
-	if (getCurrentContext() == threadContext) {
-		/* we know, that current context will not disappear */
-		/* perform cleanup */
-		if (threadContext) threadContext->handleCleanup();
-	} else {
-		/* called from different thread*/
+Thread::~Thread() {
+	try {
+		/*if current thread terminates itself
+		  this is not good practice, but may happen
+		  and also this is only way how to destroy attached
+		  Thread */
+		if (getCurrentContext() == threadContext) {
+			/* we know, that current context will not disappear */
+			/* perform cleanup */
+			if (threadContext) threadContext->handleCleanup();
+		}
+		else {
+			/* called from different thread*/
 
-		stop();
+			stop();
+
+		}
+	}
+	catch (...) {
 
 	}
-} catch (...) {
-	if (std::uncaught_exception()) return;
 }
 
 void Thread::start(const IThreadFunction &fn) {
@@ -270,7 +274,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	getMaster();
 
 	//initialize sleeper
-	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
+	if (sleeper == nil) sleeper = new ThreadSleeper;
 
 	//create bootstrap informations
 	ThreadBootstrap bootstrap(fn,this);
@@ -454,7 +458,7 @@ public:
 	MasterThread() {
 		threadContext = &context;
 
-		if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
+		if (sleeper == nil) sleeper = new ThreadSleeper;
 		id = GetCurrentThreadId();
 
 		//store reference to master thread
@@ -595,12 +599,15 @@ bool Thread::isThreaded() {
 }
 
 
+RefCntPtr<IThreadSleeper> Thread::getSafeSleepingObject() {
+	return sleeper.get();
+}
 
 
 bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 {
 	//initialize sleeper
-	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
+	if (sleeper == nil) sleeper = new ThreadSleeper;
 
 
 	ThreadContext *ctx = getCurrentContext();

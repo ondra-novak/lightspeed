@@ -14,6 +14,7 @@ namespace LightSpeed {
 
 ThreadSleeper::ThreadSleeper():reason(0) {
 	semaphore = CreateEvent(0,0,0,0);
+	enableMTAccess();
 }
 
 natural ThreadSleeper::getReason() const {
