@@ -43,35 +43,43 @@ WinSelect::~WinSelect() {
 }
 
 void WinSelect::set(int fd, natural waitFor, Timeout tm, void* userData) {
-	if (fd < 0) throw InvalidParamException(THISLOCATION,1,"Invalid descriptor (negative value)");
-	natural fdindex = (natural)fd;
-	if (fdindex >  1024 && fdindex > socketMap.length() * 4)
-				throw InvalidParamException(THISLOCATION,1,"Invalid descriptor (too high value)");
-	if (fdindex >= socketMap.length()) {
-		const FdInfo *oldMap = socketMap.data();
-		socketMap.resize(fdindex+1);
-		FdInfo *newMap = socketMap.data();
-		if (oldMap != newMap) {
-			//because items was moved to new address, we have to recalculate addresses of timeout map
-			for (natural i = 0; i < timeoutMap.length(); i++) {
-				natural ofs = timeoutMap[i].owner - oldMap;
-				timeoutMap(i).owner = newMap + ofs;
+
+
+	SOCKET s = (SOCKET)fd;
+
+	if (waitFor == 0) {
+		bool found;
+		SocketMap::Iterator iter = socketMap.seek(fd,&found);
+		if (found) {
+			const FdInfo &fdinfo = iter.peek().value;
+			if (fdinfo.activeIndex != naturalNull) {
+				if (fdinfo.activeIndex < activeSockets.length() - 1) {
+					std::swap(activeSockets(fdinfo.activeIndex), activeSockets(activeSockets.length() - 1));
+					activeSockets[fdinfo.activeIndex]->activeIndex = fdinfo.activeIndex;
+				}
+				activeSockets.trunc(1);
 			}
+			socketMap.erase(iter);
 		}
 	}
+	else {
 
+		FdInfo &fdinfo = socketMap(s);
+		fdinfo.socket = s;
 
+		removeOldTm(&fdinfo);
 
+		fdinfo.timeout = tm;
+		fdinfo.waitFor = waitFor;
+		fdinfo.userData = userData;
 
-	FdInfo &fdinfo = socketMap(fdindex);
-	removeOldTm(&fdinfo);
+		addNewTm(&fdinfo);
 
-	fdinfo.timeout = tm;
-	fdinfo.waitFor = waitFor;
-	fdinfo.userData = userData;
-
-	addNewTm(&fdinfo);
-
+		if (fdinfo.activeIndex == naturalNull) {
+			fdinfo.activeIndex = activeSockets.length();
+			activeSockets.add(&fdinfo);
+		}
+	}
 
 }
 
@@ -84,17 +92,16 @@ void WinSelect::wakeUp(natural reason) throw () {
 }
 
 int WinSelect::getFd(const FdInfo* finfo) {
-	return (int)(finfo - socketMap.data());
+	return finfo->socket;
 }
 
 
 WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 
-	if (readfds.getAllocated() == 0) {
-		readfds.reserve(1 + socketMap.length());
-		exceptfds.reserve(1 + socketMap.length());
-		writefds.reserve(socketMap.length());
-	}
+
+	readfds.reserve(1 + activeSockets.length());
+	exceptfds.reserve(1 + activeSockets.length());
+	writefds.reserve(activeSockets.length());
 
 	WaitStatus x = walkResult(result);
 	if (x != waitNone) return x;
@@ -127,14 +134,14 @@ WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 		exceptfds.reset();
 		wrpos = rdpos = epos = 0;
 		readfds.add(wakefd);
-		for (natural i = 0, cnt = socketMap.length(); i < cnt; i++) {
-			const FdInfo &fdinfo = socketMap[i];
-			if (fdinfo.waitFor & INetworkResource::waitForInput) {
-				readfds.add((SOCKET)i);
-				exceptfds.add((SOCKET)i);
+		for (natural i = 0, cnt = activeSockets.length(); i < cnt; i++) {
+			const FdInfo *fdinfo = activeSockets[i];
+			if (fdinfo->waitFor & INetworkResource::waitForInput) {
+				readfds.add((SOCKET)fdinfo->socket);
+				exceptfds.add((SOCKET)fdinfo->socket);
 			} 
-			if (fdinfo.waitFor & INetworkResource::waitForOutput) {
-				writefds.add((SOCKET)i);
+			if (fdinfo->waitFor & INetworkResource::waitForOutput) {
+				writefds.add((SOCKET)fdinfo->socket);
 			}
 		}
 				
@@ -153,7 +160,7 @@ WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 				result.fd = getFd(finfo);
 				result.flags = 0;
 				result.userData = finfo->userData;
-				finfo->waitFor = 0;
+				unset(finfo->socket);
 				return waitEvent;
 			}
 		} else {
@@ -201,9 +208,9 @@ void WinSelect::unset(int fd) {
 }
 
 void* WinSelect::getUserData(int fd) const {
-	natural fdindex(fd);
-	if (fdindex >= socketMap.length()) return 0;
-	else return socketMap[fdindex].userData;
+	const FdInfo *r = socketMap.find(fd);
+	if (r) return r->userData;
+	else return 0;
 }
 
 void WinSelect::removeOldTm(FdInfo* owner) {
@@ -237,6 +244,7 @@ void WinSelect::clearHeap() {
 
 }
 
+
 LightSpeed::WinSelect::WaitStatus WinSelect::procesResult(const FdSetEx &readfds, natural rdpos, natural type, Result &result)
 {
 	SOCKET fd = readfds->fd_array[rdpos];
@@ -255,13 +263,13 @@ LightSpeed::WinSelect::WaitStatus WinSelect::procesResult(const FdSetEx &readfds
 		return waitWakeUp;
 	}
 	else  {
-		FdInfo *finfo = socketMap.data() + fd;
-		removeOldTm(finfo);
-		if (finfo->waitFor) {
+		FdInfo *finfo = socketMap.find(fd);
+		if (finfo) {
+			removeOldTm(finfo);
 			result.fd = fd;
 			result.flags = revents;
 			result.userData = finfo->userData;
-			finfo->waitFor = 0;
+			unset(fd);
 			return waitEvent;
 		}
 	}

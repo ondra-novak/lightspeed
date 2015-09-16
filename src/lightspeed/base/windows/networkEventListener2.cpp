@@ -69,9 +69,9 @@ void WinNetworkEventListener::notify() {
 void WinNetworkEventListener::doRequest(const Request& r) {
 
 	INetworkSocket &sockifc = r.rsrc->getIfc<INetworkSocket>();
-	SOCKET sck = sockifc.getSocket(0);
+	int sck = sockifc.getSocket(0);
 	for (int i = 0; sck > -1; sck = sockifc.getSocket(++i)) {
-		doRequestWithSocket(r,sck);
+		doRequestWithSocket(r,(SOCKET)sck);
 	}
 
 }

@@ -13,6 +13,7 @@
 #include "../../mt/timeout.h"
 #include "../containers/autoArray.h"
 #include "../containers/sort.h"
+#include "../containers/map.h"
 
 namespace LightSpeed {
 
@@ -119,13 +120,15 @@ protected:
 	struct TmInfo;
 
 	struct FdInfo {
+		SOCKET socket;
 		Timeout timeout;
 		natural waitFor;
 		void *userData;
 		TmInfo *tmRef;
+		natural activeIndex;
 
 
-		FdInfo():waitFor(0),userData(0),tmRef(0) {}
+		FdInfo() :socket(0), waitFor(0), userData(0), tmRef(0), activeIndex(naturalNull) {}
 	};
 
 
@@ -138,17 +141,20 @@ protected:
 
 	};
 
+
 	struct TimeoutCmp {
 		bool operator()(const TmInfo &a, const TmInfo &b) const;
 	};
 
-	typedef AutoArray<FdInfo> SocketMap;
+	typedef Map<SOCKET, FdInfo> SocketMap;
 	typedef AutoArray<TmInfo> TimeoutMap;
 	typedef HeapSort<TimeoutMap, TimeoutCmp> TimeoutHeap;
+	typedef AutoArray<FdInfo *>ActiveSockets;
 
 	SocketMap socketMap;
 	TimeoutMap timeoutMap;
 	TimeoutHeap timeoutHeap;
+	ActiveSockets activeSockets;
 
 
 	class FdSetEx {

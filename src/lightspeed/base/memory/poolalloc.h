@@ -60,6 +60,9 @@ namespace LightSpeed {
 		}
 		virtual void dealloc(void *ptr, natural )  {
 
+			if (destroyed != 0) {
+				operator delete(ptr);
+			}
 			//convert pointer to block
 			Block *k = static_cast<Block *>(reinterpret_cast<BlockBase *>(ptr)-1);
 
@@ -67,19 +70,21 @@ namespace LightSpeed {
 		}
 
 
-		PoolAlloc():largestAlloc(0) {}
-		PoolAlloc(const PoolAlloc &):largestAlloc(0) {}
+		PoolAlloc():largestAlloc(0),destroyed(0) {}
+		PoolAlloc(const PoolAlloc &):largestAlloc(0),destroyed(0) {}
 		~PoolAlloc() {
 			//cleanup blocks
 			while (Block *k = blockList.pop()) {
 				operator delete(k);
 			}
+			destroyed = 0x12345678;
 		}
 
 
 	protected:
 		SList<Block> blockList;
 		natural largestAlloc;
+		natural destroyed;
 	};
 
 
