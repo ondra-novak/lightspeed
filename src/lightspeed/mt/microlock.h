@@ -18,7 +18,7 @@ namespace LightSpeed {
 
 	struct MicroLockData {
 		MicroLockData *next;
-		ISleepingObject *owner;
+		RefCntPtr<IThreadSleeper> owner;
 	};
 
 

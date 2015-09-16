@@ -298,12 +298,25 @@ namespace LightSpeed {
 		/** Gate object becomes signaled when thread finishes */
 		Gate &getJoinObject();
 
+		///Returns safe reference to ISleepingObject
+		/**Because thread as instance of ISleepingObject may disappear once they are destroyed,
+		 * other threads can cause crash accessing to released memory. From version 15.9, objects
+		 * responsible to wakeUp thread are allocated as count-ref resources. You can now keep
+		 * this object beyoind destroying original Thread without crash due accessing it (i.e. calling wakeUp)
+		 *
+		 * Calling wakeUp() while thread is destroyed is silently ignored. This helps to prevent
+		 * many race conditions. However, there is still possiblity of a deadlock, when your
+		 * thread depends on already dead thread, because sleeping object cannot wake him up.
+		 *
+		 * @return Reference to ThreadSleeper
+		 */
+		RefCntPtr<IThreadSleeper> getSafeSleepingObject();
 
 
 	protected:
 
 		friend class ThreadContext;
-		typedef Optional<ThreadSleeper> Sleeper;
+		typedef RefCntPtr<ThreadSleeper> Sleeper;
 
 		static const natural flagFinish = 1;
 

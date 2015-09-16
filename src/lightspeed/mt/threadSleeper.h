@@ -5,23 +5,26 @@
  *      Author: ondra
  */
 
-#ifndef LIGHTSPEED_MT_THREADSLEEPER_H_
-#define LIGHTSPEED_MT_THREADSLEEPER_H_
+#ifndef LIGHTSPEED_MT_ITHREADSLEEPER_H_
+#define LIGHTSPEED_MT_ITHREADSLEEPER_H_
 
 
 
+#include "../base/memory/refCntPtr.h"
 #include "timeout.h"
 #include "platform.h"
-#if defined(LIGHTSPEED_PLATFORM_WINDOWS)
-#include "windows/threadSleeper.h"
-#elif defined(LIGHTSPEED_PLATFORM_LINUX)
-#include "linux/threadSleeper.h"
-#else
-#error unimplemented feature
-#endif
+#include "sleepingobject.h"
 
 namespace LightSpeed {
 
+
+	///Makes thread's sleeping object ref-counted reference
+	class ISleepingObjectRefCnt: public ISleepingObject, public RefCntObj {
+	public:
+		ISleepingObjectRefCnt() {enableMTAccess();}
+	};
+
+	typedef ISleepingObjectRefCnt IThreadSleeper;
 
 	///essencial object of every thread
 	/** This is platform depend object which is used to implement sleep/wakeUp synchronization
@@ -35,6 +38,14 @@ namespace LightSpeed {
 
 }
 
+
+#if defined(LIGHTSPEED_PLATFORM_WINDOWS)
+#include "windows/threadSleeper.h"
+#elif defined(LIGHTSPEED_PLATFORM_LINUX)
+#include "linux/threadSleeper.h"
+#else
+#error unimplemented feature
+#endif
 
 
 #endif /* LIGHTSPEED_MT_THREADSLEEPER_H_ */

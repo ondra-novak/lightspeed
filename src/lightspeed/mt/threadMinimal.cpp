@@ -11,9 +11,9 @@
 
 namespace LightSpeed {
 
-ISleepingObject* getCurThreadSleepingObj() {
+RefCntPtr<IThreadSleeper> getCurThreadSleepingObj() {
 
-	return &Thread::current();
+	return Thread::current().getSafeSleepingObject();
 }
 
 Thread* getCurrentThread() {

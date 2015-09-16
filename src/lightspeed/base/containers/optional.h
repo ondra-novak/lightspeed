@@ -95,7 +95,7 @@ namespace LightSpeed {
 					destruct();
 				}
 				if (other.engaged) {
-					constuct(other.get());
+					construct(other.get());
 					engaged = true;
 				}
 			}

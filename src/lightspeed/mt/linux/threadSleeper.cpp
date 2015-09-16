@@ -9,12 +9,14 @@
 #include "threadSleeper.h"
 #include <errno.h>
 #include "../../base/exceptions/systemException.h"
+#include "atomic.h"
 
 namespace LightSpeed {
 
 
 ThreadSleeper::ThreadSleeper():reason(0) {
 	sem_init(&semaphore,0,0);
+	enableMTAccess();
 }
 
 natural ThreadSleeper::getReason() const {

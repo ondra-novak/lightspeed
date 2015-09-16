@@ -7,7 +7,10 @@
 
 #ifndef LIGHTSPEED_MT_THREADMINIMAL_H_
 #define LIGHTSPEED_MT_THREADMINIMAL_H_
+
 #include "atomic_type.h"
+#include "threadSleeper.h"
+
 
 namespace LightSpeed {
 
@@ -19,6 +22,8 @@ namespace LightSpeed {
 	class Timeout;
 
 
+
+
 	///Retrieves current thread's sleeping object
 	/**
 	 * @return sleeping object of the current thread. It can be very useful, if current thread
@@ -27,7 +32,7 @@ namespace LightSpeed {
 	 *
 	 *	Function never returns NULL. It throws exception if current thread has no Thread associated
 	 */
-	ISleepingObject *getCurThreadSleepingObj();
+	RefCntPtr<IThreadSleeper> getCurThreadSleepingObj();
 
 	///Retrieves current thread handle
 	/**

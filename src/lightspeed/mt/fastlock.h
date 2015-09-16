@@ -39,10 +39,10 @@ class FastLock {
 protected:
 	class Slot {
 	public:
-		Slot(ISleepingObject *n):next(0),notify(n) {}
+		Slot(const RefCntPtr<IThreadSleeper> &n):next(0),notify(n) {}
 
 		Slot *next;
-		ISleepingObject *notify;
+		RefCntPtr<IThreadSleeper> notify;
 	};
 
 public:

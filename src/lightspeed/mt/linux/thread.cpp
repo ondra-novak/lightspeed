@@ -317,7 +317,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	getMaster();
 
 	//initialize sleeper
-	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
+	if (sleeper == nil) sleeper = new ThreadSleeper;
 
 	//create bootstrap informations
 	ThreadBootstrap bootstrap(fn,this);
@@ -511,7 +511,7 @@ public:
 	MasterThread() {
 		threadContext = &context;
 
-		if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
+		if (sleeper == nil) sleeper = new ThreadSleeper;
 		id = pthread_self();
 
 		adjustThreadSignals(true);
@@ -677,7 +677,7 @@ bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
 	ctx->owner = this;
 	threadContext = ctx;
 	flags = flagAttached;
-	if (sleeper == nil) sleeper = DefaultConstructor<ThreadSleeper>();
+	if (sleeper == nil) sleeper = new ThreadSleeper;
 	id = pthread_self();
 
 
@@ -716,6 +716,9 @@ ITLSTable & MasterThread::getTLS()
 
 const char *linuxThreads_signalExceptionMsg = "Unexpected signal caught: %1";
 
+
+RefCntPtr<IThreadSleeper> Thread::getSafeSleepingObject() {
+	return sleeper.get();
 }
 
-
+}
