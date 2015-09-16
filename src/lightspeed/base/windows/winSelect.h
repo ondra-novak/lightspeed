@@ -53,7 +53,7 @@ public:
 	///Result after waiting
 	struct Result {
 		///id of descriptor
-		int fd;
+		SOCKET fd;
 		union {
 			///which events happened on the descriptor
 			natural flags;
@@ -194,7 +194,7 @@ template<typename Fn>
 inline void LightSpeed::WinSelect::cancelAll(Fn cleanUp) {
 	for (natural i = 0; i < socketMap.length(); i++) {
 		if (socketMap[i].waitFor != 0) {
-			cleanUp(i, socketMap[i].userData);
+			cleanUp((int)i, socketMap[i].userData);
 			socketMap(i).waitFor = 0;
 			socketMap(i).tmRef = 0;
 		}

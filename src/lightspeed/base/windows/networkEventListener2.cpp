@@ -69,16 +69,17 @@ void WinNetworkEventListener::notify() {
 void WinNetworkEventListener::doRequest(const Request& r) {
 
 	INetworkSocket &sockifc = r.rsrc->getIfc<INetworkSocket>();
-	for (int i = 0, sck = sockifc.getSocket(0); sck > -1; sck = sockifc.getSocket(++i)) {
+	SOCKET sck = sockifc.getSocket(0);
+	for (int i = 0; sck > -1; sck = sockifc.getSocket(++i)) {
 		doRequestWithSocket(r,sck);
 	}
 
 }
 
-void WinNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
+void WinNetworkEventListener::doRequestWithSocket(const Request &r, SOCKET sck) {
 	if (r.waitFor == 0) {
 
-		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData(sck));
+		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData((int)sck));
 		if (dta == 0) return; ///< not in map - dummy action
 
 		for (natural i = 0; i < dta->listeners.length(); i++) {
@@ -87,12 +88,12 @@ void WinNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 				break;
 			}
 		}
-		updateFdData(dta,sck);
+		updateFdData(dta,(int)sck);
 
 
 	} else {
 		//add to socket
-		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData(sck));
+		FdData *dta = reinterpret_cast<FdData *>(fdSelect.getUserData((int)sck));
 		AllocPointer<FdData> dta_close;
 		if (dta == 0) {
 			dta = new(*factory) FdData;
@@ -111,7 +112,7 @@ void WinNetworkEventListener::doRequestWithSocket(const Request &r, int sck) {
 			dta->listeners.add(FdListener(r));
 		}
 
-		updateFdData(dta,sck);
+		updateFdData(dta,(int)sck);
 		dta_close.detach();
 	}
 }

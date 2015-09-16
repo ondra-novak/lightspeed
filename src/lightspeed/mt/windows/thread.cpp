@@ -278,7 +278,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	try {
 
 		//try to create thread
-		int e = _beginthread(&ThreadContext::bootstrap,stackSize,&bootstrap);
+		int e = _beginthread(&ThreadContext::bootstrap,(unsigned int)stackSize,&bootstrap);
 		if (e == 0) {
 			throw UnableToStartThreadException(THISLOCATION,errno);
 		}

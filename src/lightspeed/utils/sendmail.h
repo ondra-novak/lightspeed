@@ -15,8 +15,6 @@
 #include "../base/streams/netio.h"
 #include "../base/exceptions/genexcept.h"
 
-
-
 namespace LightSpeed {
 
 ///Object keeps connection to MTA server.
@@ -44,7 +42,6 @@ public:
 	 */
 	SendMailConnection(NetworkAddress addr, ConstStrA heloText, natural timeout=30000);
 protected:
-	static PNetworkStream connect(NetworkAddress addr, natural timeout);
 	void welcome(ConstStrA heloText);
 
 };

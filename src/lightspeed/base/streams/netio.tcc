@@ -9,8 +9,10 @@
 #define LIGHTSPEED_BASE_STREAMS_NETIO_TCC_
 
 
+#include "netio.h"
 #include "../containers/autoArray.tcc"
 #include "fileiobuff.tcc"
+
 
 
 #endif /* LIGHTSPEED_BASE_STREAMS_NETIO_TCC_ */

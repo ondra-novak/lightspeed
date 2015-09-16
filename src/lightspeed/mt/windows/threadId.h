@@ -39,7 +39,7 @@ namespace LightSpeed {
         ///constructs thread id using posix pthread identifier
         /** This constructor can be used to construct ThreadId using AtomicThreadId type
          */
-        ThreadId(DWORD id):id(id) {}
+		ThreadId(atomicValue id) :id((DWORD)id) {}
         ///constructs empty identifier
         ThreadId(NullType x):id(0) {}
         

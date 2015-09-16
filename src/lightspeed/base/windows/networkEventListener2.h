@@ -72,7 +72,7 @@ protected:
 
 
 	void doRequest(const Request &r);
-	void doRequestWithSocket(const Request &r, int sck);
+	void doRequestWithSocket(const Request &r, SOCKET sck);
 	void updateFdData(FdData *dta,int sck);
 
 	void workerProc();

@@ -46,7 +46,7 @@ StringA WindowsNetAddress::asString(bool resolve) {
 
 	int flags = resolve?0:NI_NUMERICHOST|NI_NUMERICSERV;
 
-	getnameinfo(addrinfo->ai_addr, addrinfo->ai_addrlen,
+	getnameinfo(addrinfo->ai_addr, (socklen_t)addrinfo->ai_addrlen,
 			hostbuff,sizeof(hostbuff),
 			svcbuff,sizeof(svcbuff),flags);
 

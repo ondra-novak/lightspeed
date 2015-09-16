@@ -24,7 +24,7 @@
 
 namespace LightSpeed {
 
-	
+#pragma comment(lib, "ws2_32.lib")
 
 PNetworkAddress WindowsNetService::createAddr(ConstStrA remoteAddr,		
 		natural Port, IPVersion ver)
@@ -177,7 +177,7 @@ PNetworkStreamSource WindowsNetService::createNamedPipe( bool server,
 		case pmRW: openMode = PIPE_ACCESS_DUPLEX;break;
 		}
 
-		DWORD maxInst = maxInstances >= PIPE_UNLIMITED_INSTANCES? PIPE_UNLIMITED_INSTANCES:maxInstances;
+		DWORD maxInst = (DWORD)(maxInstances >= PIPE_UNLIMITED_INSTANCES? PIPE_UNLIMITED_INSTANCES:maxInstances);
 
 		class SecAttrs: public ISecurityAttributes {
 		public:
@@ -215,7 +215,7 @@ PNetworkStreamSource WindowsNetService::createNamedPipe( bool server,
 				return new NamedPipeClient(tmp,openMode,maxInstances,streamDefTimeout);
 			} catch (ErrNoException &e) {
 				if (e.getErrNo() == ERROR_PIPE_BUSY) {
-					WaitNamedPipeW(tmp.cStr(),tmw.isInfinite()?NMPWAIT_WAIT_FOREVER:tmw.getRemain().msecs());
+					WaitNamedPipeW(tmp.cStr(),tmw.isInfinite()?NMPWAIT_WAIT_FOREVER:(DWORD)tmw.getRemain().msecs());
 				} else {
 					throw;
 				}

@@ -140,7 +140,7 @@ WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 				
 		struct timeval wtm = finTm.getRemain().getTimeVal();
 
-		int res = select(socketMap.length(), readfds, writefds, exceptfds, finTm.isInfinite() ? 0 : &wtm);
+		int res = select((int)socketMap.length(), readfds, writefds, exceptfds, finTm.isInfinite() ? 0 : &wtm);
 		if (res == -1) {
 			if (errno != EINTR) throw ErrNoException(THISLOCATION,WSAGetLastError());
 		}
@@ -239,8 +239,8 @@ void WinSelect::clearHeap() {
 
 LightSpeed::WinSelect::WaitStatus WinSelect::procesResult(const FdSetEx &readfds, natural rdpos, natural type, Result &result)
 {
-	int fd = readfds->fd_array[rdpos];
-	int revents = type;
+	SOCKET fd = readfds->fd_array[rdpos];
+	natural revents = type;
 
 	if (fd == wakefd) {
 		char b;
