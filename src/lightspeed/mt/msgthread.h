@@ -3,7 +3,7 @@
 #include "spinlock.h"
 #include "notifier.h"
 #include "../base/actions/msgQueue.h"
-#include "../base/actions/scheduler.h"
+#include "../base/actions/schedulerOld.h"
 
 namespace LightSpeed {
 
@@ -73,7 +73,7 @@ namespace LightSpeed {
 	static MsgQueue *getThreadMsgQueue(Thread &thr);
 */
 
-	class SchedulerThread: public Scheduler, public MsgThreadBase {
+	class SchedulerThread: public OldScheduler, public MsgThreadBase {
 	public:
 
 		SchedulerThread();

@@ -1,10 +1,11 @@
-#include "scheduler.h"
+#include "schedulerOld.h"
+
 #include "../../mt/atomic.h"
 
 namespace LightSpeed {
 
 
-void Scheduler::prepareQueue()
+void OldScheduler::prepareQueue()
 {
 	natural curTime = getCurTime();
 	//take first message in the "newMessages" stack
@@ -33,7 +34,7 @@ void Scheduler::prepareQueue()
 	appendQueue(q);
 }
 
-MsgQueue::AbstractMsg * Scheduler::sortList( AbstractMsg * p,natural curTime )
+MsgQueue::AbstractMsg * OldScheduler::sortList( AbstractMsg * p,natural curTime )
 {
 	//before sorting, calculate count of messages
 	natural cnt = 0;
@@ -73,7 +74,7 @@ MsgQueue::AbstractMsg * Scheduler::sortList( AbstractMsg * p,natural curTime )
 	return buff[0];
 }
 
-CompareResult Scheduler::compareMsg( AbstractMsg * a, AbstractMsg * b, natural curTime )
+CompareResult OldScheduler::compareMsg( AbstractMsg * a, AbstractMsg * b, natural curTime )
 {
 	if (a == 0)
 		if (b == 0)
@@ -109,7 +110,7 @@ CompareResult Scheduler::compareMsg( AbstractMsg * a, AbstractMsg * b, natural c
 }
 
 
-MsgQueue::AbstractMsg * Scheduler::mergeSort( AbstractMsg * a, AbstractMsg * b , natural curTime)
+MsgQueue::AbstractMsg * OldScheduler::mergeSort( AbstractMsg * a, AbstractMsg * b , natural curTime)
 {
 	//this variable holds head item
 	AbstractMsg *h = 0;
@@ -149,7 +150,7 @@ MsgQueue::AbstractMsg * Scheduler::mergeSort( AbstractMsg * a, AbstractMsg * b ,
 	return h;
 }
 
-	bool Scheduler::pumpMessage()
+	bool OldScheduler::pumpMessage()
 	{
 		do {
 			if (getWaitTime() == 0) {
@@ -161,7 +162,7 @@ MsgQueue::AbstractMsg * Scheduler::mergeSort( AbstractMsg * a, AbstractMsg * b ,
 		} while(true);
 	}
 
-	natural Scheduler::getWaitTime() const
+	natural OldScheduler::getWaitTime() const
 	{		
 		AbstractMsg *a = curQueue;
 		if (a) {
@@ -179,26 +180,26 @@ MsgQueue::AbstractMsg * Scheduler::mergeSort( AbstractMsg * a, AbstractMsg * b ,
 		}
 	}
 
-	natural Scheduler::getWaitTime()
+	natural OldScheduler::getWaitTime()
 	{
-		const Scheduler *k = this;
+		const OldScheduler *k = this;
 		prepareQueue();
 		return k->getWaitTime();
 	}
 
 
-	Scheduler::Scheduler()
+	OldScheduler::OldScheduler()
 	{
 
 	}
 
-	Scheduler::Scheduler( IRuntimeAlloc &alloc )
+	OldScheduler::OldScheduler( IRuntimeAlloc &alloc )
 		:MsgQueue(alloc)
 	{
 
 	}
 
-	void Scheduler::schedule( AbstractEvent *ev, natural interval )
+	void OldScheduler::schedule( AbstractEvent *ev, natural interval )
 	{
 		ev->time = getCurTime()+interval;
 		postMessage(ev);

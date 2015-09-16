@@ -85,9 +85,9 @@ void SchedulerThread::notify()
 void SchedulerThread::worker()
 {
 	while (!Thread::canFinish()) {
-		natural wt = Scheduler::getWaitTime();
+		natural wt = OldScheduler::getWaitTime();
 		Thread::sleep(Timeout(wt));
-		while (Scheduler::pumpMessage()) {}
+		while (OldScheduler::pumpMessage()) {}
 	}
 }
 
@@ -98,7 +98,7 @@ natural SchedulerThread::getSystemTime() const
 natural SchedulerThread::getCurTime() const {return getSystemTime();}
 
 SchedulerThread::SchedulerThread( IRuntimeAlloc &rtAlloc ):
-	Scheduler(rtAlloc)
+	OldScheduler(rtAlloc)
 {
 
 }
