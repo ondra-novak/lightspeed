@@ -14,7 +14,6 @@
 #include "../interface.tcc"
 #include "../framework/app.h"
 
-typedef struct epoll_event EPOLL_EVENT;
 
 namespace LightSpeed {
 
@@ -83,7 +82,7 @@ void WinNetworkEventListener::doRequestWithSocket(const Request &r, SOCKET sck) 
 		if (dta == 0) return; ///< not in map - dummy action
 
 		for (natural i = 0; i < dta->listeners.length(); i++) {
-			if (dta->listeners[i].notify == r.notify) {
+			if (dta->listeners[i].notify == r.observer) {
 				dta->listeners.erase(i);
 				break;
 			}
@@ -102,7 +101,7 @@ void WinNetworkEventListener::doRequestWithSocket(const Request &r, SOCKET sck) 
 
 		bool found = false;
 		for (natural i = 0; i < dta->listeners.length(); i++) {
-			if (dta->listeners[i].notify == r.notify) {
+			if (dta->listeners[i].notify == r.observer) {
 				dta->listeners(i) = FdListener(r);
 				found = true;
 				break;

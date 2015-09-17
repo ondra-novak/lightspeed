@@ -261,9 +261,9 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\lightspeed\base\actions\abstractDispatcher.h" />
     <ClInclude Include="src\lightspeed\base\actions\argument.h" />
     <ClInclude Include="src\lightspeed\base\actions\directExecutor.h" />
-    <ClInclude Include="src\lightspeed\base\actions\dispatcher.h" />
     <ClInclude Include="src\lightspeed\base\actions\distributor.h" />
     <ClInclude Include="src\lightspeed\base\actions\distributor_mt.h" />
     <ClInclude Include="src\lightspeed\base\actions\executor.h" />
@@ -276,6 +276,7 @@
     <ClInclude Include="src\lightspeed\base\actions\parallelExecutor.h" />
     <ClInclude Include="src\lightspeed\base\actions\promise.h" />
     <ClInclude Include="src\lightspeed\base\actions\scheduler.h" />
+    <ClInclude Include="src\lightspeed\base\actions\schedulerOld.h" />
     <ClInclude Include="src\lightspeed\base\actions\simpleMsgQueue.h" />
     <ClInclude Include="src\lightspeed\base\align.h" />
     <ClInclude Include="src\lightspeed\base\cloneable.h" />
@@ -454,6 +455,7 @@
     <ClInclude Include="src\lightspeed\base\streams\multibyte.h" />
     <ClInclude Include="src\lightspeed\base\streams\netio.h" />
     <ClInclude Include="src\lightspeed\base\streams\netio_ifc.h" />
+    <ClInclude Include="src\lightspeed\base\streams\netSocketPoll.h" />
     <ClInclude Include="src\lightspeed\base\streams\openFlags.h" />
     <ClInclude Include="src\lightspeed\base\streams\proxyIterator.h" />
     <ClInclude Include="src\lightspeed\base\streams\random.h" />
@@ -512,10 +514,12 @@
     <ClInclude Include="src\lightspeed\mt\apcthread.h" />
     <ClInclude Include="src\lightspeed\mt\atomic.h" />
     <ClInclude Include="src\lightspeed\mt\atomic_type.h" />
+    <ClInclude Include="src\lightspeed\mt\dispatcher.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\fiberException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\threadException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\timeoutException.h" />
     <ClInclude Include="src\lightspeed\mt\fastlock.h" />
+    <ClInclude Include="src\lightspeed\mt\fastrwlock.h" />
     <ClInclude Include="src\lightspeed\mt\fiber.h" />
     <ClInclude Include="src\lightspeed\mt\gate.h" />
     <ClInclude Include="src\lightspeed\mt\iosleep.h" />
@@ -529,6 +533,7 @@
     <ClInclude Include="src\lightspeed\mt\process.h" />
     <ClInclude Include="src\lightspeed\mt\resourceLock.h" />
     <ClInclude Include="src\lightspeed\mt\rwlock.h" />
+    <ClInclude Include="src\lightspeed\mt\scheduler.h" />
     <ClInclude Include="src\lightspeed\mt\semaphore.h" />
     <ClInclude Include="src\lightspeed\mt\shareExclusiveLock.h" />
     <ClInclude Include="src\lightspeed\mt\sharept.h" />
@@ -573,7 +578,7 @@
     <ClInclude Include="src\lightspeed\utils\xmlparser.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lightspeed\base\actions\dispatcher.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\abstractDispatcher.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\distributor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\InfParallelExecutor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\job.cpp" />
@@ -581,7 +586,7 @@
     <ClCompile Include="src\lightspeed\base\actions\msgQueue.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\parallelExecutor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\promise.cpp" />
-    <ClCompile Include="src\lightspeed\base\actions\scheduler.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\schedulerOld.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\simpleMsgQueue.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\arrayref.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\arrayt.cpp" />
@@ -654,10 +659,12 @@
     <ClCompile Include="src\lightspeed\base\windows\wintimestamp.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\win_string.cpp" />
     <ClCompile Include="src\lightspeed\mt\apcthread.cpp" />
+    <ClCompile Include="src\lightspeed\mt\dispatcher.cpp" />
     <ClCompile Include="src\lightspeed\mt\exceptions\mt_messages.cpp" />
     <ClCompile Include="src\lightspeed\mt\msgthread.cpp" />
     <ClCompile Include="src\lightspeed\mt\mutex.cpp" />
     <ClCompile Include="src\lightspeed\mt\notifier.cpp" />
+    <ClCompile Include="src\lightspeed\mt\scheduler.cpp" />
     <ClCompile Include="src\lightspeed\mt\shareExclusiveLock.cpp" />
     <ClCompile Include="src\lightspeed\mt\syncPt.cpp" />
     <ClCompile Include="src\lightspeed\mt\threadHook.cpp" />
@@ -681,7 +688,7 @@
     <ClCompile Include="src\tests\PromiseTest.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\lightspeed\base\actions\dispatcher.tcc" />
+    <None Include="src\lightspeed\base\actions\abstractDispatcher.tcc" />
     <None Include="src\lightspeed\base\actions\distrubutor.tcc" />
     <None Include="src\lightspeed\base\actions\promise.tcc" />
     <None Include="src\lightspeed\base\containers\arraySet.tcc" />

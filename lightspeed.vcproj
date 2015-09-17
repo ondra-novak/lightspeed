@@ -274,6 +274,10 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\src\lightspeed\base\actions\abstractDispatcher.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\streams\abstractFileIOService.h"
 				>
 			</File>
@@ -342,19 +346,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\atomic.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\mt\windows\atomic.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\atomic_type.h"
+				RelativePath=".\src\lightspeed\mt\atomic.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\windows\atomic_type.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\mt\atomic_type.h"
 				>
 			</File>
 			<File
@@ -422,11 +426,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\memory\cloneable.h"
+				RelativePath=".\src\lightspeed\base\cloneable.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\cloneable.h"
+				RelativePath=".\src\lightspeed\base\memory\cloneable.h"
 				>
 			</File>
 			<File
@@ -510,7 +514,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\dispatcher.h"
+				RelativePath=".\src\lightspeed\mt\dispatcher.h"
 				>
 			</File>
 			<File
@@ -578,6 +582,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\fastrwlock.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\mt\fiber.h"
 				>
 			</File>
@@ -594,11 +602,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\fileio.h"
+				RelativePath=".\src\lightspeed\base\windows\fileio.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\fileio.h"
+				RelativePath=".\src\lightspeed\base\streams\fileio.h"
 				>
 			</File>
 			<File
@@ -607,6 +615,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\streams\fileiobuff.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\streams\fileiobuff_ifc.h"
 				>
 			</File>
 			<File
@@ -718,11 +730,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
+				RelativePath=".\src\lightspeed\base\iter\iterator.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\iterator.h"
+				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
 				>
 			</File>
 			<File
@@ -742,11 +754,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json.h"
+				RelativePath=".\src\lightspeed\utils\json\json.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json\json.h"
+				RelativePath=".\src\lightspeed\utils\json.h"
 				>
 			</File>
 			<File
@@ -910,6 +922,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\streams\netSocketPoll.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\windows\netStream.h"
 				>
 			</File>
@@ -919,6 +935,10 @@
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\windows\networkEventListener.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\networkEventListener2.h"
 				>
 			</File>
 			<File
@@ -986,15 +1006,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\platform.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\base\platform.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\mt\platform.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\windows\platform.h"
 				>
 			</File>
 			<File
@@ -1102,7 +1122,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\scheduler.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\actions\scheduler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\schedulerOld.h"
 				>
 			</File>
 			<File
@@ -1482,11 +1510,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\windows\winpch.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				RelativePath=".\src\lightspeed\base\windows\winSelect.h"
 				>
 			</File>
 			<File
@@ -1509,6 +1541,10 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\abstractDispatcher.cpp"
+				>
+			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\streams\abstractFileIOService.cpp"
 				>
@@ -1574,7 +1610,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\dispatcher.cpp"
+				RelativePath=".\src\lightspeed\mt\dispatcher.cpp"
 				>
 			</File>
 			<File
@@ -1694,6 +1730,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\streams\netio.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\windows\netService.cpp"
 				>
 			</File>
@@ -1706,7 +1746,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\networkEventListener.cpp"
+				RelativePath=".\src\lightspeed\base\windows\networkEventListener2.cpp"
 				>
 			</File>
 			<File
@@ -1758,7 +1798,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\actions\scheduler.cpp"
+				RelativePath=".\src\lightspeed\mt\scheduler.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\actions\schedulerOld.cpp"
 				>
 			</File>
 			<File
@@ -1910,6 +1954,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\lightspeed\base\windows\winSelect.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\src\lightspeed\base\windows\winServiceapp.cpp"
 				>
 			</File>
@@ -1922,6 +1970,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\src\lightspeed\base\actions\abstractDispatcher.tcc"
+			>
+		</File>
 		<File
 			RelativePath=".\src\lightspeed\base\framework\app.tcc"
 			>

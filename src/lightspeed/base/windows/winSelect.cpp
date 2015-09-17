@@ -19,7 +19,7 @@ namespace LightSpeed {
 
 int pipeCloseOnExec(int *fds);
 
-WinSelect::WinSelect():timeoutHeap(timeoutMap),rdpos(0),wrpos(0),epos(0) {
+WinSelect::WinSelect():rdpos(0),wrpos(0),epos(0) {
 
 
 	wakefd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -27,7 +27,10 @@ WinSelect::WinSelect():timeoutHeap(timeoutMap),rdpos(0),wrpos(0),epos(0) {
 
 	SOCKADDR_IN sin;
 	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = inet_addr("127.0.0.1");
+	sin.sin_addr.S_un.S_un_b.s_b1 = 127;
+	sin.sin_addr.S_un.S_un_b.s_b2 = 0;
+	sin.sin_addr.S_un.S_un_b.s_b3 = 0;
+	sin.sin_addr.S_un.S_un_b.s_b4 = 1;
 	sin.sin_port = 0;
 
 	if (bind(wakefd, (SOCKADDR *)&sin, sizeof(sin)) == SOCKET_ERROR) {
@@ -35,6 +38,9 @@ WinSelect::WinSelect():timeoutHeap(timeoutMap),rdpos(0),wrpos(0),epos(0) {
 		closesocket(wakefd);
 		throw ErrNoException(THISLOCATION, err);
 	}
+
+	int len = sizeof(wakeaddr);
+	getsockname(wakefd, reinterpret_cast<SOCKADDR *>(&wakeaddr), &len);
 
 }
 
@@ -67,13 +73,11 @@ void WinSelect::set(int fd, natural waitFor, Timeout tm, void* userData) {
 		FdInfo &fdinfo = socketMap(s);
 		fdinfo.socket = s;
 
-		removeOldTm(&fdinfo);
 
 		fdinfo.timeout = tm;
 		fdinfo.waitFor = waitFor;
 		fdinfo.userData = userData;
 
-		addNewTm(&fdinfo);
 
 		if (fdinfo.activeIndex == naturalNull) {
 			fdinfo.activeIndex = activeSockets.length();
@@ -85,10 +89,8 @@ void WinSelect::set(int fd, natural waitFor, Timeout tm, void* userData) {
 
 void WinSelect::wakeUp(natural reason) throw () {
 
-	SOCKADDR_IN sin;	
-	int len = sizeof(sin);
-	getsockname(wakefd, reinterpret_cast<SOCKADDR *>(&sin), &len);
-	sendto(wakefd, reinterpret_cast<const char *>(&len), 1, 0, reinterpret_cast<SOCKADDR *>(&sin), len);
+	byte b = 1;
+	sendto(wakefd, reinterpret_cast<const char *>(&b), 1, 0, reinterpret_cast<SOCKADDR *>(&wakeaddr), sizeof(wakeaddr));
 }
 
 int WinSelect::getFd(const FdInfo* finfo) {
@@ -108,25 +110,7 @@ WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 
 	do {
 		Timeout finTm = tm;
-		if (!timeoutHeap.empty()) {
-			Timeout p = timeoutHeap.top().owner->timeout;
-			SysTime now = SysTime::now();
-			while (p.expired(now)) {
-				FdInfo *owner = timeoutHeap.top().owner;
-				removeOldTm(owner);
-				if (owner->waitFor != 0) {
-					result.fd = getFd(owner);
-					result.flags = 0;
-					result.userData = owner->userData;
-					owner->waitFor = 0;
-					return waitEvent;
-				}
-				if (timeoutHeap.empty()) break;
-				p = timeoutHeap.top().owner->timeout;
-			}
-			if (p < finTm) finTm = p;
-		}
-
+		const FdInfo *expireSoon = 0;
 
 
 		readfds.reset();
@@ -143,6 +127,10 @@ WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 			if (fdinfo->waitFor & INetworkResource::waitForOutput) {
 				writefds.add((SOCKET)fdinfo->socket);
 			}
+			if (fdinfo->timeout < finTm) {
+				expireSoon = fdinfo;
+				finTm = fdinfo->timeout;
+			}
 		}
 				
 		struct timeval wtm = finTm.getRemain().getTimeVal();
@@ -155,8 +143,7 @@ WinSelect::WaitStatus WinSelect::wait(const Timeout& tm, Result& result) {
 			if (tm.expired()) {
 				return waitTimeout;
 			} else {
-				FdInfo *finfo = timeoutHeap.top().owner;
-				removeOldTm(finfo);
+				const FdInfo *finfo = expireSoon;
 				result.fd = getFd(finfo);
 				result.flags = 0;
 				result.userData = finfo->userData;
@@ -189,19 +176,7 @@ LightSpeed::WinSelect::WaitStatus WinSelect::walkResult(Result &result)
 	return waitNone;
 }
 
-bool WinSelect::TimeoutCmp::operator ()(const TmInfo& a, const TmInfo& b) const {
-	return a.owner->timeout > b.owner->timeout;
-}
 
-void WinSelect::addNewTm(FdInfo* owner) {
-	if (owner->timeout.isInfinite()) {
-		owner->tmRef = 0;
-		return;
-	} else {
-		timeoutMap.add(TmInfo(owner));
-		timeoutHeap.push();
-	}
-}
 
 void WinSelect::unset(int fd) {
 	set(fd,0,nil,0);
@@ -213,36 +188,7 @@ void* WinSelect::getUserData(int fd) const {
 	else return 0;
 }
 
-void WinSelect::removeOldTm(FdInfo* owner) {
-	if (owner->tmRef) {
-		natural pos = owner->tmRef - timeoutMap.data();
-		owner->tmRef = 0;
-		if (pos >= timeoutMap.length()) return;
-		timeoutHeap.pop(pos);
-		timeoutMap.trunc(1);
-	}
-}
 
-WinSelect::TmInfo::TmInfo(FdInfo* owner):owner (owner) {
-	owner->tmRef = this;
-
-}
-
-WinSelect::TmInfo::TmInfo(const TmInfo& origin):owner(origin.owner) {
-	owner->tmRef = this;
-}
-
-WinSelect::TmInfo& WinSelect::TmInfo::operator =(const TmInfo& origin) {
-	this->owner = origin.owner;
-	owner->tmRef = this;
-	return *this;
-}
-
-void WinSelect::clearHeap() {
-	timeoutMap.clear();
-	timeoutHeap.clear();
-
-}
 
 
 LightSpeed::WinSelect::WaitStatus WinSelect::procesResult(const FdSetEx &readfds, natural rdpos, natural type, Result &result)
@@ -265,7 +211,6 @@ LightSpeed::WinSelect::WaitStatus WinSelect::procesResult(const FdSetEx &readfds
 	else  {
 		FdInfo *finfo = socketMap.find(fd);
 		if (finfo) {
-			removeOldTm(finfo);
 			result.fd = fd;
 			result.flags = revents;
 			result.userData = finfo->userData;

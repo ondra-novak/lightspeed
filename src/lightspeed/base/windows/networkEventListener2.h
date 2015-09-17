@@ -47,7 +47,7 @@ protected:
 		natural waitMask;
 
 		FdListener(const Request &r)
-			:notify(r.notify),waitTimeout(r.timeout_ms),waitMask(r.waitFor) {}
+			:notify(r.observer),waitTimeout(r.timeout_ms),waitMask(r.waitFor) {}
 	};
 
 	typedef AutoArray<FdListener, SmallAlloc<4> > ListenerMap;

@@ -115,45 +115,26 @@ protected:
 
 	SOCKET wakefd;
 	natural reason;
-	
+	SOCKADDR_IN wakeaddr;
 
-	struct TmInfo;
 
 	struct FdInfo {
 		SOCKET socket;
 		Timeout timeout;
 		natural waitFor;
 		void *userData;
-		TmInfo *tmRef;
 		natural activeIndex;
 
 
-		FdInfo() :socket(0), waitFor(0), userData(0), tmRef(0), activeIndex(naturalNull) {}
+		FdInfo() :socket(0), waitFor(0), userData(0), activeIndex(naturalNull) {}
 	};
 
 
-	struct TmInfo {
-		FdInfo *owner;
-
-		TmInfo(FdInfo *owner);
-		TmInfo(const TmInfo &origin);
-		TmInfo &operator=(const TmInfo &origin);
-
-	};
-
-
-	struct TimeoutCmp {
-		bool operator()(const TmInfo &a, const TmInfo &b) const;
-	};
 
 	typedef Map<SOCKET, FdInfo> SocketMap;
-	typedef AutoArray<TmInfo> TimeoutMap;
-	typedef HeapSort<TimeoutMap, TimeoutCmp> TimeoutHeap;
 	typedef AutoArray<FdInfo *>ActiveSockets;
 
 	SocketMap socketMap;
-	TimeoutMap timeoutMap;
-	TimeoutHeap timeoutHeap;
 	ActiveSockets activeSockets;
 
 
@@ -188,9 +169,6 @@ protected:
 
 private:
 	int getFd(const FdInfo* finfo);
-	void addNewTm(FdInfo *owner);
-	void removeOldTm(FdInfo *owner);
-	void clearHeap();
 	WaitStatus procesResult(const FdSetEx &readfds, natural rdpos, natural type, Result &result);
 };
 
@@ -202,10 +180,8 @@ inline void LightSpeed::WinSelect::cancelAll(Fn cleanUp) {
 		if (socketMap[i].waitFor != 0) {
 			cleanUp((int)i, socketMap[i].userData);
 			socketMap(i).waitFor = 0;
-			socketMap(i).tmRef = 0;
 		}
 	}
-	clearHeap();
 }
 
 #endif /* LIGHTSPEED_BASE_LINUX_EWinSelect_H_ */

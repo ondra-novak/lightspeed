@@ -10,7 +10,6 @@
 #include "../memory/staticAlloc.h"
 #include "../exceptions/netExceptions.h"
 #include "netAddress.h"
-#include "networkEventListener.h"
 #include "netStreamSource.h"
 #include <string.h>
 #include "netDgramSource.h"
@@ -20,7 +19,7 @@
 #include "../debug/dbglog.h"
 #include "namedPipe.h"
 #include "securityattrs.h"
-#include "netEventListener2.h"
+#include "networkEventListener2.h"
 
 namespace LightSpeed {
 
