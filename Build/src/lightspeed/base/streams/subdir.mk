@@ -12,6 +12,7 @@ CPP_SRCS += \
 ../src/lightspeed/base/streams/filehlp.cpp \
 ../src/lightspeed/base/streams/fileiobuff.cpp \
 ../src/lightspeed/base/streams/memfile.cpp \
+../src/lightspeed/base/streams/netio.cpp \
 ../src/lightspeed/base/streams/tcpHandler.cpp 
 
 CC_DEPS += \
@@ -23,6 +24,7 @@ OBJS += \
 ./src/lightspeed/base/streams/filehlp.o \
 ./src/lightspeed/base/streams/fileiobuff.o \
 ./src/lightspeed/base/streams/memfile.o \
+./src/lightspeed/base/streams/netio.o \
 ./src/lightspeed/base/streams/tcpHandler.o \
 ./src/lightspeed/base/streams/utf.o 
 
@@ -32,6 +34,7 @@ CPP_DEPS += \
 ./src/lightspeed/base/streams/filehlp.d \
 ./src/lightspeed/base/streams/fileiobuff.d \
 ./src/lightspeed/base/streams/memfile.d \
+./src/lightspeed/base/streams/netio.d \
 ./src/lightspeed/base/streams/tcpHandler.d 
 
 
