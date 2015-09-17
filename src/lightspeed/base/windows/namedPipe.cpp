@@ -419,7 +419,7 @@ namespace LightSpeed{
 			ovrWrite.hEvent = hWriteWait;
 			ResetEvent(hWriteWait);
 			DWORD wrt = 0;
-			BOOL res = WriteFile(hPipe,writeBuff,wrBuffUse,&wrt,&ovrWrite);
+			BOOL res = WriteFile(hPipe,writeBuff,(DWORD)wrBuffUse,&wrt,&ovrWrite);
 			if (res == FALSE || wrt == 0) {
 				DWORD err = GetLastError();
 				if (err != ERROR_IO_PENDING) throw FileIOError(THISLOCATION,err,name);
@@ -610,7 +610,7 @@ namespace LightSpeed{
 	natural NamedPipeClient::doWait( natural waitFor, natural timeout ) const
 	{
 		HANDLE h = const_cast<NamedPipeClient *>(this)->getWaitHandle(waitFor);
-		if (WaitForSingleObject(h,timeout) == WAIT_TIMEOUT) return 0;
+		if (WaitForSingleObject(h,(DWORD)timeout) == WAIT_TIMEOUT) return 0;
 		else return waitForInput;
 	}
 

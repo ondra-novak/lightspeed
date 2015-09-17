@@ -337,7 +337,7 @@ public:
 	 * @param pos one-based index of field. Field 0 is not accessible
 	 * @return
 	 */
-	Result operator[](int pos) const;
+	Result operator[](natural pos) const;
 
 	void setUnformatter(INumberUnformatter *f);
 	INumberUnformatter *getUnformatter() const;

@@ -26,8 +26,8 @@ namespace LightSpeed {
 	{
 		double fr,intr;
 		fr = modf(day,&intr);
-		this->day = (integer)intr;
-		this->time = (integer)floor(fr * dayMillis+0.5);
+		this->day = (Bin::integer32)intr;
+		this->time = (Bin::integer32)floor(fr * dayMillis + 0.5);
 	}
 
 	time_t timegm(struct tm * a_tm)
@@ -54,12 +54,12 @@ namespace LightSpeed {
 			return TimeStamp(M*30+D + ofs,daysec * 1000);
 		} else {
 			struct tm tminfo;
-			tminfo.tm_year = Y - 1900;
-			tminfo.tm_mon = M - 1;
-			tminfo.tm_mday = D ;
-			tminfo.tm_hour = h;
-			tminfo.tm_min = m;
-			tminfo.tm_sec = s;
+			tminfo.tm_year = (int)(Y - 1900);
+			tminfo.tm_mon = (int)(M - 1);
+			tminfo.tm_mday = (int)D ;
+			tminfo.tm_hour = (int)h;
+			tminfo.tm_min = (int)m;
+			tminfo.tm_sec = (int)s;
 			tminfo.tm_isdst = 0;
 			tminfo.tm_wday = 0;
 			tminfo.tm_yday = 0;

@@ -1,9 +1,14 @@
 #pragma once
 #include "../../base/windows/winpch.h"
-
-
 #include "../../base/types.h"
 #include "../../base/compare.h"
+
+#ifndef _WINSOCK2API_
+struct timeval {
+	long    tv_sec;         /* seconds */
+	long    tv_usec;        /* and microseconds */
+};
+#endif
 
 namespace LightSpeed
 {
@@ -160,6 +165,13 @@ namespace LightSpeed
                 return  hours() % 24;
             }
             
+
+			struct timeval getTimeVal() const {
+				struct timeval r;
+				r.tv_sec = curTime / 1000;
+				r.tv_usec = (curTime % 1000) * 1000;
+				return r;
+			}
 
         protected:
             

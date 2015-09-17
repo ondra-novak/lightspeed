@@ -14,6 +14,16 @@
 
 namespace LightSpeed {
 
+static PNetworkStream connect(NetworkAddress addr, natural timeout) {
+		try {
+			NetworkStreamSource netsource(addr, 1, timeout, timeout, StreamOpenMode::active);
+			return netsource.getNext();
+		}
+		catch (Exception &e) {
+			throw SendMailError(THISLOCATION, "Connect error", addr.asString()) << e;
+		}
+
+	}
 
 
 
@@ -161,15 +171,6 @@ void SendMailConnection::welcome(ConstStrA heloText) {
 	}
 }
 
-PNetworkStream SendMailConnection::connect(NetworkAddress addr, natural timeout) {
-	try {
-		NetworkStreamSource netsource(addr,1,timeout,timeout,StreamOpenMode::active);
-		return netsource.getNext();
-	} catch (Exception &e) {
-		throw SendMailError(THISLOCATION,"Connect error",addr.asString()) << e;
-	}
-
-}
 
 const char *SendMail::errorMsg = "SendMail error: %1 - %2";
 

@@ -153,7 +153,7 @@ namespace LightSpeed {
 		 * @see finish, canFinish, isFinishing
 		 *
 		 */
-		void stop() {finish();join();}
+		void stop() throw() {finish();join();}
 
 		///Finalizes state of thread
 		/**
@@ -173,7 +173,7 @@ namespace LightSpeed {
 		 * of the thread object.
 		 *
 		 */
-		void join();
+		void join() throw();
 
 		///asks whether thread is running
 		/**
@@ -269,7 +269,7 @@ namespace LightSpeed {
 		 *
 		 * @see canFinish,isFinishing
 		 */
-		void finish();
+		void finish() throw() ;
 
 		///true, if CURRENT thread should finish
 		/**
@@ -278,7 +278,7 @@ namespace LightSpeed {
 		 * @retval false thread can go on
 		 * @see canFinish,isFinishing
 		 */
-		static bool canFinish();
+		static bool canFinish() throw() ;
 
 		///determines finish-flag of the thread
 		/**
@@ -286,7 +286,7 @@ namespace LightSpeed {
 		 * @retval false finish-flag is not set
 		 * @see canFinish,isFinishing
 		 */
-		bool isFinishing() const;
+		bool isFinishing() const throw();
 
 		///retrieves reference to TLS table
 		ITLSTable &getTls();
@@ -296,7 +296,7 @@ namespace LightSpeed {
 
 		///Retrieves reference to Gate object
 		/** Gate object becomes signaled when thread finishes */
-		Gate &getJoinObject();
+		Gate &getJoinObject() ;
 
 		///Returns safe reference to ISleepingObject
 		/**Because thread as instance of ISleepingObject may disappear once they are destroyed,

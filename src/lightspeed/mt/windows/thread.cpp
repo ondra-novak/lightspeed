@@ -71,7 +71,7 @@ public:
 	static void bootstrap(void *data);
 
 
-	void handleException(const Exception &e) {
+	void handleException(const Exception &e) {		
 		IApp *app = IApp::currentPtr();
 		if (app != 0) {
 			//report exception to the application
@@ -282,7 +282,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	try {
 
 		//try to create thread
-		int e = _beginthread(&ThreadContext::bootstrap,stackSize,&bootstrap);
+		int e = _beginthread(&ThreadContext::bootstrap,(unsigned int)stackSize,&bootstrap);
 		if (e == 0) {
 			throw UnableToStartThreadException(THISLOCATION,errno);
 		}
@@ -300,7 +300,7 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 
 }
 
-void Thread::join() {
+void Thread::join() throw() {
 	getJoinObject().wait(nil);
 	threadContext = 0;
 }
@@ -345,18 +345,18 @@ ThreadId Thread::getThreadId() const {
 }
 
 ///signals thread to finish
-void Thread::finish() {;
+void Thread::finish() throw() {;
 	flags |= flagFinish;
 	wakeUp(naturalNull);
 }
 
 ///true, if thread should finish
-bool Thread::canFinish() {
+bool Thread::canFinish() throw() {
 	return (current().flags & flagFinish) != 0;
 }
 
 ///true if thread is finishing already
-bool Thread::isFinishing() const {
+bool Thread::isFinishing() const throw() {
 	return (current().flags & flagFinish) != 0;
 }
 

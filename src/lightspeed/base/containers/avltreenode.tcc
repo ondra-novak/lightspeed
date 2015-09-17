@@ -300,7 +300,10 @@ natural AvlTreeNode<LinkT>::aproxCount() const {
 
 template<typename LinkT>
 natural AvlTreeNode<LinkT>::count() const {
-	return 1 + link[0]->count() + link[1]->count();
+	natural count = 1;
+	if (link[0] != 0) count += link[0]->count();
+	if (link[1] != 0) count += link[1]->count();
+	return count;
 }
 
 template<typename LinkT>

@@ -541,7 +541,7 @@ TextParser<T,Alloc,Cmp>::Result::operator double() const {
 }
 
 template<typename T, typename Alloc, typename Cmp>
-typename TextParser<T,Alloc,Cmp>::Result TextParser<T,Alloc,Cmp>::operator[](int pos) const {
+typename TextParser<T,Alloc,Cmp>::Result TextParser<T,Alloc,Cmp>::operator[](natural pos) const {
 	if (pos <1 || pos > (int)fragments.length())
 		throwRangeException_FromTo<natural>(THISLOCATION,1,fragments.length(),pos);
 	return typename TextParser<T,Alloc,Cmp>::Result(*this,pos-1);
