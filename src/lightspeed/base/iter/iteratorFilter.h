@@ -427,7 +427,8 @@ namespace LightSpeed {
         natural blockRead(FlatArrayRef<OutputT,Traits> buffer, bool readAll);
 
 
-
+        Filter &getFilterInstance() {return flt;}
+        const Filter &getFilterInstance() const {return flt;}
 
 
     protected:
