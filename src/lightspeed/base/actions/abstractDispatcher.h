@@ -144,7 +144,7 @@ public:
 	 * is resolved by return value of the function called on the object.
 	 */
 	template<typename Object, typename RetVal, typename Arg>
-	Promise<RetVal> dispatch(const Object &obj, RetVal (Object::*memberfn)(Arg arg), const typename FastParam<Arg>::T arg);
+	Promise<RetVal> dispatch(Object &obj, RetVal (Object::*memberfn)(Arg arg), const typename FastParam<Arg>::T arg);
 
 
 	///Returns allocator for actions

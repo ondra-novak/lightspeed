@@ -57,12 +57,8 @@ public:
 	DispatcherThread();
 	DispatcherThread(IRuntimeAlloc *allocator);
 
-	///runs the thread until finished.
-	/**
-	 * The function executes infinite loop of sleep() until canFinish() is signaled. Useful
-	 * to start dispatching-only threads
-	 */
-	void run();
+
+	virtual void dispatchAction(AbstractAction *action);
 
 	///Enables or disables dispatching during sleep() (also affects run() function)
 	/** By default, dispatcher starts with dispatching enabled. But dispatching is
@@ -76,6 +72,12 @@ public:
 	 */
 	bool enable(bool state);
 private:
+	///runs the thread until finished.
+	/**
+	* The function executes infinite loop of sleep() until canFinish() is signaled. Useful
+	* to start dispatching-only threads
+	*/
+	void run();
 
 	bool impSleep(const Timeout &tm, natural &reason);
 	bool alertable;

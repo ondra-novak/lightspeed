@@ -76,6 +76,8 @@ namespace LightSpeed {
 
 		atomic state;
 		SyncPt sp;
+	private:
+		Gate(const Gate &other);
 
 	};
 

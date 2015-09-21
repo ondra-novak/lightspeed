@@ -180,29 +180,25 @@ inline Promise<typename IDispatcher::DispatchHelper<Arg>::RetV> IDispatcher::dis
 
 }
 
-template<typename Object, typename RetVal, typename Arg>
-inline Promise<RetVal> IDispatcher::dispatch(
-		const Object& obj, RetVal (Object::*memberfn)(Arg arg),
-		const typename FastParam<Arg>::T arg) {
-
-
-	typedef RetVal T;
-	typedef RetVal (Object::*Fn)();
-
-	class Action: public AbstractAction {
+namespace {
+	template<typename Object, typename RetVal, typename Arg>
+	class AAction : public AbstractDispatcher::AbstractAction {
 	public:
 
 		LIGHTSPEED_CLONEABLECLASS;
-		Action(const Object &obj,  Fn fn, Arg arg, const typename  Promise<T>::Result &res)
-				:obj(obj),fn(fn),arg(arg),res(res) {}
+		AAction(const Object &obj, RetVal(Object::*fn)(Arg arg), Arg arg, const typename  Promise<RetVal>::Result &res)
+			:obj(obj), fn(fn), arg(arg), res(res) {}
 		void run() throw() {
 			try {
-				res.resolve((T)(obj.*fn)(arg));
-			} catch (const Exception &e) {
+				res.resolve((RetVal)(obj.*fn)(arg));
+			}
+			catch (const Exception &e) {
 				res.reject(e.clone());
-			} catch (const std::exception &e) {
-				res.reject(new StdException(THISLOCATION,e));
-			} catch (...) {
+			}
+			catch (const std::exception &e) {
+				res.reject(new StdException(THISLOCATION, e));
+			}
+			catch (...) {
 				res.reject(new UnknownException(THISLOCATION));
 			}
 		}
@@ -212,13 +208,58 @@ inline Promise<RetVal> IDispatcher::dispatch(
 
 	protected:
 		Object obj;
-		Fn fn;
+		RetVal(Object::*fn)(Arg arg);
 		Arg arg;
-		const typename Promise<T>::Result res;
+		typename Promise<RetVal>::Result res;
 	};
 
+	template<typename Object, typename Arg>
+	class AAction<Object,void,Arg> : public AbstractDispatcher::AbstractAction {
+	public:
+
+		LIGHTSPEED_CLONEABLECLASS;
+		AAction(Object &obj, void(Object::*fn)(Arg arg), Arg arg, const typename  Promise<void>::Result &res)
+			:obj(obj), fn(fn), arg(arg), res(res) {}
+		void run() throw() {
+			try {
+				(obj.*fn)(arg);
+				res.resolve();
+			}
+			catch (const Exception &e) {
+				res.reject(e.clone());
+			}
+			catch (const std::exception &e) {
+				res.reject(new StdException(THISLOCATION, e));
+			}
+			catch (...) {
+				res.reject(new UnknownException(THISLOCATION));
+			}
+		}
+		void reject(const Exception &e) throw() {
+			res.reject(e.clone());
+		}
+
+	protected:
+		Object &obj;
+		void(Object::*fn)(Arg arg);
+		Arg arg;
+		typename Promise<void>::Result res;
+	};
+
+}
+
+template<typename Object, typename RetVal, typename Arg>
+inline Promise<RetVal> IDispatcher::dispatch(
+		Object& obj, RetVal (Object::*memberfn)(Arg arg),
+		const typename FastParam<Arg>::T arg) {
+
+
+	typedef RetVal T;
+	typedef RetVal(Object::*Fn)(Arg arg);
+
+
 	Promise<T> promise;
-	dispatchAction(new(getActionAllocator())  Action(obj,memberfn,arg,promise.createResult()));
+	dispatchAction(new(getActionAllocator())  AAction<Object,RetVal,Arg>(obj,memberfn,arg,promise.createResult()));
 	return promise;
 }
 

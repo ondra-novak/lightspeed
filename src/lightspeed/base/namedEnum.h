@@ -40,6 +40,7 @@ public:
 
 	Enum operator[](ConstStrA name);
 	ConstStrA operator[](Enum enm);
+	bool find(ConstStrA name, Enum &result);
 
 	const natural count;
 	const NamedEnumDef<Enum> * const items;
@@ -124,17 +125,27 @@ inline NamedEnum<Enum>::NamedEnum(Def (&arr)[n]):count(n),items(arr)
 
 template<typename Enum>
 inline Enum LightSpeed::NamedEnum<Enum>::operator [](ConstStrA name) {
+	Enum r;
+	if (find(name, r)) return r;
+	else throw UnknownEnumName(THISLOCATION,name,this);
+}
+
+template<typename Enum>
+inline bool LightSpeed::NamedEnum<Enum>::find(ConstStrA name, Enum &res) {
 	natural h = 0;
 	natural t = count;
 	while (h < t) {
-		natural c= (h + t)/2;
+		natural c = (h + t) / 2;
 		natural i = items[c].reserved_orderByName;
 		CompareResult cr = name.compare(items[i].name);
 		if (cr == cmpResultLess) t = c;
-		else if (cr == cmpResultGreater) h = c+1;
-		else return items[i].enm;
+		else if (cr == cmpResultGreater) h = c + 1;
+		else {
+			res = items[i].enm;
+			return true;
+		}
 	}
-	throw UnknownEnumName(THISLOCATION,name,this);
+	return false;
 }
 
 

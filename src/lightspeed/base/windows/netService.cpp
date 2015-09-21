@@ -21,6 +21,8 @@
 #include "securityattrs.h"
 #include "networkEventListener2.h"
 
+#pragma comment (lib, "ws2_32.lib")
+
 namespace LightSpeed {
 
 	

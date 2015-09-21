@@ -270,6 +270,7 @@
     <ClInclude Include="src\lightspeed\base\actions\functionCall.h" />
     <ClInclude Include="src\lightspeed\base\actions\ijobcontrol.h" />
     <ClInclude Include="src\lightspeed\base\actions\InfParallelExecutor.h" />
+    <ClInclude Include="src\lightspeed\base\actions\ischeduler.h" />
     <ClInclude Include="src\lightspeed\base\actions\job.h" />
     <ClInclude Include="src\lightspeed\base\actions\message.h" />
     <ClInclude Include="src\lightspeed\base\actions\msgQueue.h" />

@@ -9,6 +9,7 @@
 #define LIGHTSPEED_MT_SCHEDULER_H_
 #include "dispatcher.h"
 #include "../base/containers/sort.h"
+#include "../base/actions/ischeduler.h"
 
 namespace LightSpeed {
 
@@ -24,7 +25,7 @@ namespace LightSpeed {
  *
  *  Promise can be also rejected when scheduler is exiting without completting scheduled tasks.
  */
-class Scheduler: public Dispatcher {
+class Scheduler: public DispatcherThread, public IScheduler {
 public:
 	Scheduler();
 	~Scheduler();
@@ -34,7 +35,7 @@ public:
 	 * @param tm timeout specifies, when task should be executed
 	 * @return promise, which is resolved at specified time. You can attach the task to the promise.
 	 */
-	Promise<void> schedule(Timeout tm);
+	virtual Promise<void> schedule(Timeout tm);
 
 	///Starts the scheduler.
 	/**
@@ -91,6 +92,8 @@ protected:
 
 	void cancelAllEvents();
 
+private:
+	Scheduler(const Scheduler &other);
 };
 
 } /* namespace LightSpeed */

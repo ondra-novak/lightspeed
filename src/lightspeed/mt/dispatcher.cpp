@@ -10,6 +10,8 @@
 #include "../base/exceptions/canceledException.h"
 #include "threadMinimal.h"
 #include "../base/sync/threadVar.h"
+#include "../base/actions/abstractDispatcher.tcc"
+
 
 
 
@@ -101,6 +103,19 @@ DispatcherThread::DispatcherThread():Dispatcher(this),alertable(true) {
 }
 
 DispatcherThread::DispatcherThread(IRuntimeAlloc* allocator):Dispatcher(this,allocator),alertable(true) {
+}
+
+void DispatcherThread::dispatchAction(AbstractAction *action)
+{
+	if (!isRunning()) {
+		try {
+			start(ThreadFunction::create(this, &DispatcherThread::run));
+		}
+		catch (ThreadBusyException &) {
+
+		}
+	}
+	Dispatcher::dispatchAction(action);
 }
 
 void DispatcherThread::run() {
