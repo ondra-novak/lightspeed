@@ -268,9 +268,9 @@ linteger TextFieldA_t::getLongInt() const {
 	else return integerNull;
 }
 
-ConstStrW TextFieldA_t::getString() const {
+ConstStrW AbstractTextFieldA_t::getString() const {
 	if (unicode!=0) return *unicode;
-	String *k = new String(x);
+	String *k = new String(getStringUtf8());
 	k->getMT();
 	if (lockCompareExchangePtr<String>(&unicode,0,k) != 0) {
 		delete k;
@@ -293,7 +293,7 @@ bool TextFieldA_t::operator==(const INode &other) const {
 	else return false;
 }
 
-TextFieldA_t::~TextFieldA_t() {delete unicode;}
+AbstractTextFieldA_t::~AbstractTextFieldA_t() { delete unicode; }
 
 
 double TextFieldA_t::getFloat() const {
@@ -302,18 +302,18 @@ double TextFieldA_t::getFloat() const {
 	return 0;
 }
 
-ConstStrW IntField_t::getString() const {
+ConstStrA IntField_t::getStringUtf8() const {
 	if (strx.empty()) {
-		TextFormatBuff<wchar_t,StaticAlloc<200> > fmt;
+		TextFormatBuff<char,StaticAlloc<200> > fmt;
 		fmt("%1") << x;
 		strx = fmt.write();
 	}
 	return strx;
 }
 
-ConstStrW IntField64_t::getString() const {
+ConstStrA IntField64_t::getStringUtf8() const {
 	if (strx.empty()) {
-		TextFormatBuff<wchar_t,StaticAlloc<200> > fmt;
+		TextFormatBuff<char,StaticAlloc<200> > fmt;
 		fmt("%1") << x;
 		strx = fmt.write();
 	}
@@ -340,9 +340,9 @@ bool IntField64_t::operator==(const INode &other) const {
 	else return x == t->x;
 }
 
-ConstStrW FloatField_t::getString() const {
+ConstStrA FloatField_t::getStringUtf8() const {
 	if (strx.empty()) {
-		TextFormatBuff<wchar_t,StaticAlloc<200> > fmt;
+		TextFormatBuff<char,StaticAlloc<200> > fmt;
 		fmt("%1") << x;
 		strx = fmt.write();
 	}
@@ -454,6 +454,11 @@ INode & AbstractNode_t::operator[]( natural index ) const
 ConstStrA AbstractNode_t::getStringUtf8() const
 {
 	return ConstStrA();
+}
+
+ConstStrW AbstractNode_t::getString() const
+{
+	return ConstStrW();
 }
 
 /*

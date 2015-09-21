@@ -108,13 +108,22 @@ public:
 	mutable StringA *utf;
 };
 
-class TextFieldA_t: public LeafNode_t {
+class AbstractTextFieldA_t : public LeafNode_t {
 public:
-	TextFieldA_t(StringA x):x(x),unicode(0) {}
-	~TextFieldA_t();
+
+	AbstractTextFieldA_t() :unicode(0) {}
+	~AbstractTextFieldA_t();
+	virtual ConstStrW getString() const;
+
+	mutable String *unicode;
+};
+
+class TextFieldA_t: public AbstractTextFieldA_t {
+public:
+	TextFieldA_t(StringA x):x(x) {}
+	
 
 	virtual NodeType getType() const {return ndString;}
-	virtual ConstStrW getString() const;
 	virtual integer getInt() const;
 	virtual linteger getLongInt() const;
 	virtual double getFloat() const;
@@ -127,15 +136,14 @@ public:
 	virtual bool isUtf8() const {return true;}
 
 	StringA x;
-	mutable String *unicode;
 };
 
 
-class IntField_t: public LeafNode_t {
+class IntField_t : public AbstractTextFieldA_t {
 public:
 	IntField_t(integer x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
-	virtual ConstStrW getString() const;
+	virtual ConstStrA getStringUtf8() const;
 	virtual integer getInt() const {return x;}
 	virtual linteger getLongInt() const {return x;}
 	virtual double getFloat() const {return double(x);}
@@ -145,14 +153,14 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	integer x;
-	mutable String strx;
+	mutable StringA strx;
 };
 
-class IntField64_t: public LeafNode_t {
+class IntField64_t : public AbstractTextFieldA_t {
 public:
 	IntField64_t(linteger x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
-	virtual ConstStrW getString() const;
+	virtual ConstStrA getStringUtf8() const;
 	virtual integer getInt() const {return (integer)x;}
 	virtual linteger getLongInt() const {return x;}
 	virtual double getFloat() const {return double(x);}
@@ -162,14 +170,14 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	linteger x;
-	mutable String strx;
+	mutable StringA strx;
 };
 
-class FloatField_t: public LeafNode_t {
+class FloatField_t : public AbstractTextFieldA_t {
 public:
 	FloatField_t(double x):x(x) {}
 	virtual NodeType getType() const {return ndFloat;}
-	virtual ConstStrW getString() const;
+	virtual ConstStrA getStringUtf8() const;
 	virtual integer getInt() const {return (integer)x;}
 	virtual linteger getLongInt() const {return (linteger)x;}
 	virtual double getFloat() const {return x;}
@@ -180,13 +188,12 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	double x;
-	mutable String strx;
+	mutable StringA strx;
 };
 
 class Null_t: public LeafNode_t {
 public:
 	virtual NodeType getType() const {return ndNull;}
-	virtual ConstStrW getString() const {return String();}
 	virtual integer getInt() const {return integerNull;}
 	virtual linteger getLongInt() const {return lintegerNull;}
 	virtual natural getUInt() const {return naturalNull;}
@@ -223,7 +230,8 @@ public:
 	Bool_t(bool b):b(b) {}
 
 	virtual NodeType getType() const {return ndBool;}
-	virtual ConstStrW getString() const {return b?L"true":L"false";}
+	virtual ConstStrA getStringUtf8() const {return b?"true":"false";}
+	virtual ConstStrW getString() const { return b ? L"true" : L"false"; }
 	virtual integer getInt() const {return b?naturalNull:0;}
 	virtual linteger getLongInt() const {return b?naturalNull:0;}
 	virtual double getFloat() const {return b?-1:0;}

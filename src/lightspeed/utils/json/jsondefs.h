@@ -53,6 +53,7 @@ public:
 	virtual lnatural getLongUInt() const {return (lnatural)getLongInt();}
 
 	LightSpeed::ConstStrA getStringUtf8() const;
+	LightSpeed::ConstStrW getString() const;
 	INode & operator[]( ConstStrA v ) const;
 	INode & operator[]( natural index ) const;
 
