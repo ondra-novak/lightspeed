@@ -3,9 +3,6 @@
 ################################################################################
 
 # Add inputs and outputs from these tool invocations to the build variables 
-CC_SRCS += \
-../src/lightspeed/base/linux/proginstance.cc 
-
 CPP_SRCS += \
 ../src/lightspeed/base/linux/break.cpp \
 ../src/lightspeed/base/linux/epollSelect.cpp \
@@ -25,6 +22,7 @@ CPP_SRCS += \
 ../src/lightspeed/base/linux/newline.cpp \
 ../src/lightspeed/base/linux/parallelExecutor.cpp \
 ../src/lightspeed/base/linux/pollSelect.cpp \
+../src/lightspeed/base/linux/proginstance.cpp \
 ../src/lightspeed/base/linux/secureRandom.cpp \
 ../src/lightspeed/base/linux/seh.cpp \
 ../src/lightspeed/base/linux/serviceapp.cpp \
@@ -33,9 +31,6 @@ CPP_SRCS += \
 ../src/lightspeed/base/linux/string.cpp \
 ../src/lightspeed/base/linux/systemException.cpp \
 ../src/lightspeed/base/linux/timestamp.cpp 
-
-CC_DEPS += \
-./src/lightspeed/base/linux/proginstance.d 
 
 OBJS += \
 ./src/lightspeed/base/linux/break.o \
@@ -85,6 +80,7 @@ CPP_DEPS += \
 ./src/lightspeed/base/linux/newline.d \
 ./src/lightspeed/base/linux/parallelExecutor.d \
 ./src/lightspeed/base/linux/pollSelect.d \
+./src/lightspeed/base/linux/proginstance.d \
 ./src/lightspeed/base/linux/secureRandom.d \
 ./src/lightspeed/base/linux/seh.d \
 ./src/lightspeed/base/linux/serviceapp.d \
@@ -97,13 +93,6 @@ CPP_DEPS += \
 
 # Each subdirectory must supply rules for building sources it contributes
 src/lightspeed/base/linux/%.o: ../src/lightspeed/base/linux/%.cpp
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	$(GPP) -o"$@" "$<"
-	@echo 'Finished building: $<'
-	@echo ' '
-
-src/lightspeed/base/linux/%.o: ../src/lightspeed/base/linux/%.cc
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
 	$(GPP) -o"$@" "$<"

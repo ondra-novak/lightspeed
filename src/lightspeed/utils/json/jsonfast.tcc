@@ -373,44 +373,8 @@ inline ConstStrA ParserFast<T>::arrayIndexStr(natural i) {
 	return strBuff;
 }
 
-template<typename T>
-void serializeArray(const INode *json, IWriteIterator<char, T> &witer,bool escapeUTF8) {
-	witer.write('[');
-	Iterator iter = json->getFwIter();
-	if (iter.hasItems()) {
-		const NodeInfo &n = iter.getNext();
-		serialize(n.node,witer,escapeUTF8);
-		while (iter.hasItems()) {
-			witer.write(',');
-			const NodeInfo &n = iter.getNext();
-			serialize(n.node,witer,escapeUTF8);
-		}
-	}
-	witer.write(']');
-}
-
-template<typename T>
-void serializeBool(const INode *json, IWriteIterator<char, T> &iter) {
-	if (json->getBool()) {
-		iter.blockWrite(ConstStrA(strTrue));
-	} else {
-		iter.blockWrite(ConstStrA(strFalse));
-	}
-}
-
-template<typename T>
-void serializeDeleted(const INode *, IWriteIterator<char, T> &iter) {
-		iter.blockWrite(ConstStrA(strDelete));
-}
-
-template<typename T>
-void serializeNull(const INode *, IWriteIterator<char, T> &iter) {
-		iter.blockWrite(ConstStrA(strNull));
-}
-
-
 template<typename X, typename T>
-void writeChar(X c, IWriteIterator<char, T> &iter) {
+void writeChar(X c, IWriteIterator<char, T> & iter) {
 	switch (c) {
 	case '\r': iter.write('\\');iter.write('r');break;
 	case '\f': iter.write('\\');iter.write('f');break;
@@ -429,137 +393,216 @@ void writeChar(X c, IWriteIterator<char, T> &iter) {
 		}
 	}
 }
-template<typename T>
-void serializeString(ConstStrA str, IWriteIterator<char, T> &witer) {
 
-	witer.write('"');
-	for (ConstStrA::Iterator iter = str.getFwIter(); iter.hasItems();) {
-		writeChar<char,T>(iter.getNext(),witer);
+
+template<typename T>
+class Serializer {
+
+	struct CycleDetector {
+		const JSON::INode *object;
+		CycleDetector *top;
+
+		CycleDetector(const JSON::INode *object, CycleDetector *top)
+			:object(object),top(top),cycleDetected(checkCycle(object,top)) {
+		}
+
+		const bool cycleDetected;
+		static bool checkCycle(const JSON::INode *object, CycleDetector *top) {
+			CycleDetector *x = top;
+			while (x != 0) {
+				if (object == x->object) return true;
+				x = x->top;
+			}
+			return false;
+		}
+	};
+
+public:
+	Serializer(IWriteIterator<char, T> &iter, bool escapeUTF8)
+		:iter(iter),escapeUTF8(escapeUTF8) {}
+
+
+	void serializeArray(const INode *json) {
+		iter.write('[');
+		Iterator oiter = json->getFwIter();
+		if (oiter.hasItems()) {
+			const NodeInfo &n = oiter.getNext();
+			serialize(n.node);
+			while (oiter.hasItems()) {
+				iter.write(',');
+				const NodeInfo &n = oiter.getNext();
+				serialize(n.node);
+			}
+		}
+		iter.write(']');
 	}
-	witer.write('"');
 
-}
-
-template<typename T>
-void serializeString(ConstStrW str, IWriteIterator<char, T> &witer) {
-	witer.write('"');
-	for (ConstStrW::Iterator iter = str.getFwIter(); iter.hasItems();) {
-		wchar_t c = iter.getNext();
-		if (c > 0x7F) {
-			TextOut<IWriteIterator<char, T> &, StaticAlloc<32> > fmt(witer);
-			fmt.setBase(16);
-			fmt("\\u%{04}1") << (unsigned int)c;
+	void serializeBool(const INode *json) {
+		if (json->getBool()) {
+			iter.blockWrite(ConstStrA(strTrue));
 		} else {
-			writeChar<char,T>((char)c,witer);
+			iter.blockWrite(ConstStrA(strFalse));
 		}
 	}
-	witer.write('"');
-}
 
-template<typename T>
-void serializeStringEscUTF(ConstStrA str, IWriteIterator<char, T> &witer) {
-	witer.write('"');
-	for (ConstStrA::Iterator iter = str.getFwIter(); iter.hasItems();) {
-		signed char c = iter.getNext();
-		if (c < 0) {
-			Utf8ToWideFilter flt;
-			flt.input(c);
-			while (!flt.hasItems()) flt.input(iter.getNext());
-			flt.flush();
-			while (flt.hasItems()) {
-				wchar_t cu = flt.output();
-				TextOut<IWriteIterator<char, T> &, StaticAlloc<32> > fmt(witer);
+	void serializeDeleted(const INode *) {
+			iter.blockWrite(ConstStrA(strDelete));
+	}
+
+	void serializeNull(const INode *) {
+			iter.blockWrite(ConstStrA(strNull));
+	}
+
+
+	void serializeString(ConstStrA str) {
+
+		iter.write('"');
+		for (ConstStrA::Iterator oiter = str.getFwIter(); oiter.hasItems();) {
+			writeChar<char,T>(oiter.getNext(),iter);
+		}
+		iter.write('"');
+
+	}
+
+	void serializeString(ConstStrW str) {
+		iter.write('"');
+		for (ConstStrW::Iterator oiter = str.getFwIter(); oiter.hasItems();) {
+			wchar_t c = oiter.getNext();
+			if (c > 0x7F) {
+				TextOut<IWriteIterator<char, T> &, StaticAlloc<32> > fmt(iter);
 				fmt.setBase(16);
-				fmt("\\u%{04}1") << (unsigned int)cu;
+				fmt("\\u%{04}1") << (unsigned int)c;
+			} else {
+				writeChar<char,T>((char)c,iter);
+			}
+		}
+		iter.write('"');
+	}
+
+	void serializeStringEscUTF(ConstStrA str) {
+		iter.write('"');
+		for (ConstStrA::Iterator oiter = str.getFwIter(); oiter.hasItems();) {
+			signed char c = oiter.getNext();
+			if (c < 0) {
+				Utf8ToWideFilter flt;
+				flt.input(c);
+				while (!flt.hasItems()) flt.input(oiter.getNext());
+				flt.flush();
+				while (flt.hasItems()) {
+					wchar_t cu = flt.output();
+					TextOut<IWriteIterator<char, T> &, StaticAlloc<32> > fmt(iter);
+					fmt.setBase(16);
+					fmt("\\u%{04}1") << (unsigned int)cu;
+				}
+			} else {
+				writeChar<char,T>(c,iter);
+			}
+		}
+		iter.write('"');
+	}
+
+	void serializeObjectNode(const NodeInfo &n) {
+		if (escapeUTF8)
+			serializeStringEscUTF(n.key->getString());
+		else
+			serializeString(n.key->getString());
+
+		iter.write(':');
+		serialize(n.node);
+	}
+
+	void serializeObject(const INode *json) {
+		iter.write('{');
+		Iterator oiter = json->getFwIter();
+		if (oiter.hasItems()) {
+			const NodeInfo &n = oiter.getNext();
+			serializeObjectNode(n);
+			while (oiter.hasItems()) {
+				iter.write(',');
+				const NodeInfo &n = oiter.getNext();
+				serializeObjectNode(n);
+			}
+		}
+		iter.write('}');
+	}
+
+	void serializeString(const INode *json) {
+
+		if (json->isUtf8()) {
+			if (escapeUTF8)
+				serializeStringEscUTF(json->getStringUtf8());
+			else
+				serializeString(json->getStringUtf8());
+		}else
+			serializeString(json->getString());
+	}
+
+	void serializeFloat(const INode *json) {
+
+		TextOut<IWriteIterator<char, T> &, StaticAlloc<140> > fmt(iter);
+		fmt() << json->getFloat();
+	}
+
+
+	void serializeInt(const INode *json) {
+
+		TextOut<IWriteIterator<char, T> &, StaticAlloc<140> > fmt(iter);
+		fmt() << json->getInt();
+	}
+
+	void serializeCustom(const INode *json) {
+		const ICustomNode &nd = json->getIfc<ICustomNode>();
+		VtWriteIterator<IWriteIterator<char, T> &> witer(iter);
+		nd.serialize(witer,escapeUTF8);
+	}
+
+	void serialize(const INode *json) {
+		if (json == 0) throwNullPointerException(THISLOCATION);
+
+		CycleDetector d(json,top);
+		if (d.cycleDetected) {
+			if (json->isObject()) {
+				iter.blockWrite(ConstStrA("{\"error\":\"<infinite_recursion>\"}"),true);
+			} else if (json->isArray()) {
+				iter.blockWrite(ConstStrA("[\"<infinite_recursion>\"]"),true);
+			} else {
+				iter.blockWrite(ConstStrA("<infinite_recursion>"),true);;
 			}
 		} else {
-			writeChar<char,T>(c,witer);
+			top = &d;
+			NodeType t = json->getType();
+			switch (t) {
+			case ndArray: serializeArray(json); break;
+			case ndBool: serializeBool(json); break;
+			case ndObject: serializeObject(json);break;
+			case ndDelete: serializeDeleted(json);break;
+			case ndFloat: serializeFloat(json);break;
+			case ndInt: serializeInt(json);break;
+			case ndNull: serializeNull(json);break;
+			case ndString: serializeString(json);break;
+			default: serializeCustom(json);break;
+			}
+			top = d.top;
 		}
+
 	}
-	witer.write('"');
-}
 
 
-template<typename T>
-void serializeObjectNode(const NodeInfo &n, IWriteIterator<char, T> &iter, bool escapeUTF8) {
-	if (escapeUTF8)
-		serializeStringEscUTF(n.key->getString(),iter);
-	else
-		serializeString(n.key->getString(),iter);
-
-	iter.write(':');
-	serialize(n.node,iter,escapeUTF8);
-}
-
-
-template<typename T>
-void serializeObject(const INode *json, IWriteIterator<char, T> &witer, bool escapeUTF8) {
-	witer.write('{');
-	Iterator iter = json->getFwIter();
-	if (iter.hasItems()) {
-		const NodeInfo &n = iter.getNext();
-		serializeObjectNode(n,witer,escapeUTF8);
-		while (iter.hasItems()) {
-			witer.write(',');
-			const NodeInfo &n = iter.getNext();
-			serializeObjectNode(n,witer,escapeUTF8);
-		}
-	}
-	witer.write('}');
-}
-
-
-template<typename T>
-void serializeString(const INode *json, IWriteIterator<char, T> &witer, bool escapeUTF8) {
-
-	if (json->isUtf8()) {
-		if (escapeUTF8)
-			serializeStringEscUTF(json->getStringUtf8(),witer);
-		else
-			serializeString(json->getStringUtf8(),witer);
-	}else
-		serializeString(json->getString(), witer);
-}
-
-template<typename T>
-void serializeFloat(const INode *json, IWriteIterator<char, T> &witer) {
-
-	TextOut<IWriteIterator<char, T> &, StaticAlloc<140> > fmt(witer);
-	fmt() << json->getFloat();
-}
-
-
-template<typename T>
-void serializeInt(const INode *json, IWriteIterator<char, T> &witer) {
-
-	TextOut<IWriteIterator<char, T> &, StaticAlloc<140> > fmt(witer);
-	fmt() << json->getInt();
-}
-
-template<typename T>
-void serializeCustom(const INode *json, IWriteIterator<char, T> &witer,bool escapeUTF8) {
-	const ICustomNode &nd = json->getIfc<ICustomNode>();
-	VtWriteIterator<IWriteIterator<char, T> &> iter(witer);
-	nd.serialize(iter,escapeUTF8);
-}
+protected:
+	IWriteIterator<char, T> &iter;
+	bool escapeUTF8;
+	Pointer<CycleDetector> top;
+};
 
 
 template<typename T>
 void serialize(const INode *json, IWriteIterator<char, T> &iter, bool escapeUTF8) {
-	if (json == 0) throwNullPointerException(THISLOCATION);
-	NodeType t = json->getType();
-	switch (t) {
-	case ndArray: serializeArray(json,iter,escapeUTF8); break;
-	case ndBool: serializeBool(json,iter); break;
-	case ndObject: serializeObject(json,iter,escapeUTF8);break;
-	case ndDelete: serializeDeleted(json,iter);break;
-	case ndFloat: serializeFloat(json,iter);break;
-	case ndInt: serializeInt(json,iter);break;
-	case ndNull: serializeNull(json,iter);break;
-	case ndString: serializeString(json,iter,escapeUTF8);break;
-	default: serializeCustom(json,iter,escapeUTF8);break;
-	}
+	Serializer<T> s(iter,escapeUTF8);
+	s.serialize(json);
 }
+
+
+
 
 
 

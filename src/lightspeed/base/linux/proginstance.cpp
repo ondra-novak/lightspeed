@@ -556,7 +556,7 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 				ConstStrA line = fafio.readLine();
 				lg.warning("%1") << line;
 			}
-			//finnaly, rotate logs
+			//Finally, rotate logs
 			DbgLog::logRotate();
 			//measure time
 			time(&curTime);
