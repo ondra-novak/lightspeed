@@ -557,7 +557,7 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 				lg.warning("%1") << line;
 			}
 			//Finally, rotate logs
-			DbgLog::logRotate();
+			DbgLog::logRotateAll();
 			//measure time
 			time(&curTime);
 			if (err == -1) throw ErrNoException(THISLOCATION,errno);
