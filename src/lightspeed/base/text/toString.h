@@ -75,7 +75,7 @@ namespace LightSpeed {
 	};
 
 	template<typename NumType, typename ChT, natural bufsize>
-	class ToStringSigned: public ToStringUnsigned<NumType,ChT,bufsize>{
+	class ToStringSigned : public  ToStringBase<ChT, bufsize>{
 	public:
 		ToStringSigned(NumType val, natural base, bool up) {extractFirst(val,base,up);}
 	protected:
@@ -91,6 +91,13 @@ namespace LightSpeed {
 			}
 			this->commitBuffer();
 		}
+		void extract(NumType val, natural base, bool up) {
+			if (val >= base) extract(val / base, base, up);
+			natural x = val % base;
+			if (x > 9) this->buffer.write(ChT((up ? 'A' : 'a') + x - 10));
+			else this->buffer.write(ChT('0' + x));
+		}
+
 	};
 	template<typename ChT>
 	class ToString<natural,ChT>: public ToStringUnsigned<natural,ChT,23> {
