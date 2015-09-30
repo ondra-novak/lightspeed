@@ -560,7 +560,7 @@ namespace LightSpeed
         }
         
         template<class Traits>
-        natural blockWrite(const FlatArray<typename ConstObject<T>::Remove,Traits> &buffer, bool writeAll) {
+        natural blockWrite(const FlatArray<typename ConstObject<T>::Remove,Traits> &buffer, bool writeAll = true) {
     		natural wr = 0;
     		natural sz = buffer.length();
     		if (sz == 0) return 0;
@@ -575,7 +575,7 @@ namespace LightSpeed
 		}
 
         template<class Traits>
-        natural blockWrite(const FlatArray<typename ConstObject<T>::Add,Traits> &buffer, bool writeAll) {
+        natural blockWrite(const FlatArray<typename ConstObject<T>::Add,Traits> &buffer, bool writeAll = true) {
     		natural wr = 0;
     		natural sz = buffer.length();
     		if (sz == 0) return 0;
