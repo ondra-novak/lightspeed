@@ -662,7 +662,8 @@ namespace LightSpeed {
 
 
 	void FileDescriptorSeq::flush() {
-		::fdatasync(fd);
+		if (::fdatasync(fd))
+			throw ErrNoException(THISLOCATION,errno);
 	}
 
 	class DirState: public IFolderIterator {

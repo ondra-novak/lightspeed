@@ -227,6 +227,7 @@ bool IOBuffer<bufferSize>::canWrite() const {
 template<natural bufferSize>
 void IOBuffer<bufferSize>::flush() {
 	intFlush();
+	if (targetOut) targetOut->flush();
 }
 
 template<natural bufferSize>
