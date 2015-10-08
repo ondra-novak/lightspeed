@@ -2,23 +2,37 @@ LIBNAME=liblightspeed.a
 LIBDEPS=liblightspeed.deps
 PLATFORM=src/lightspeed/platform.h
 
-ALLCOMPILE := $(wildcard src/lightspeed/*/.sources.mk) $(wildcard src/lightspeed/*/*/.sources.mk) $(wildcard src/lightspeed/*/*/*/.sources.mk) $(wildcard src/lightspeed/*/*/*/*/.sources.mk)  
 CPP_SRCS := 
-include $(ALLCOMPILE)
+include $(shell find -name .sources.mk)
 
-#CXXFLAGS += -O3 -g3 -fPIC -Wall -Wextra
-CXXFLAGS += -O0 -g3 -fPIC -Wall -Wextra
+ifeq "$(MAKECMDGOALS)" "debug"
+	CXXFLAGS += -O0 -g3 -fPIC -Wall -Wextra -DDEBUG -D_DEBUG
+	CFGNAME := cfg.debug
+else
+	CXXFLAGS += -O3 -g3 -fPIC -Wall -Wextra -DNDEBUG
+	CFGNAME := cfg.release
+endif
+
 
 OBJS := ${CPP_SRCS:.cpp=.o}
 DEPS := ${CPP_SRCS:.cpp=.deps}
-clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin $(LIBDEPS) $(PLATFORM)
+clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin $(LIBNAME) $(LIBDEPS) $(PLATFORM) cfg.debug cfg.release
 
-all: $(LIBNAME) 
+all: $(LIBNAME)
+
+.PHONY: debug all clean
+
+debug: $(LIBNAME) 
 
 .INTERMEDIATE : deprun
 
 deprun:
 	@echo "Updating dependencies..."; touch deprun;
+
+$(CFGNAME):
+	@rm -f cfg.debug cfg.release
+	@touch $@	
+	@echo Forced rebuild for CXXFLAGS=$(CXXFLAGS)
 
 testfn:
 	@echo 'echo "void $$1(); int main() {$$1();return 0;}" > testfn.c' >$@
@@ -39,9 +53,14 @@ $(PLATFORM): testfn testbuildin
 	@./testfn vfork HAVE_VFORK >> $@
 	@./testbuildin __atomic_compare_exchange HAVE_DECL___ATOMIC_COMPARE_EXCHANGE >> $@
 
-%.deps: %.cpp deprun $(PLATFORM)
+%.deps: %.cpp deprun $(PLATFORM) 
 	@$(CPP) $(CPPFLAGS) -MM $*.cpp | sed -e 's~^\(.*\)\.o:~$(@D)/\1.deps $(@D)/\1.o:~' > $@
 
+
+%.o: %.cpp $(CFGNAME)
+	@echo $(*F).cpp  
+	@$(CXX) $(CXXFLAGS) -o $@ -c $*.cpp
+	
 
 $(LIBDEPS):
 	@echo "Generating library dependencies..."
@@ -49,7 +68,8 @@ $(LIBDEPS):
 	@for K in $(abspath $(CPP_SRCS)); do echo "$$K \\" >> $@;done
 
 $(LIBNAME): $(OBJS) $(LIBDEPS)
-	@$(AR) -r $(LIBNAME) $(OBJS)
+	@echo "Creating library $@ ..."		
+	@$(AR) -r $@ $(OBJS) 2> /dev/null
 	
 print-%  : ; @echo $* = $($*)
 

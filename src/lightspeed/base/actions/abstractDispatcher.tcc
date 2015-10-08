@@ -255,7 +255,6 @@ inline Promise<RetVal> IDispatcher::dispatch(
 
 
 	typedef RetVal T;
-	typedef RetVal(Object::*Fn)(Arg arg);
 
 
 	Promise<T> promise;

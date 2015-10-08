@@ -79,10 +79,11 @@ void EPollSelect::set(int fd, natural waitFor, const Timeout &tm, void* userData
 	addNewTm(&fdinfo);
 
 	struct epoll_event ev;
+	static const EPOLL_EVENTS EPOLLNONE = (EPOLL_EVENTS)0;
 	ev.data.fd = fd;
-	ev.events = (((waitFor & INetworkResource::waitForInput) != 0)?EPOLLIN:0) |
-				(((waitFor & INetworkResource::waitForOutput) != 0)?EPOLLOUT:0) |
-				(((waitFor & INetworkResource::waitForException) != 0)?EPOLLPRI:0) | EPOLLONESHOT;
+	ev.events = (((waitFor & INetworkResource::waitForInput) != 0)?EPOLLIN:EPOLLNONE) |
+				(((waitFor & INetworkResource::waitForOutput) != 0)?EPOLLOUT:EPOLLNONE) |
+				(((waitFor & INetworkResource::waitForException) != 0)?EPOLLPRI:EPOLLNONE) | EPOLLONESHOT;
 
 
 	if (epoll_ctl(epollfd,EPOLL_CTL_MOD,fd,&ev) == -1) {
