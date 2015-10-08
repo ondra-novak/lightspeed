@@ -107,7 +107,7 @@ namespace LightSpeed {
 		/**
 		 * @param s source semaphore - constructor takes only actual count of available locks
 		 */
-		Semaphore(const Semaphore &s):counter(s.counter) {}
+		Semaphore(const Semaphore &s):SyncPt(),counter(s.counter) {}
 
 		///Adjust available locks for semaphore using another semaphore
 		Semaphore &operator=(const Semaphore &s) {counter = s.counter;return *this;}

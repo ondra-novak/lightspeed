@@ -13,6 +13,7 @@ else
 	CFGNAME := cfg.release
 endif
 
+CXX=clang++
 
 OBJS := ${CPP_SRCS:.cpp=.o}
 DEPS := ${CPP_SRCS:.cpp=.deps}
@@ -23,6 +24,8 @@ all: $(LIBNAME)
 .PHONY: debug all clean
 
 debug: $(LIBNAME) 
+
+deps: ${DEPS}
 
 .INTERMEDIATE : deprun
 
