@@ -1,5 +1,6 @@
 LIBNAME=liblightspeed.a
 LIBDEPS=liblightspeed.deps
+PLATFORM=src/lightspeed/platform.h
 
 ALLCOMPILE := $(wildcard src/lightspeed/*/.sources.mk) $(wildcard src/lightspeed/*/*/.sources.mk) $(wildcard src/lightspeed/*/*/*/.sources.mk) $(wildcard src/lightspeed/*/*/*/*/.sources.mk)  
 CPP_SRCS := 
@@ -10,7 +11,7 @@ CXXFLAGS += -O0 -g3 -fPIC -Wall -Wextra
 
 OBJS := ${CPP_SRCS:.cpp=.o}
 DEPS := ${CPP_SRCS:.cpp=.deps}
-clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin $(LIBDEPS)
+clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin $(LIBDEPS) $(PLATFORM)
 
 all: $(LIBNAME) 
 
@@ -32,13 +33,13 @@ testbuildin:
 	@chmod +x $@
 
 
-platform.h: testfn testbuildin
+$(PLATFORM): testfn testbuildin
 	@echo Detecting features...
 	@./testfn pipe2 HAVE_PIPE2 > $@
 	@./testfn vfork HAVE_VFORK >> $@
 	@./testbuildin __atomic_compare_exchange HAVE_DECL___ATOMIC_COMPARE_EXCHANGE >> $@
 
-%.deps: %.cpp deprun platform.h
+%.deps: %.cpp deprun $(PLATFORM)
 	@$(CPP) $(CPPFLAGS) -MM $*.cpp | sed -e 's~^\(.*\)\.o:~$(@D)/\1.deps $(@D)/\1.o:~' > $@
 
 
