@@ -1,2 +1,0 @@
-cd src/lightspeed
-find . -name \*.h -or -name \*.tcc | while read LINE; do  mkdir -p `dirname $1/$LINE`; cp $LINE $1/$LINE; done

@@ -1,7 +1,7 @@
 LIBNAME=liblightspeed.a
 LIBDEPS=liblightspeed.deps
 
-ALLCOMPILE := $(wildcard */.sources.mk) $(wildcard */*/.sources.mk) $(wildcard */*/*/.sources.mk) $(wildcard */*/*/*/.sources.mk)  
+ALLCOMPILE := $(wildcard src/lightspeed/*/.sources.mk) $(wildcard src/lightspeed/*/*/.sources.mk) $(wildcard src/lightspeed/*/*/*/.sources.mk) $(wildcard src/lightspeed/*/*/*/*/.sources.mk)  
 CPP_SRCS := 
 include $(ALLCOMPILE)
 
@@ -10,7 +10,7 @@ CXXFLAGS += -O0 -g3 -fPIC -Wall -Wextra
 
 OBJS := ${CPP_SRCS:.cpp=.o}
 DEPS := ${CPP_SRCS:.cpp=.deps}
-clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin
+clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin $(LIBDEPS)
 
 all: $(LIBNAME) 
 
@@ -43,7 +43,9 @@ platform.h: testfn testbuildin
 
 
 $(LIBDEPS):
-	@PWD=`pwd`;ALLFILES=`find $$PWD -name "*.h" -or -name "*.tcc"`;echo $$ALLFILES > $@
+	@echo "Generating library dependencies..."
+	@PWD=`pwd`;find $$PWD "(" -name "*.h" -or -name "*.tcc" ")" -and -printf '%p \\\n' > $@
+	@for K in $(abspath $(CPP_SRCS)); do echo "$$K \\" >> $@;done
 
 $(LIBNAME): $(OBJS) $(LIBDEPS)
 	@$(AR) -r $(LIBNAME) $(OBJS)

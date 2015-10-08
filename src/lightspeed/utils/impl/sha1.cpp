@@ -19,6 +19,7 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <alloca.h>
 
 namespace LightSpeed {
 
