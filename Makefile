@@ -25,7 +25,7 @@ all: $(LIBNAME)
 
 debug: $(LIBNAME) 
 
-deps: ${DEPS}
+deps: ${DEPS} ${LIBDEPS}
 
 .INTERMEDIATE : deprun
 
@@ -67,8 +67,16 @@ $(PLATFORM): testfn testbuildin
 
 $(LIBDEPS):
 	@echo "Generating library dependencies..."
-	@PWD=`pwd`;find $$PWD "(" -name "*.h" -or -name "*.tcc" ")" -and -printf '%p \\\n' > $@
-	@for K in $(abspath $(CPP_SRCS)); do echo "$$K \\" >> $@;done
+	@echo "LDFLAGS+=-L$$PWD" > $@
+	@echo "LDLIB+=-l$(patsubst lib%.a,%,$(LIBNAME))" >> $@
+	@echo "LIBDEPS+=$$PWD/$(LIBNAME)" >> $@
+	@echo -n "$$PWD/$(LIBNAME) : " >> $@
+	@PWD=`pwd`;find $$PWD "(" -name "*.h" -or -name "*.tcc" ")" -and -printf "\\\\\\n\\t%p" >> $@
+	@for K in $(abspath $(CPP_SRCS)); do echo -n "\\\\\\n\\t $$K" >> $@;done
+	@echo "" >> $@
+	@echo -n "\\t\$$(MAKE) -C $$PWD \$$(MAKECMDGOALS) \\n" >> $@
+	@echo "$$PWD/$(LIBNAME).clean :" >> $@
+	@echo -n "\\t\$$(MAKE) -C $$PWD clean\\n" >> $@
 
 $(LIBNAME): $(OBJS) $(LIBDEPS)
 	@echo "Creating library $@ ..."		
