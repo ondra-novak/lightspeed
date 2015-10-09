@@ -21,7 +21,7 @@ clean_list := $(OBJS)  ${CPP_SRCS:.cpp=.deps} testfn testbuildin $(LIBNAME) $(LI
 
 all: $(LIBNAME)
 
-.PHONY: debug all clean
+.PHONY: debug all clean deps
 
 debug: $(LIBNAME) 
 
