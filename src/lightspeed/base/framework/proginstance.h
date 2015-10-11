@@ -277,6 +277,31 @@ public:
 	 */
 	static natural getUpTime(bool resetOnRestart) ;
 
+	///Initializes variable that hold's program start time.
+	/** You need to call this function when you plan to use function
+	 * getUpTime without initializing the ProgInstance object and entering
+	 * to daemon mode. Function performs initialization only for first calling,
+	 * any other calls does nothing.
+	 */
+	static void initializeStartTime();
+
+	///gets total CPU time consumed by this process
+	/**
+	 * @return total CPU time in milliseconds. For multicore CPUs, returns sums through all cores
+	 */
+	static natural getCPUTime();
+
+	///gets process memory usage
+	/**
+	 * @return returns net memory usage. It excludes memory allocated by the allocator
+	 * itself and memory unavailable due memory fragmentation.
+	 *
+	 * @note due lack of API under Linux environment, returned value may be inaccurate
+	 * when process takes more then 2GB of the memory.
+	 */
+	static natural getMemoryUsage();
+
+
 	void restartDaemon();
 
 	///Determines, whether instance is started in daemon mode

@@ -29,6 +29,7 @@
 #include <wait.h>
 #include <signal.h>
 #include <sys/signal.h>
+#include <malloc.h>
 #include "../debug/dbglog.h"
 #include "../streams/fileio.h"
 #include "../streams/fileiobuff.tcc"
@@ -36,6 +37,10 @@
 
 
 namespace LightSpeed {
+
+static natural restartCount = 0;
+static time_t startTime, restartTime;
+
 
 struct ProgInstanceBuffer {
 	///owner of this file
@@ -67,10 +72,12 @@ struct ProgInstanceBuffer {
 
 ProgInstance::ProgInstance(const String &name):name(name) {
 	buffer = 0;
+	initializeStartTime();
 }
 
 ProgInstance::ProgInstance(const ProgInstance &other):name(other.name) {
 	buffer = 0;
+	initializeStartTime();
 }
 
 
@@ -452,8 +459,6 @@ ProgInstance::InstanceStage ProgInstance::getInstanceStage() const {
 	return standard;
 }
 
-static natural restartCount = 0;
-static time_t startTime, restartTime;
 
 natural ProgInstance::getRestartCounts()  {
 	return restartCount;
@@ -512,8 +517,7 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 	int err = ::daemon(1,1);
 	if (err == -1) throw ErrNoException(THISLOCATION,errno);
 
-    time(&startTime);
-    time(&restartTime);
+	initializeStartTime();
 
 	lg.debug("ResartOnErrorSec:%1")<<restartOnErrorSec;
 	if (restartOnErrorSec != 0) {
@@ -594,6 +598,41 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 void ProgInstance::restartDaemon() {
 	exit(251);
 }
+
+///Initializes variable that hold's program start time.
+/** You need to call this function when you plan to use function
+ * getUpTime without initializing the ProgInstance object and entering
+ * to daemon mode. Function performs initialization only for first calling,
+ * any other calls does nothing.
+ */
+void ProgInstance::initializeStartTime() {
+	if (startTime == 0) time(&startTime);
+	if (restartTime < startTime) restartTime = startTime;
+}
+
+///gets total CPU time consumed by this process
+/**
+ * @return total CPU time in milliseconds. For multicore CPUs, returns sums through all cores
+ */
+natural ProgInstance::getCPUTime() {
+	if (CLOCKS_PER_SEC < 1000) {
+		return (clock() * 1000)/CLOCKS_PER_SEC;
+	} else {
+		return (clock() / (CLOCKS_PER_SEC/1000));
+	}
+}
+
+
+///gets process memory usage
+/**
+ * @return returns net memory usage. It excludes memory allocated by the allocator
+ * itself and memory unavailable due memory fragmentation.
+ */
+natural ProgInstance::getMemoryUsage() {
+	struct mallinfo res = mallinfo();
+	return res.uordblks;
+}
+
 
 ///True, if instance can be in standard stage
 /** There is no platform, which will have this false */
