@@ -33,14 +33,16 @@ endif
 endif
 
 
-OBJS += ${CPP_SRCS:.cpp=.o}
-DEPS := ${CPP_SRCS:.cpp=.deps}
+ROOT_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+OBJS += $(patsubst %,tmp/%,${CPP_SRCS:.cpp=.o})
+DEPS := $(patsubst %,tmp/%,${CPP_SRCS:.cpp=.deps})
 clean_list += $(OBJS)  ${DEPS} $(TARGETFILE) cfg.debug cfg.release $(CONFIG)
 
 
 .PHONY: debug all debug clean force-rebuild deps
 
 force-rebuild: 
+	@echo $(PROGRESSPREFIX): Requested rebuild
 	@rm -f cfg.debug cfg.release $(TARGETFILE)
 
 $(CFGNAME):
@@ -48,10 +50,12 @@ $(CFGNAME):
 	@rm -f cfg.debug cfg.release
 	@touch $@	
 	@echo $(PROGRESSPREFIX): Forced rebuild for CXXFLAGS=$(CXXFLAGS)
+	@mkdir -p tmp
 
 
-%.o: %.cpp  $(CONFIG) $(CFGNAME)
+tmp/%.o: %.cpp  $(CONFIG) $(CFGNAME)
 	@set -e
+	@mkdir -p $(@D) 
 	@echo $(PROGRESSPREFIX): $(*F).cpp  
-	@$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $*.cpp -MMD -MF $*.deps
+	@$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $*.cpp -MMD -MF tmp/$*.deps
 
