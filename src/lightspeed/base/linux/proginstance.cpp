@@ -32,6 +32,7 @@
 #include "../debug/dbglog.h"
 #include "../streams/fileio.h"
 #include "../streams/fileiobuff.tcc"
+#include "../interface.tcc"
 
 
 namespace LightSpeed {
