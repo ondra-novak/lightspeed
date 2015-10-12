@@ -15,17 +15,31 @@
 
 namespace LightSpeed {
 
+namespace _intr {
+	template<typename T>
+	struct NamedEnumFieldOrder {
+		T value;
+		natural order;
+
+		NamedEnumFieldOrder(const T &v):value(v) {}
+	};
+	template<>
+	struct NamedEnumFieldOrder<ConstStrA> {
+		ConstStrA value;
+		natural order;
+
+		NamedEnumFieldOrder(const ConstStrA &v):value(v) {}
+		NamedEnumFieldOrder(const char *v):value(v) {}
+	};
+}
+
 
 template<typename Enum>
 struct NamedEnumDef {
 	///enum specification
-	Enum enm;
+	_intr::NamedEnumFieldOrder<Enum> enm;
 	///associated name
-	ConstStrA name;
-	///reserved for ordering - do not fill
-	natural reserved_orderByEnum;
-	///reserved for ordering - do not fill
-	natural reserved_orderByName;
+	_intr::NamedEnumFieldOrder<ConstStrA> name;
 };
 
 
@@ -53,10 +67,10 @@ protected:
 	public:
 		typedef ConstStrA ItemT;
 		ContByName(Def *def,natural count):def(def),count(count) {
-			for (natural i = 0; i < count; i++) def[i].reserved_orderByName = i;
+			for (natural i = 0; i < count; i++) def[i].name.order = i;
 		}
-		ConstStrA operator[](natural p) const {return def[def[p].reserved_orderByName].name;}
-		natural &operator()(natural p) {return def[p].reserved_orderByName;}
+		ConstStrA operator[](natural p) const {return def[def[p].name.order].name.value;}
+		natural &operator()(natural p) {return def[p].name.order;}
 		natural length() const {return count;}
 
 	protected:
@@ -68,10 +82,10 @@ protected:
 	public:
 		typedef Enum ItemT;
 		ContByEnum(Def *def,natural count):def(def),count(count) {
-			for (natural i = 0; i < count; i++) def[i].reserved_orderByEnum = i;
+			for (natural i = 0; i < count; i++) def[i].enm.order= i;
 		}
-		Enum operator[](natural p) const {return def[def[p].reserved_orderByEnum].enm;}
-		natural &operator()(natural p) {return def[p].reserved_orderByEnum;}
+		Enum operator[](natural p) const {return def[def[p].enm.order].enm.value;}
+		natural &operator()(natural p) {return def[p].enm.order;}
 		natural length() const {return count;}
 
 	protected:
@@ -136,12 +150,12 @@ inline bool LightSpeed::NamedEnum<Enum>::find(ConstStrA name, Enum &res) {
 	natural t = count;
 	while (h < t) {
 		natural c = (h + t) / 2;
-		natural i = items[c].reserved_orderByName;
-		CompareResult cr = name.compare(items[i].name);
+		natural i = items[c].name.order;
+		CompareResult cr = name.compare(items[i].name.value);
 		if (cr == cmpResultLess) t = c;
 		else if (cr == cmpResultGreater) h = c + 1;
 		else {
-			res = items[i].enm;
+			res = items[i].enm.value;
 			return true;
 		}
 	}
@@ -155,11 +169,11 @@ inline ConstStrA NamedEnum<Enum>::operator [](Enum enm) {
 	natural t = count;
 	while (h < t) {
 		natural c= (h + t)/2;
-		natural i = items[c].reserved_orderByEnum;
-		Enum chl = items[i].enm;
+		natural i = items[c].enm.order;
+		Enum chl = items[i].enm.value;
 		if (enm < chl) t = c;
 		else if (enm > chl) h = c+1;
-		else return items[i].name;
+		else return items[i].name.value;
 	}
 	return ConstStrA();
 
@@ -171,10 +185,10 @@ template<typename Enum>
 StringA NamedEnum<Enum>::toString(ConstStrA separator)const {
 	AutoArray<char, SmallAlloc<256> > setValues;
 	if (count) {
-		setValues.append(items[0].name);
+		setValues.append(items[0].name.value);
 		for (natural i = 1; i < count;i++) {
 			setValues.append(separator);
-			setValues.append(items[i].name);
+			setValues.append(items[i].name.value);
 		}
 	}
 	return setValues;
