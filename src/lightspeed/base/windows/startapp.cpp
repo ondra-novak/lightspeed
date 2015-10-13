@@ -26,12 +26,15 @@ public:
 
 
 
-
 #include "Shellapi.h"
 
 namespace LightSpeed {
 	int WINAPI startApp( HINSTANCE hInstance );
+	void stubEnterDaemonMode(DWORD_PTR handle);
+	extern const wchar_t *enterDaemonCmd;
+
 }
+
 int WINAPI WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in_opt LPSTR lpCmdLine, __in int nShowCmd) {
 
 	return LightSpeed::startApp(hInstance);
@@ -189,6 +192,15 @@ int WINAPI startApp( HINSTANCE hInstance )
 		if( NULL == szArglist )
 		{
 			throw ErrNoWithDescException(THISLOCATION,GetLastError(),L"Failed to read command line");
+		}		
+
+		//support for ProgInstance
+		if (nArgs == 3 && wcsstr(szArglist[1], enterDaemonCmd) == 0) {			
+			unsigned long long h;
+			if (wscanf_s(szArglist[2], L"%llu", &h) != 1) return -1;
+			DWORD_PTR handle = (DWORD_PTR)h;
+			stubEnterDaemonMode(h);
+			return 0;
 		}
 
 		String str;

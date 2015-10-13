@@ -6,6 +6,7 @@
 #include <sddl.h>
 #include <time.h>
 #include <TlHelp32.h>
+#include "Shellapi.h"
 #include "../debug/dbglog.h"
 #include "../exceptions/errorMessageException.h"
 #include "../text/textFormat.tcc"
@@ -15,6 +16,7 @@
 #include "../text/textstream.tcc"
 #include "../text/textLineReader.h"
 #include "../streams/fileiobuff.tcc"
+#include "../framework/iapp.h"
 #include <psapi.h>
 
 namespace {
@@ -499,11 +501,18 @@ static bool waitForInitDaemon(HANDLE hDaemonEvent, HANDLE hDaemonProcess) {
 }
 
 struct DaemonSharedArea {
+	///time when daemon started
 	time_t startTime;
+	///time when daemon restarted
 	time_t restartTime;
-	natural restartCount;
+	///count of restarts
+	natural restartCount;	
+	///stored argument restartOnErrorSec;
+	natural restartOnErrorSec;
+	///command line of original process
+	wchar_t commandLine[1];
 
-	DaemonSharedArea() :startTime(0), restartTime(0), restartCount(0) {}
+	DaemonSharedArea() :startTime(0), restartTime(0), restartCount(0), restartOnErrorSec(0) {}
 };
 
 static DaemonSharedArea daemonProcessData;
@@ -536,6 +545,85 @@ static String getDaemonAreaName(DWORD pid) {
 	return fmt.write();
 }
 
+const wchar_t *enterDaemonCmd = L"{9A555DF3-B61A-48C1-83F8-FFC1A6DF1A54}";
+
+void stubEnterDaemonMode(DWORD_PTR handle) {
+	HANDLE hArea = (HANDLE)handle;
+	DaemonSharedArea *org = (DaemonSharedArea *)MapViewOfFile(hArea, FILE_MAP_READ);
+	daemonProcessData = *org;
+	String cmdLine = org->commandLine;
+	UnmapViewOfFile(org);
+	CloseHandle(hArea);
+	
+	HANDLE hDaemonArea = CreateFileMappingW(0, 0, PAGE_READWRITE, 0, sizeof(DaemonSharedArea), getDaemonAreaName(GetCurrentProcessId()).c_str());
+	if (hDaemonArea == NULL || hDaemonArea == INVALID_HANDLE_VALUE) {
+		throw ErrNoException(THISLOCATION, GetLastError());
+	}
+	DaemonSharedArea *dsa = (DaemonSharedArea *)MapViewOfFile(hDaemonArea, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+	*dsa = daemonProcessData;
+	DWORD exitCode = 0;
+
+	do {
+
+		//enter into daemon
+		STARTUPINFOW sinfo;
+		PROCESS_INFORMATION pi;
+		ZeroMemory(&sinfo, sizeof(sinfo));
+		sinfo.cb = sizeof(sinfo);
+
+		Pipe p;
+		IFileExtractHandle &eh = p.getWriteEnd().getStream()->getIfc<IFileExtractHandle>();
+		HANDLE hWrite;
+		eh.getHandle(&hWrite, sizeof(hWrite));
+		SetHandleInformation(hWrite, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+
+		Pipe p2;
+		IFileExtractHandle &eh2 = p2.getReadEnd().getStream()->getIfc<IFileExtractHandle>();
+		HANDLE hRead;
+		eh2.getHandle(&hRead, sizeof(eh2));
+		SetHandleInformation(hRead, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+
+
+		sinfo.dwFlags = STARTF_USESTDHANDLES;
+		sinfo.hStdError = hWrite;
+		sinfo.hStdOutput = hWrite;
+		sinfo.hStdInput = hRead;
+
+		BOOL res = CreateProcessW(0, cmdLine, 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
+			0, 0, &sinfo, &pi);
+		if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
+		ResumeThread(pi.hThread);
+		CloseHandle(pi.hThread);
+		SeqFileInBuff<> input(p.getReadEnd());
+		p.detach();
+		p2.detach();
+
+		TextLineReader<SeqTextInA> rline(input);
+		while (rline.hasItems()) {
+			rline.getNext();
+		}
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		GetExitCodeProcess(pi.hProcess, &exitCode);
+		CloseHandle(pi.hProcess);
+		if (exitCode >= 251) {
+			time_t prevRestart = dsa->restartTime;
+			time(&dsa->restartTime);
+			dsa->restartCount++;
+			if (dsa->restartTime - dsa->startTime < daemonProcessData.restartOnErrorSec) {
+				break;
+			}
+			time_t rs = dsa->restartTime - prevRestart;
+			if (rs < daemonProcessData.restartOnErrorSec) {
+				Sleep(DWORD((restartOnErrorSec - rs) * 1000));
+			}
+		}
+	} while (exitCode >= 251);
+	CloseHandle(hDaemonArea);
+	UnmapViewOfFile(dsa);
+	ExitProcess(exitCode);
+}
+
+
 void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {	
 	LS_LOGOBJ(lg);
 	if (!imOwner())  throw ErrorMessageException(THISLOCATION, "Access denied");
@@ -547,83 +635,50 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 		DbgLog::setThreadName("watchdog",false);
 		lg.info("Entering to daemon mode");
 
-		HANDLE hDaemonArea = CreateFileMappingW(0, 0, PAGE_READWRITE, 0, sizeof(DaemonSharedArea), getDaemonAreaName(GetCurrentProcessId()).c_str());
+		SECURITY_ATTRIBUTES sa;
+		sa.nLength = sizeof(sa);
+		sa.lpSecurityDescriptor = 0;
+		sa.bInheritHandle = TRUE;
+
+		LPWSTR cmdLine = GetCommandLineW();
+		size_t cmdLineLen = wcslen(cmdLine);
+
+		LPWSTR *szArglist;
+		int nArgs;
+
+		szArglist = CommandLineToArgvW(cmdLine, &nArgs);
+		if (NULL == szArglist)
+		{
+			throw ErrNoWithDescException(THISLOCATION, GetLastError(), L"Failed to read command line");
+		}
+
+		STARTUPINFOW sinfo;
+		PROCESS_INFORMATION pi;
+		ZeroMemory(&sinfo, sizeof(sinfo));
+		sinfo.cb = sizeof(sinfo);
+
+
+		HANDLE hDaemonArea = CreateFileMappingW(0, &sa, PAGE_READWRITE,0, sizeof(DaemonSharedArea)+sizeof(wchar_t)*cmdLineLen, getDaemonAreaName(GetCurrentProcessId()).c_str());
 		if (hDaemonArea == NULL || hDaemonArea == INVALID_HANDLE_VALUE) {
 			throw ErrNoException(THISLOCATION, GetLastError());
 		}
-		DaemonSharedArea *dsa = (DaemonSharedArea *)MapViewOfFile(hDaemonArea, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 		initializeStartTime();
+		DaemonSharedArea *dsa = (DaemonSharedArea *)MapViewOfFile(hDaemonArea, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 		*dsa = daemonProcessData;
-		DWORD exitCode = 0;
+		wcscpy_s(dsa->commandLine, cmdLineLen + 1, cmdLine);
 
-		//delete instance file - will be created in daemon
-		delete buffer;
-		buffer = 0;
+		String stubCmdLine = ConstStrW(L"\"") + ConstStrW(szArglist[0]) + ConstStrW(L"\" ") + ConstStrW(enterDaemonCmd) + ConstStrW(L" ") +
+			ToString<natural, wchar_t>((natural)hDaemonArea);
 
-		do {
-
-			//enter into daemon
-			STARTUPINFOW sinfo;
-			PROCESS_INFORMATION pi;
-			ZeroMemory(&sinfo, sizeof(sinfo));
-			sinfo.cb = sizeof(sinfo);
-
-			Pipe p;
-			IFileExtractHandle &eh = p.getWriteEnd().getStream()->getIfc<IFileExtractHandle>();
-			HANDLE hWrite;
-			eh.getHandle(&hWrite, sizeof(hWrite));
-			SetHandleInformation(hWrite, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
-			
-			Pipe p2;
-			IFileExtractHandle &eh2 = p2.getReadEnd().getStream()->getIfc<IFileExtractHandle>();
-			HANDLE hRead;
-			eh2.getHandle(&hRead, sizeof(eh2));
-			SetHandleInformation(hRead, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
-
-
-			sinfo.dwFlags = STARTF_USESTDHANDLES;
-			sinfo.hStdError = hWrite;
-			sinfo.hStdOutput = hWrite;
-			sinfo.hStdInput = hRead;
-
-			LPWSTR cmdLine = GetCommandLineW();
-			BOOL res = CreateProcessW(0, cmdLine, 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
-				0, 0, &sinfo, &pi);
-			if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
-			ResumeThread(pi.hThread);
-			CloseHandle(pi.hThread);
-			SeqFileInBuff<> input(p.getReadEnd());
-			p.detach();
-			p2.detach();
-
-			TextLineReader<SeqTextInA> rline(input);
-			while (rline.hasItems()) {
-				ConstStrA line = rline.getNext();
-				lg.info("%1") << line;
-			}
-			WaitForSingleObject(pi.hProcess, INFINITE);
-			GetExitCodeProcess(pi.hProcess, &exitCode);
-			CloseHandle(pi.hProcess);
-			if (exitCode>=251) {
-				lg.error("Process crashed with exit code %1. Will be restarted") << natural(exitCode);
-				time_t prevRestart = dsa->restartTime;
-				time(&dsa->restartTime);
-				dsa->restartCount++;
-				if (dsa->restartTime - dsa->startTime < restartOnErrorSec) {
-					lg.error("Process crashed to soon, cannot be restarted");
-					break;
-				}
-				time_t rs = dsa->restartTime - prevRestart;
-				if (rs < restartOnErrorSec) {
-					lg.error("Waiting for restart %1 seconds") << natural(restartOnErrorSec - rs);
-					Sleep(DWORD((restartOnErrorSec - rs) * 1000));
-				}
-			}
-		} while (exitCode >= 251);
-		lg.info("Normal exit with status %1") << natural(exitCode);
+		BOOL res = CreateProcessW(0, (LPWSTR)stubCmdLine.cStr(), 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
+			0, 0, &sinfo, &pi);
+		if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
+		ResumeThread(pi.hThread);
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
 		CloseHandle(hDaemonArea);
-		UnmapViewOfFile(dsa);
-		ExitProcess(exitCode);
+		ExitProcess(0);
+
 	}
 	else {
 		DaemonSharedArea *dsa = (DaemonSharedArea *)MapViewOfFile(hDaemonArea, FILE_MAP_READ, 0, 0, 0);
