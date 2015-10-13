@@ -1,14 +1,21 @@
 #include "winpch.h"
-#include "../framework/proginstance.h"
-#include "../containers/string.tcc"
 #include <algorithm>
 #include <tchar.h>
 #include <AccCtrl.h>
 #include <Aclapi.h>
 #include <sddl.h>
+#include <time.h>
+#include <TlHelp32.h>
+#include "../debug/dbglog.h"
 #include "../exceptions/errorMessageException.h"
 #include "../text/textFormat.tcc"
 #include "../memory/staticAlloc.h"
+#include "../framework/proginstance.h"
+#include "../containers/string.tcc"
+#include "../text/textstream.tcc"
+#include "../text/textLineReader.h"
+#include "../streams/fileiobuff.tcc"
+#include <psapi.h>
 
 namespace {
 
@@ -109,15 +116,17 @@ struct ProgInstanceBuffer {
 	}
 };
 
+
 ProgInstance::ProgInstance( const String &name )
-:name(name),buffer(0)
+	:name(name), buffer(0)
 {
+	initializeStartTime();
 }
 
 ProgInstance::ProgInstance( const ProgInstance &other )
-:name(other.name),buffer(0)
+	:name(other.name), buffer(0)
 {
-	
+	initializeStartTime();
 }
 ProgInstance::~ProgInstance()
 {
@@ -489,53 +498,210 @@ static bool waitForInitDaemon(HANDLE hDaemonEvent, HANDLE hDaemonProcess) {
 	return sel == WAIT_OBJECT_0;
 }
 
+struct DaemonSharedArea {
+	time_t startTime;
+	time_t restartTime;
+	natural restartCount;
+
+	DaemonSharedArea() :startTime(0), restartTime(0), restartCount(0) {}
+};
+
+static DaemonSharedArea daemonProcessData;
+
+static DWORD getParentPid() {
+	HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	PROCESSENTRY32W entry;
+	entry.dwSize = sizeof(entry);
+	DWORD mypid = GetCurrentProcessId();
+	DWORD foundpid = 0;
+	BOOL cont = Process32FirstW(hSnapShot, &entry);
+	while (cont) {
+		if (mypid == entry.th32ProcessID) {
+			foundpid = entry.th32ParentProcessID;
+			cont = FALSE;
+		}
+		else {
+			entry.dwSize = sizeof(entry);
+			Process32NextW(hSnapShot, &entry);
+		}
+	}
+	CloseHandle(hSnapShot);
+	return foundpid;
+
+}
+
+static String getDaemonAreaName(DWORD pid) {
+	TextFormatBuff<wchar_t, StaticAlloc<256> > fmt;
+	fmt("LightSpeed_DaemonMode_SharedArea_%1") << natural(pid);
+	return fmt.write();
+}
 
 void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {	
+	LS_LOGOBJ(lg);
 	if (!imOwner())  throw ErrorMessageException(THISLOCATION, "Access denied");
-	HANDLE hDaemonEvent = openDaemonEvent();
-	if (hDaemonEvent  == NULL) {
-		
-		//enter into daemon
-		STARTUPINFOW sinfo;
-		PROCESS_INFORMATION pi;
-		ZeroMemory(&sinfo,sizeof(sinfo));
-		sinfo.cb = sizeof(sinfo);
+	DWORD masterPid = getParentPid();
 
-		LPWSTR cmdLine = GetCommandLineW();
-		BOOL res = CreateProcessW(0,cmdLine,0,0,FALSE,CREATE_NO_WINDOW|CREATE_NEW_PROCESS_GROUP|CREATE_BREAKAWAY_FROM_JOB|CREATE_UNICODE_ENVIRONMENT|DETACHED_PROCESS|CREATE_SUSPENDED,
-			0,0,&sinfo,&pi);
-		if (res == FALSE) throw ErrNoException(THISLOCATION,GetLastError());
+	HANDLE hDaemonArea = OpenFileMappingW(FILE_MAP_READ, FALSE,getDaemonAreaName(masterPid).cStr());
+	if (hDaemonArea == NULL || hDaemonArea == INVALID_HANDLE_VALUE) {
+		//we are master
+		DbgLog::setThreadName("watchdog",false);
+		lg.info("Entering to daemon mode");
 
-		hDaemonEvent = createDaemonEvent(pi.dwProcessId);
-		if (hDaemonEvent == 0) throw ErrNoException(THISLOCATION,GetLastError());
+		HANDLE hDaemonArea = CreateFileMappingW(0, 0, PAGE_READWRITE, 0, sizeof(DaemonSharedArea), getDaemonAreaName(GetCurrentProcessId()).c_str());
+		if (hDaemonArea == NULL || hDaemonArea == INVALID_HANDLE_VALUE) {
+			throw ErrNoException(THISLOCATION, GetLastError());
+		}
+		DaemonSharedArea *dsa = (DaemonSharedArea *)MapViewOfFile(hDaemonArea, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+		initializeStartTime();
+		*dsa = daemonProcessData;
+		DWORD exitCode = 0;
 
+		//delete instance file - will be created in daemon
 		delete buffer;
 		buffer = 0;
-		ResumeThread(pi.hThread);
-		bool waitres = waitForInitDaemon(hDaemonEvent,pi.hProcess);
-		CloseHandle(hDaemonEvent);
-		CloseHandle(pi.hProcess);
-		CloseHandle(pi.hThread);
-		if (waitres) TerminateProcess(GetCurrentProcess(),0);
-		else {
-			DWORD exitCode;
-			GetExitCodeProcess(pi.hProcess,&exitCode);
-			TerminateProcess(GetCurrentProcess(),exitCode);
-		}
-	} else {
-		DWORD handles[3]={STD_INPUT_HANDLE,STD_OUTPUT_HANDLE,STD_ERROR_HANDLE};	
-		for(int i = 0; i < 3; i++) {
-			HANDLE h = GetStdHandle(handles[i]);		
-			if (h != 0 && h != INVALID_HANDLE_VALUE)  {
-				DWORD type = GetFileType(h);
-				if (type != FILE_TYPE_UNKNOWN && type != FILE_TYPE_CHAR) CloseHandle(h);
-				SetStdHandle(handles[i],0);
+
+		do {
+
+			//enter into daemon
+			STARTUPINFOW sinfo;
+			PROCESS_INFORMATION pi;
+			ZeroMemory(&sinfo, sizeof(sinfo));
+			sinfo.cb = sizeof(sinfo);
+
+			Pipe p;
+			IFileExtractHandle &eh = p.getWriteEnd().getStream()->getIfc<IFileExtractHandle>();
+			HANDLE hWrite;
+			eh.getHandle(&hWrite, sizeof(hWrite));
+			SetHandleInformation(hWrite, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+			
+			Pipe p2;
+			IFileExtractHandle &eh2 = p2.getReadEnd().getStream()->getIfc<IFileExtractHandle>();
+			HANDLE hRead;
+			eh2.getHandle(&hRead, sizeof(eh2));
+			SetHandleInformation(hRead, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+
+
+			sinfo.dwFlags = STARTF_USESTDHANDLES;
+			sinfo.hStdError = hWrite;
+			sinfo.hStdOutput = hWrite;
+			sinfo.hStdInput = hRead;
+
+			LPWSTR cmdLine = GetCommandLineW();
+			BOOL res = CreateProcessW(0, cmdLine, 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
+				0, 0, &sinfo, &pi);
+			if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
+			ResumeThread(pi.hThread);
+			CloseHandle(pi.hThread);
+			SeqFileInBuff<> input(p.getReadEnd());
+			p.detach();
+			p2.detach();
+
+			TextLineReader<SeqTextInA> rline(input);
+			while (rline.hasItems()) {
+				ConstStrA line = rline.getNext();
+				lg.info("%1") << line;
 			}
-		}
-		FreeConsole();
-		SetEvent(hDaemonEvent);
-		CloseHandle(hDaemonEvent);
+			WaitForSingleObject(pi.hProcess, INFINITE);
+			GetExitCodeProcess(pi.hProcess, &exitCode);
+			CloseHandle(pi.hProcess);
+			if (exitCode>=251) {
+				lg.error("Process crashed with exit code %1. Will be restarted") << natural(exitCode);
+				time_t prevRestart = dsa->restartTime;
+				time(&dsa->restartTime);
+				dsa->restartCount++;
+				if (dsa->restartTime - dsa->startTime < restartOnErrorSec) {
+					lg.error("Process crashed to soon, cannot be restarted");
+					break;
+				}
+				time_t rs = dsa->restartTime - prevRestart;
+				if (rs < restartOnErrorSec) {
+					lg.error("Waiting for restart %1 seconds") << natural(restartOnErrorSec - rs);
+					Sleep(DWORD((restartOnErrorSec - rs) * 1000));
+				}
+			}
+		} while (exitCode >= 251);
+		lg.info("Normal exit with status %1") << natural(exitCode);
+		CloseHandle(hDaemonArea);
+		UnmapViewOfFile(dsa);
+		ExitProcess(exitCode);
+	}
+	else {
+		DaemonSharedArea *dsa = (DaemonSharedArea *)MapViewOfFile(hDaemonArea, FILE_MAP_READ, 0, 0, 0);
+		daemonProcessData = *dsa;
+		UnmapViewOfFile(dsa);
+		CloseHandle(hDaemonArea);
+
+		DbgLog::setThreadName("main", false);
 		buffer->indaemon = true;
+
+	}
+
+
+
+	
+}
+
+natural ProgInstance::getRestartCounts()
+{
+	return daemonProcessData.restartCount;
+}
+
+natural ProgInstance::getUpTime(bool resetOnRestart)
+{
+	time_t now;
+	time(&now);
+	if (resetOnRestart) return natural(now - daemonProcessData.restartTime);
+	return natural(now - daemonProcessData.startTime);
+}
+
+void ProgInstance::initializeStartTime()
+{
+	if (daemonProcessData.startTime == 0) time(&daemonProcessData.startTime);
+	if (daemonProcessData.restartTime == 0)  daemonProcessData.restartTime = daemonProcessData.startTime;
+}
+
+natural ProgInstance::getCPUTime()
+{
+	FILETIME creation;
+	FILETIME exittime;
+	FILETIME usertime;
+	FILETIME kerneltime;
+
+	GetProcessTimes(GetCurrentProcess(), &creation, &exittime, &kerneltime, &usertime);
+	TimeStamp ut = TimeStamp::fromWindows(usertime.dwLowDateTime, usertime.dwHighDateTime);
+	TimeStamp kt = TimeStamp::fromWindows(kerneltime.dwLowDateTime, kerneltime.dwHighDateTime);
+	TimeStamp total = ut + kt;
+	return total.getDay()*total.dayMillis + total.getTime();
+}
+
+static void *loadAndFindSystemFunction(const char *syslib, const char *fnName) {
+	HMODULE hMod = GetModuleHandleA(syslib);
+	if (hMod == 0) hMod = LoadLibraryA(syslib);
+	if (hMod == 0) return 0;
+	return GetProcAddress(hMod, fnName);
+}
+
+natural ProgInstance::getMemoryUsage()
+{
+	typedef BOOL
+		(WINAPI *type_GetProcessMemoryInfo)(
+		HANDLE Process,
+		PPROCESS_MEMORY_COUNTERS ppsmemCounters,
+		DWORD cb
+		);
+
+	static type_GetProcessMemoryInfo GetProcessMemoryInfo =
+		(type_GetProcessMemoryInfo)
+		loadAndFindSystemFunction("psapi.dll", "GetProcessMemoryInfo");
+
+	if (GetProcessMemoryInfo) {
+
+		PROCESS_MEMORY_COUNTERS_EX mc;
+		GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&mc), sizeof(mc));;
+		return natural(mc.PrivateUsage);
+	}
+	else {
+		return naturalNull;
 	}
 }
 
@@ -558,9 +724,10 @@ ProgInstance::InstanceStage ProgInstance::getInstanceStage() const
 	else return predaemon;
 }
 
+
 void ProgInstance::restartDaemon()
 {
-	//TODO implement later
+	ExitProcess(251);
 }
 
 }

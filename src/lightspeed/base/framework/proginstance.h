@@ -23,7 +23,7 @@ namespace LightSpeed {
 
 
 struct ProgInstanceBuffer;
-///Defines program instance for Interprocess comminication with other processes
+///Defines program instance for Interprocess communication with other processes
 /**
  * This class handles two problems. First implements PID file, which
  * is used to identify program instance and allows to prevent multiple running
@@ -312,6 +312,12 @@ public:
 	 * @note Function should determine daemon mode from current object. If 
 	 * application is in daemon mode but not through this object, function should
 	 * return false
+	 *
+	 * @note Under Windows and generally under platform without fork() implementation,
+	 * the daemon mode is reported after program enters to the daemon mode and
+	 * spawns the daemon process. The newly spawned process is daemon and function
+	 * will return true in such a process. Note that newly created process must
+	 * also call enterDaemonMode to determine this state
 	 */
 	 
 	bool inDaemonMode() const;
@@ -492,13 +498,13 @@ public:
 
 	void close();
 
-
 protected:
 
 	void operator=(const ProgInstance &name);
 
 	String name;
 	ProgInstanceBuffer *buffer;
+	ProgInstance *prevInstance;
 	
 };
 

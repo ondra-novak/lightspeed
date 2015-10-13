@@ -516,6 +516,7 @@
     <ClInclude Include="src\lightspeed\mt\atomic.h" />
     <ClInclude Include="src\lightspeed\mt\atomic_type.h" />
     <ClInclude Include="src\lightspeed\mt\dispatcher.h" />
+    <ClInclude Include="src\lightspeed\mt\exceptions\dispatcher.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\fiberException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\threadException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\timeoutException.h" />
@@ -627,7 +628,7 @@
     <ClCompile Include="src\lightspeed\base\streams\memfile.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\netio.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\tcpHandler.cpp" />
-    <ClCompile Include="src\lightspeed\base\streams\utf.cc" />
+    <ClCompile Include="src\lightspeed\base\streams\utf.cpp" />
     <ClCompile Include="src\lightspeed\base\sync\tls.cpp" />
     <ClCompile Include="src\lightspeed\base\sync\tlsalloc.cpp" />
     <ClCompile Include="src\lightspeed\base\text\textFormat.cpp" />

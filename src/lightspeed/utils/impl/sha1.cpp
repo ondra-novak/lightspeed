@@ -19,7 +19,12 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include "..\..\base\platform.h"
+#ifdef LIGHTSPEED_PLATFORM_WINDOWS
+#include <malloc.h>
+#else
 #include <alloca.h>
+#endif
 
 namespace LightSpeed {
 
