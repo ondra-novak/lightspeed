@@ -231,27 +231,31 @@ public:
 	void waitForTerminate(natural timeout);
 
 	///Enters daemon mode
-	/** Uses best way implement daemon mode. Under Linux, fork is used
-	and then application detaches itself from the console. 
-	Under Windows, function restarts application with same arguments
-	but uses environment variable to notify, that second instance
-	is started. Function expects, that second instance also reaches
-	this function and will be able to determine, that application
-	is already in daemon mode. First instance exits prematurely without
-	returning from this function 
-
-	You should not perform any non repeatable tasks before application
-	enter to daemon mode, because on some platforms means, that
-	these tasks will be repeated
-
-        @param restartOnErrorSec allows to restart deamon mode when 
-	application crashes. Default value 0 disables this feature.
-	Other values specifies number of seconds wait before next restart
-	Service is restarted only when critical error, unhandled exception or signal
-	is caught. On some platforms, interval can be ignored and
-	feature is enabled for any value above zero. If platform
-	doesn't support restarts, or restarts are handled by
-	outside of application, this argument is ignored
+	/**
+	 * - detaches from console if necesery (creates new SID)
+	 * - starts monitoring the daemon and restarts it on crash
+	 * - closes all input and output handles
+	 * - isolate the daemon from the original process
+	 *
+	 * Under WINDOWS
+	 *
+	 * 	- starts separate process to isolate the daemon instance
+	 * 	- starts monitoring process to able restart daemon if necessary
+	 * 	- there can be three processes started at time
+	 * 	-  * the original process is exited once deamon process is started (simulates fork())
+	 * 	-  * new process is started as stub, skipping user program and performing the monitoring
+	 * 	-  * first task of new process is to boots up original program in daemon mode
+	 * 	-  * once these two processes are up, original process exits with exit code zero
+	 *
+	 * Under WINDOWS service
+	 *
+	 *  - If service is available, function starts new thread and calls service dispatcher
+	 *  - in ServiceMain, function releases current thread making current thread as service
+	 *      thread
+	 *  - destroying the ProgInstance instance causes ServiceMain exit
+	 *  - command passed though the service control dispatcher are translated and posted to
+	 *     the ProgInstance.
+	 *  - this allows
 	*/
 	void enterDaemonMode(natural restartOnErrorSec = 0);
 	
