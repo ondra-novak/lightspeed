@@ -47,9 +47,9 @@ force-rebuild:
 	
 $(CFGNAME):
 	@rm -f tmp/cfg.debug tmp/cfg.release
+	@mkdir -p tmp
 	@touch $@	
 	@echo $(PROGRESSPREFIX): Forced rebuild for CXXFLAGS=$(CXXFLAGS)
-	@mkdir -p tmp
 
 
 tmp/%.o: %.cpp  $(CONFIG) $(CFGNAME)
