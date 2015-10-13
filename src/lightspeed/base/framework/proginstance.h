@@ -505,7 +505,6 @@ public:
 protected:
 
 	void operator=(const ProgInstance &name);
-
 	String name;
 	ProgInstanceBuffer *buffer;
 	ProgInstance *prevInstance;

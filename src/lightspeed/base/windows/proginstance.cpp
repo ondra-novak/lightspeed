@@ -18,6 +18,7 @@
 #include "../streams/fileiobuff.tcc"
 #include "../framework/iapp.h"
 #include <psapi.h>
+#include "../framework/app.h"
 
 namespace {
 
@@ -98,7 +99,23 @@ struct RequestBufferHdr {
 };
 
 
+class WinStub: public App {
+public:
+	WinStub() :App(-24648979),inDaemonInstance(false) {}
 
+	virtual integer start(const Args &args) 
+	{
+		return 0;
+	}
+
+	virtual void init() override;
+
+
+	bool inDaemonInstance;
+};
+
+
+static WinStub globalWinStub;
 
 
 struct ProgInstanceBuffer {
@@ -108,8 +125,9 @@ struct ProgInstanceBuffer {
 	RequestBufferHdr *request;
 	HANDLE hRequestEvent;
 	bool indaemon;
+	WinStub *gwinstub;
 	
-	ProgInstanceBuffer():hMutex(0),hMsgWnd(0),hProcess(0),request(0),hRequestEvent(0),indaemon(false) {}
+	ProgInstanceBuffer():hMutex(0),hMsgWnd(0),hProcess(0),request(0),hRequestEvent(0),indaemon(false),gwinstub(&globalWinStub) {}
 	~ProgInstanceBuffer() {
 		if (hMsgWnd) DestroyWindow(hMsgWnd);
 		if (hMutex) CloseHandle(hMutex);
@@ -475,31 +493,6 @@ bool ProgInstance::inDaemonMode() const {
 	return buffer->indaemon;
 }
 
-static HANDLE openDaemonEvent() {
-	TextFormatBuff<wchar_t, StaticAlloc<256> > fmt;
-	fmt("LightSpeed_DaemonMode_Event_%1%%2") << natural(GetCurrentProcessId()) << '\0';
-	ConstStrW eventName = fmt.write();
-	HANDLE hDemonEvent = OpenEventW(EVENT_ALL_ACCESS,FALSE,eventName.data());
-	return hDemonEvent;
-}
-
-static HANDLE createDaemonEvent(DWORD pid) {
-	TextFormatBuff<wchar_t, StaticAlloc<256> > fmt;
-	fmt("LightSpeed_DaemonMode_Event_%1%%2") << natural(pid) << '\0';
-	ConstStrW eventName = fmt.write();
-	SecurityAttributes_t secatr = SecurityAttributes_t::getLowIntegrity(false);
-	HANDLE hDemonEvent = CreateEventW(&secatr,TRUE,FALSE,eventName.data());
-	return hDemonEvent;
-}
-
-static bool waitForInitDaemon(HANDLE hDaemonEvent, HANDLE hDaemonProcess) {
-	HANDLE hWaits[2];
-	hWaits[0] = hDaemonEvent;
-	hWaits[1] = hDaemonProcess;
-	DWORD sel = WaitForMultipleObjects(2,hWaits,FALSE,INFINITE);
-	return sel == WAIT_OBJECT_0;
-}
-
 struct DaemonSharedArea {
 	///time when daemon started
 	time_t startTime;
@@ -547,9 +540,10 @@ static String getDaemonAreaName(DWORD pid) {
 
 const wchar_t *enterDaemonCmd = L"{9A555DF3-B61A-48C1-83F8-FFC1A6DF1A54}";
 
-void stubEnterDaemonMode(DWORD_PTR handle) {
-	HANDLE hArea = (HANDLE)handle;
-	DaemonSharedArea *org = (DaemonSharedArea *)MapViewOfFile(hArea, FILE_MAP_READ);
+void stubEnterDaemonMode(HANDLE handle) {
+
+	HANDLE hArea = handle;
+	DaemonSharedArea *org = (DaemonSharedArea *)MapViewOfFile(hArea, FILE_MAP_READ,0,0,0);
 	daemonProcessData = *org;
 	String cmdLine = org->commandLine;
 	UnmapViewOfFile(org);
@@ -589,7 +583,7 @@ void stubEnterDaemonMode(DWORD_PTR handle) {
 		sinfo.hStdOutput = hWrite;
 		sinfo.hStdInput = hRead;
 
-		BOOL res = CreateProcessW(0, cmdLine, 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
+		BOOL res = CreateProcessW(0, (LPWSTR)cmdLine.cStr(), 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
 			0, 0, &sinfo, &pi);
 		if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
 		ResumeThread(pi.hThread);
@@ -614,7 +608,7 @@ void stubEnterDaemonMode(DWORD_PTR handle) {
 			}
 			time_t rs = dsa->restartTime - prevRestart;
 			if (rs < daemonProcessData.restartOnErrorSec) {
-				Sleep(DWORD((restartOnErrorSec - rs) * 1000));
+				Sleep(DWORD((daemonProcessData.restartOnErrorSec - rs) * 1000));
 			}
 		}
 	} while (exitCode >= 251);
@@ -624,9 +618,10 @@ void stubEnterDaemonMode(DWORD_PTR handle) {
 }
 
 
+
 void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {	
 	LS_LOGOBJ(lg);
-	if (!imOwner())  throw ErrorMessageException(THISLOCATION, "Access denied");
+	if (!imOwner())  throw ErrorMessageException(THISLOCATION, "Access denied");	
 	DWORD masterPid = getParentPid();
 
 	HANDLE hDaemonArea = OpenFileMappingW(FILE_MAP_READ, FALSE,getDaemonAreaName(masterPid).cStr());
@@ -658,7 +653,7 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 		sinfo.cb = sizeof(sinfo);
 
 
-		HANDLE hDaemonArea = CreateFileMappingW(0, &sa, PAGE_READWRITE,0, sizeof(DaemonSharedArea)+sizeof(wchar_t)*cmdLineLen, getDaemonAreaName(GetCurrentProcessId()).c_str());
+		HANDLE hDaemonArea = CreateFileMappingW(0, &sa, PAGE_READWRITE,0, sizeof(DaemonSharedArea)+sizeof(wchar_t)*cmdLineLen, NULL);
 		if (hDaemonArea == NULL || hDaemonArea == INVALID_HANDLE_VALUE) {
 			throw ErrNoException(THISLOCATION, GetLastError());
 		}
@@ -773,12 +768,42 @@ ProgInstance::InstanceStage ProgInstance::getInstanceStage() const
 	if (buffer == 0) return standard;
 	if (!imOwner()) return controller;
 	if (buffer->indaemon) return daemon;
-	HANDLE hDaemonEvent = openDaemonEvent();
-	CloseHandle(hDaemonEvent);
-	if (hDaemonEvent == 0) return standard;
-	else return predaemon;
+	if (buffer->gwinstub->inDaemonInstance) return predaemon;
+	return standard;
 }
 
+
+
+void WinStub::init()
+{
+	LPWSTR *szArglist;
+	int nArgs;
+
+
+	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+	if (NULL == szArglist)
+	{
+		throw ErrNoWithDescException(THISLOCATION, GetLastError(), L"Failed to read command line");
+	}
+
+	if (nArgs == 3 && wcscmp(szArglist[1], enterDaemonCmd) == 0) {
+		ConstStrW strhandle(szArglist[2]);
+		natural numhndl;
+		parseUnsignedNumber(strhandle.getFwIter(), numhndl, 10);
+		HANDLE h = (HANDLE)numhndl;
+		stubEnterDaemonMode(h);
+	}
+	else {
+		DWORD masterPid = getParentPid();
+		HANDLE hDaemonArea = OpenFileMappingW(FILE_MAP_READ, FALSE, getDaemonAreaName(masterPid).cStr());
+		if (hDaemonArea != NULL && hDaemonArea != INVALID_HANDLE_VALUE) {
+			inDaemonInstance = true;
+		}
+		CloseHandle(hDaemonArea);
+
+	}
+	LocalFree(szArglist);
+}
 
 void ProgInstance::restartDaemon()
 {
