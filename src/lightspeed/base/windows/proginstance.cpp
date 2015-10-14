@@ -583,7 +583,10 @@ void stubEnterDaemonMode(HANDLE handle) {
 		sinfo.hStdOutput = hWrite;
 		sinfo.hStdInput = hRead;
 
-		BOOL res = CreateProcessW(0, (LPWSTR)cmdLine.cStr(), 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
+		wchar_t *wcmd = (wchar_t *)alloca(cmdLine.length() * 2 + 100);
+		wcscpy_s(wcmd, cmdLine.length() + 1, cmdLine.c_str());
+
+		BOOL res = CreateProcessW(0, wcmd, 0, 0, TRUE, CREATE_NO_WINDOW |  CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED,
 			0, 0, &sinfo, &pi);
 		if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
 		ResumeThread(pi.hThread);
@@ -665,7 +668,7 @@ void ProgInstance::enterDaemonMode(natural restartOnErrorSec) {
 		String stubCmdLine = ConstStrW(L"\"") + ConstStrW(szArglist[0]) + ConstStrW(L"\" ") + ConstStrW(enterDaemonCmd) + ConstStrW(L" ") +
 			ToString<natural, wchar_t>((natural)hDaemonArea);
 
-		BOOL res = CreateProcessW(0, (LPWSTR)stubCmdLine.cStr(), 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT | DETACHED_PROCESS | CREATE_SUSPENDED,
+		BOOL res = CreateProcessW(0, (LPWSTR)stubCmdLine.cStr(), 0, 0, TRUE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_BREAKAWAY_FROM_JOB | CREATE_UNICODE_ENVIRONMENT  | DETACHED_PROCESS | CREATE_SUSPENDED,
 			0, 0, &sinfo, &pi);
 		if (res == FALSE) throw ErrNoException(THISLOCATION, GetLastError());
 		ResumeThread(pi.hThread);
