@@ -56,13 +56,14 @@ $(LIBDEPS): $(CONFIG)
 $(LIBFULLNAME): $(OBJS) $(LIBDEPS)
 	@$(genlibdeps)
 	@echo "$(LIBNAME): Creating library ..."		
-	@$(AR) -r $@ $(OBJS)
-	@touch tmp/stamp
+	@$(AR) -r $@ $(OBJS)	
 	
 clean: 
 	@echo $(LIBNAME): cleaning 
 	@$(RM) $(clean_list)
 	@$(RM) $(LIBDEPS)
+	@$(RM) -r tmp
+	
 
 
 ifneq "$(MAKECMDGOALS)" "clean"

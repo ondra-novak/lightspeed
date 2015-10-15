@@ -33,6 +33,7 @@ endif
 clean:
 	@echo $(APPNAME): cleaning  
 	@$(RM) $(clean_list)
+	@$(RM) -r tmp
 	@for X in $(NEEDLIBS); do $(MAKE) -C $$X clean; done
 	
 
