@@ -470,22 +470,22 @@ namespace LightSpeed {
 
 		//in the child process (fres = 0)
 		if (fres == 0) {
-
+			int chInput = -1, chOutput = -1, chError = -1;
 			//duplicate original fds, because they are marked O_CLOEXEC
 			//first duplicate to new set to handle collisions while descriptors are in 0-2 range
-			if (hInput >= 0) hInput = dup(hInput);
-			if (hOutput >= 0) hOutput = dup(hOutput);
-			if (hError >= 0) hError = dup(hError);
+			if (hInput >= 0) chInput = dup(hInput);
+			if (hOutput >= 0) chOutput = dup(hOutput);
+			if (hError >= 0) chError = dup(hError);
 
 			//set input output and error fds
-			if (hInput >= 0) {
-				dup2(hInput,0);close(hInput);
+			if (chInput >= 0) {
+				dup2(chInput,0);close(chInput);
 			}
 			if (hOutput >= 0) {
-				dup2(hOutput,1);close(hOutput);
+				dup2(chOutput,1);close(chOutput);
 			}
 			if (hError >= 0) {
-				dup2(hError,2);close(hError);
+				dup2(chError,2);close(chError);
 			}
 
 			//disable O_CLOEXEC on streams exported to the child process
