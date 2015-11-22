@@ -121,7 +121,7 @@ namespace LightSpeed {
 		else stackSize = sizeof(natural) * stackSize;
 
 		ITLSTable &tbl = ITLSTable::getInstance();
-		Fiber *fb = currentFiber[tbl];
+		Fiber *volatile fb = currentFiber[tbl];
 		if (fb == 0) fb = &createMasterFiber();
 
 		//retrieve current fiber
