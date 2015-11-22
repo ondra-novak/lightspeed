@@ -354,11 +354,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\atomic_type.h"
+				RelativePath=".\src\lightspeed\mt\atomic_type.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\atomic_type.h"
+				RelativePath=".\src\lightspeed\mt\windows\atomic_type.h"
 				>
 			</File>
 			<File
@@ -730,11 +730,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\iter\iterator.h"
+				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\iterator.h"
+				RelativePath=".\src\lightspeed\base\iter\iterator.h"
 				>
 			</File>
 			<File
@@ -754,11 +754,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json\json.h"
+				RelativePath=".\src\lightspeed\utils\json.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\utils\json.h"
+				RelativePath=".\src\lightspeed\utils\json\json.h"
 				>
 			</File>
 			<File
@@ -1006,15 +1006,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\platform.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\lightspeed\mt\platform.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\lightspeed\base\windows\platform.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\lightspeed\base\platform.h"
 				>
 			</File>
 			<File
@@ -1406,11 +1406,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
+				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\threadsleeper.h"
+				RelativePath=".\src\lightspeed\mt\threadSleeper.h"
 				>
 			</File>
 			<File
@@ -1486,11 +1486,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\utf.h"
+				RelativePath=".\src\lightspeed\base\exceptions\utf.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\exceptions\utf.h"
+				RelativePath=".\src\lightspeed\base\streams\utf.h"
 				>
 			</File>
 			<File
@@ -1510,11 +1510,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
+				RelativePath=".\src\lightspeed\base\windows\winpch.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\windows\winpch.h"
+				RelativePath=".\src\lightspeed\mt\windows\winpch.h"
 				>
 			</File>
 			<File
@@ -1934,7 +1934,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\lightspeed\base\streams\utf.cc"
+				RelativePath=".\src\lightspeed\base\streams\utf.cpp"
 				>
 			</File>
 			<File

@@ -247,6 +247,7 @@ void WinHttpStream::initRequest()
 	if (parser( L"%1:%u2",domain)) {
 		domain = parser[1].str();
 		port = parser[2];
+		secure = false;
 	} else if (protocol == ConstStrW(L"http")) {
 		port = INTERNET_DEFAULT_HTTP_PORT;
 		secure = false;

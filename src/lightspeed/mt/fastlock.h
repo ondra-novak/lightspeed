@@ -83,7 +83,7 @@ public:
 		Slot *o = owner;
 		//set owner to 0 - it should not contain invalid value after unlock
 		owner = 0;
-		//try to unlock as there is no threads in queue (release barier)
+		//try to unlock as there is no threads in queue (release barrier)
 		Slot *topQ = lockCompareExchangePtr<Slot>(&queue,o,0);
 		//in case, that other thread waiting, topQ will be different than owner
 		if (topQ != o) {
@@ -95,7 +95,7 @@ public:
 			ISleepingObject *ntf = p->notify;
 			//write owner to notify next thread - target thread has ownership now!
 			owner = p;
-			//notify new owner - it may sleep (release barier here)
+			//notify new owner - it may sleep (release barrier here)
 			ntf->wakeUp();
 		}
 
@@ -266,8 +266,8 @@ public:
 
 	///Unlock the fastlock
 	/**
-	  Function also tajes care on recursive locking. Count of unlocks must match to the count of locks (including
-	  successed tryLocks). After these count matches, lock is released
+	  Function also takes care on recursive locking. Count of unlocks must match to the count of locks (including
+	  successes tryLocks). After these count matches, lock is released
 	  */
 	void unlock() {
 
