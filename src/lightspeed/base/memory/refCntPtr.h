@@ -35,12 +35,18 @@ namespace LightSpeed {
 		bool isShared() const {return (counter & ~fastFlag) != 1;}
 
 		///Sets counter to MT
-		void enableMTAccess() const {counter &= ~fastFlag;}
+		/** Function is MT safe and can be called even if object is already MT aware. In this case
+		 * function does nothing rather of trying to re-enable MT access
+		 */
+		void enableMTAccess() const ;/*{counter &= ~fastFlag;}*/
 		///Sets counter to ST
-		void disableMTAccess() const {counter |= fastFlag;}
+		/** Function is MT safe. However you should ensure, that after disabling MT, object cannot be
+		 * accessed from other thread otherwise a race condition can happen.
+		 */
+		void disableMTAccess() const ;/*{counter |= fastFlag;}*/
 		///Object is allocated statically
 		/** allows to work with RefCntObj, but allocated statically.
-		 * Counter never reaches a zero
+		 * Counter should never reach zero
 		 */
 		void setStaticObj() const {addRef();}
 

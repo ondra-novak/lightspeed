@@ -40,10 +40,29 @@ void RefCntObj::debugClear() const {
 	writeRelease(&counter,0xFEEEFEEE);
 }
 
+void RefCntObj::enableMTAccess() const {
+	atomicValue v = readAcquire(&counter);
+	atomicValue nv,ov;
+	do {
+		if ((v & fastFlag) == 0) break;
+		ov = v;
+		nv = ov & ~fastFlag;
+	} while ((v = lockCompareExchange(counter,ov,nv)) != ov);
+}
+
+void RefCntObj::disableMTAccess() const {
+	atomicValue v = readAcquire(&counter);
+	atomicValue nv,ov;
+	do {
+		if ((v & fastFlag) != 0) break;
+		ov = v;
+		nv = ov | fastFlag;
+	} while ((v = lockCompareExchange(counter,ov,nv)) != ov);
+}
+
 
 atomicValue RefCntObj::initialValue = RefCntObj::fastFlag;
 
-}
 
 void LightSpeed::RefCntObj::globalDisableMTAccess() {
 	initialValue = fastFlag;
@@ -51,4 +70,8 @@ void LightSpeed::RefCntObj::globalDisableMTAccess() {
 
 void LightSpeed::RefCntObj::globalEnableMTAccess() {
 	initialValue = 0;
+}
+
+///Sets counter to ST
+
 }
