@@ -84,6 +84,12 @@ void TCPServer::stop()
 		PConnection conn = iter.getNext().getMT();
 		eventListener(conn->getStream(),conn).erase();
 	}
+
+	///remove all other ports
+	for (natural i = 0; i < otherPorts.length(); i++) {
+		eventListener(otherPorts[i]->getSocket(), otherPorts[i]).erase();
+	}
+
 	Notifier ntf;
 	//finally remove mother socket from the listener
 	eventListener(mother,&sleeper).erase().onCompletion(&ntf);
@@ -93,9 +99,9 @@ void TCPServer::stop()
 	//reset all open descriptors
 	connList.clear();
 
-	//close all other ports
+	//clear other ports
 	otherPorts.clear();
-
+#if 0
 	//close mother socket
 	mother = NetworkStreamSource();
 
@@ -103,7 +109,7 @@ void TCPServer::stop()
 	eventListener = NetworkEventListener();
 	//everything is clean
 	//leave shutdown flag on to prevent any future tries to repeat this
-
+#endif
 }
 
 void TCPServer::Sleeper::wakeUp(natural ) throw() {
@@ -333,8 +339,8 @@ natural TCPServer::addPort(NetworkStreamSource tcpsource) {
 }
 
 void TCPServer::OtherPortAccept::wakeUp(natural ) throw()  {
-	owner.acceptConn(nss,sourceId);
-	owner.getEventListener()(nss,this);
+	owner.acceptConn(getSocket(),sourceId);
+	owner.getEventListener()(getSocket(),this);
 }
 
 TCPServer::OtherPortAccept::OtherPortAccept(TCPServer& owner, natural sourceId,

@@ -175,11 +175,13 @@ protected:
 	public:
 		virtual void wakeUp(natural reason = 0) throw();
 		OtherPortAccept(TCPServer &owner, natural sourceId, const NetworkStreamSource &nss);
-	protected:
 
-		TCPServer &owner;
+		NetworkStreamSource getSocket() const { return nss; }		
+	protected:
 		natural sourceId;
 		NetworkStreamSource nss;
+
+		TCPServer &owner;
 	};
 
 	typedef RefCntPtr<Connection> PConnection;
