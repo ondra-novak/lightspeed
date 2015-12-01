@@ -289,7 +289,7 @@ namespace LightSpeed {
 		CArray<char,30> buf;
 		formatTime(buf, "%w--, %d %m- %Y %H:%M:%S GMT");
 		memcpy(buf.data(), DAY_NAMES[buf[0] - '0'], 3);
-		memcpy(buf.data()+8, MONTH_NAMES[(buf[8] - '0') * 10 + (buf[9] - '0')], 3);
+		memcpy(buf.data()+8, MONTH_NAMES[(buf[8] - '0') * 10 + (buf[9] - '0') -1 ], 3);
 
 		return buf;
 
