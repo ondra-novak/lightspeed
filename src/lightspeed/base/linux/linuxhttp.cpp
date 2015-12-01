@@ -20,7 +20,7 @@ LinuxHttpStream::LinuxHttpStream(String url, const HTTPSettings& defaultSettins)
 
 natural LinuxHttpStream::read(void* buffer, natural size) {
 	if (state != stReading) sendRequest();
-	return inputStream.blockRead(buffer,size,false);
+	return inputStream.getStream()->read(buffer,size);
 }
 
 natural LinuxHttpStream::write(const void* buffer, natural size) {
@@ -28,12 +28,12 @@ natural LinuxHttpStream::write(const void* buffer, natural size) {
 	else if (state != stWriting)
 		throwWriteIteratorNoSpace(THISLOCATION,typeid(*this));
 
-	return outputStream.blockWrite(buffer,size,false);
+	return outputStream.getStream()->write(buffer,size);
 }
 
 natural LinuxHttpStream::peek(void* buffer, natural size) const {
 	if (state != stReading) const_cast<LinuxHttpStream *>(this)->sendRequest();
-	return inputStream.blockRead(buffer,size,false);
+	return inputStream.getStream()->peek(buffer,size);
 }
 
 bool LinuxHttpStream::canRead() const {

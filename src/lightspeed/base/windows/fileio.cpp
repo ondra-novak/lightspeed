@@ -958,10 +958,11 @@ bool WindowsDirectoryIterator::getNext()
 		{
 			LPWSTR name;
 			DWORD l = GetFullPathNameW(path.cStr(), 0, 0, 0);
+			
 			StringW expath;
-			wchar_t *buff = expath.createBuffer(l);
+			wchar_t *buff = (wchar_t *)alloca(sizeof(wchar_t) * l);
 			GetFullPathNameW(path.cStr(), l, buff, &name);
-			path = expath;
+			path = ConstStrW(buff);
 			ppos = name - buff - 1;
 		}
 		if (thisFile) {

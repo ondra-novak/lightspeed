@@ -175,8 +175,9 @@ protected:
 	public:
 		virtual void wakeUp(natural reason = 0) throw();
 		OtherPortAccept(TCPServer &owner, natural sourceId, const NetworkStreamSource &nss);
-	protected:
 
+		NetworkStreamSource &getSocket() { return nss; }
+	protected:
 		TCPServer &owner;
 		natural sourceId;
 		NetworkStreamSource nss;
