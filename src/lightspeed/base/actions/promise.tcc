@@ -12,7 +12,21 @@ namespace LightSpeed {
 template<typename T>
 bool Promise<T>::Future::resolved() const throw()
 {
+	return isResolved();
+}
+
+template<typename T>
+bool Promise<T>::Future::isResolved() const throw()
+{
 	return (value != nil || exception != nil);
+}
+
+template<typename T>
+IPromiseControl::State Promise<T>::Future::getState() const throw()
+{
+	Synchronized<FastLock> _(lock);
+	if (resolving) return stateResolving;
+	return isResolved() ? stateResolved : stateNotResolved;
 }
 
 template<typename T>
@@ -28,32 +42,92 @@ void Promise<T>::Future::resolve( const IConstructor<T> &result ) throw ()
 }
 
 template<typename T>
-void Promise<T>::Future::reject(const PException &e ) throw ()
+void Promise<T>::Future::resolve(const PException &e ) throw ()
 {
-	{
-		Synchronized<FastLock> _(lock);
-		if (resolved()) return;
-		exception = e.getMT();
+	//temporary array of loaded observers
+	Observers cpy;
+	//lock the promise internals
+	Synchronized<FastLock> _(lock);
+	//if already resolved, prevent future rejections
+	if (isResolved()) return;
+	//set to resolving state
+	resolving = true;
+	//store exception
+	exception = e.getMT();
+	//while there are observers
+	while (!observers.empty()) {
+		//load observers
+		cpy.swap(observers);
+		//unlock internals (observers are loaded at separate place)
+		SyncReleased<FastLock> _(lock);
+		//execute observers
+		for (natural i = 0; i < cpy.length(); i++)
+			cpy[i]->resolve(e);
+		//clear array of obervers
+		cpy.clear();
+		//repeat until observer's array is emptied
 	}
-	for (natural i = 0; i < observers.length();i++)
-		observers[i]->reject(exception);
-	observers.clear();
-	RefCntPtr<Future>(this).manualRelease();
+	//finally finish resolving
+	resolving = false;
 }
+
+template<typename T>
+template<typename X>
+void Promise<T>::Future::resolveInternal(const X & result)
+{
+	//temporary array of loaded observers
+	Observers cpy;
+	//lock the promise internals
+	Synchronized<FastLock> _(lock);
+	//if already resolved, prevent future resolutions
+	if (isResolved()) return;
+	//set to resolving state
+	resolving = true;
+	//store value
+	value = result;
+	//cycle until the list of observers is empty
+	while (!observers.empty()) {
+		//load observers to the other list to unlock internals as soon as possible
+		cpy.swap(observers);
+		//unlock internals
+		SyncReleased<FastLock> _(lock);
+		//process all obeservers
+		for (natural i = 0; i < cpy.length(); i++)
+			//send value
+			cpy[i]->resolve(value);
+		//clear the list
+		cpy.clear();
+	}
+	//reset state
+	resolving = false;
+}
+
 
 template<typename T>
 void Promise<T>::Future::registerObserver( IObserver *ifc )
 {
+	//lock promise internals
 	lock.lock();
-	if (value != nil) {
-		lock.unlock();
-		ifc->resolve(value);
+	//if promise is not currently resolving
+	if (!resolving) {
+		//if there is value
+		if (value != nil) {
+			lock.unlock();
+			//call resolve
+			ifc->resolve(value);
+			return;
+		}
+		//if there is exception
+		if (exception != nil) {
+			lock.unlock();
+			//reject 
+			ifc->resolve(exception);
+			return;
+		}
 	}
-	if (exception != nil) {
-		lock.unlock();
-		exception->throwAgain(THISLOCATION);
-	}
+	//otherwise add the observer to the list
 	observers.add(ifc);
+	//unlock internals
 	lock.unlock();
 }
 
@@ -69,21 +143,6 @@ bool Promise<T>::Future::unregisterObserver( IObserver *ifc )
 		}
 	}
 	return false;
-}
-
-template<typename T>
-template<typename X>
-void Promise<T>::Future::resolveInternal( const X & result )
-{
-	{
-		Synchronized<FastLock> _(lock);
-		if (resolved()) return;
-		value = result;
-	}
-	for (natural i = 0; i < observers.length();i++)
-		observers[i]->resolve(value);
-
-	observers.clear();
 }
 
 
@@ -122,7 +181,7 @@ const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 			thread->wakeUp();
 		}
 
-		virtual void reject(const PException &e ) throw()
+		virtual void resolve(const PException &e ) throw()
 		{
 			this->exception = e.getMT();
 			thread->wakeUp();
@@ -166,7 +225,7 @@ Promise<T> Promise<T>::then( Fn fn) {
 			}
 			delete this;
 		}
-		virtual void reject(const PException &e) throw() {
+		virtual void resolve (const PException &e) throw() {
 			rptr.reject(e);
 			delete this;
 		}
@@ -190,7 +249,7 @@ Promise<T> Promise<T>::thenCall( Fn fn)
 			fn(result);
 			delete this;
 		}
-		virtual void reject(const PException &) throw() {
+		virtual void resolve(const PException &) throw() {
 			delete this;
 		}
 
@@ -208,12 +267,13 @@ Promise<T> Promise<T>::whenRejected( Fn fn)
 	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn, const Result &rptr):fn(fn),rptr(rptr) {}
-		virtual void resolve(const T &) throw() {
+		virtual void resolve(const T &x) throw() {
+			rptr.resolve(x);
 			delete this;
 		}
-		virtual void reject(const PException &oe) throw() {
+		virtual void resolve(const PException &oe) throw() {
 			try {
-				rptr.reject(fn(oe));
+				rptr.resolve(fn(oe));
 			} catch (Exception &e) {
 				rptr.reject(e << oe);
 			} catch (std::exception &e) {
@@ -242,7 +302,7 @@ Promise<T> Promise<T>::whenRejectedCall( Fn fn)
 		virtual void resolve(const T &) throw() {
 			delete this;
 		}
-		virtual void reject(const PException &e) throw() {
+		virtual void resolve(const PException &e) throw() {
 			fn(e);
 			delete this;
 		}
@@ -272,9 +332,9 @@ Promise<T> Promise<T>::then(Fn resolveFn, RFn rejectFn) {
 			}
 			delete this;
 		}
-		virtual void reject(const PException &oe) throw() {
+		virtual void resolve(const PException &oe) throw() {
 			//deleted exception handler - error in reject is probihited
-			rptr.reject(rfn(oe));
+			rptr.resolve(rfn(oe));
 			delete this;
 		}
 
@@ -289,11 +349,6 @@ Promise<T> Promise<T>::then(Fn resolveFn, RFn rejectFn) {
 
 template<typename T>
 void Promise<T>::Resolution::resolve(Promise<T> result) {
-	result.addObserver(this);
-}
-
-template<typename T>
-void Promise<T>::Resolution::reject(Promise<T> result) {
 	result.addObserver(this);
 }
 
@@ -315,27 +370,22 @@ void Promise<T>::Resolution::resolve( const IConstructor<T> &result ) throw()
 
 
 template<typename T>
-void Promise<T>::Resolution::reject( const Exception &e ) throw() {
-	reject(PException(e.clone()));
-
-}
-
-template<typename T>
-void Promise<T>::Future::cancel( const PException &e ) throw() {	
+IPromiseControl::State Promise<T>::Future::cancel( const PException &e ) throw() {	
 		Observers cpy;
 		{
 			Synchronized<FastLock> _(lock);
-			if (resolved()) return;
 			cpy.swap(observers);
 		}
 		for (natural i = 0; i < cpy.length(); i++)
-			cpy[i]->reject(e);
+			cpy[i]->resolve(e);
+		
+		return getState();
 	
 }
 
 template<typename T>
-void Promise<T>::Future::cancel( ) throw() {
-	cancel(new CanceledException(THISLOCATION));
+IPromiseControl::State Promise<T>::Future::cancel() throw() {
+	return cancel(new CanceledException(THISLOCATION));
 }
 
 template<typename T>
@@ -368,19 +418,19 @@ typename Promise<T>::Result Promise<T>::createResult(IRuntimeAlloc &alloc) {
 }
 
 template<typename T>
-void Promise<T>::cancel(const Exception &exception) throw() {
-	future->cancel(exception.clone());
+IPromiseControl::State Promise<T>::cancel(const Exception &exception) throw() {
+	return future->cancel(exception.clone());
 }
 
 template<typename T>
-void Promise<T>::cancel(PException exception) throw()  {
-	future->cancel(exception);
+IPromiseControl::State Promise<T>::cancel(PException exception) throw()  {
+	return future->cancel(exception);
 
 }
 
 template<typename T>
-void Promise<T>::cancel() throw()  {
-	future->cancel();
+IPromiseControl::State Promise<T>::cancel() throw()  {
+	return future->cancel();
 }
 
 template<typename T>
@@ -422,7 +472,7 @@ Promise<T> Promise<T>::transform(Promise<X> original, Fn fn) {
 			}
 			delete this;
 		}
-		virtual void reject(const PException &oe) throw() {
+		virtual void resolve(const PException &oe) throw() {
 			//deleted exception handler - error in reject is probihited
 			rptr.reject(oe);
 			delete this;
@@ -483,8 +533,9 @@ inline Promise<T>::Future::~Future() {
 	lock.lock();
 	if (!observers.empty()) {
 		CanceledException e(THISLOCATION);
+		PException ce = e.clone();
 		for (natural i = 0; i < observers.length();i++)
-			observers[i]->reject(exception);
+			observers[i]->resolve(ce);
 	}
 }
 
@@ -501,7 +552,7 @@ Promise<T> Promise<T>::thenWake(ISleepingObject &sleep, natural resolveReason, n
 			sleepObj.wakeUp(resolved);
 			delete this;
 		}
-		virtual void reject(const PException &) throw() {
+		virtual void resolve(const PException &) throw() {
 			sleepObj.wakeUp(rejected);
 			delete this;
 		}
@@ -533,7 +584,7 @@ Promise<X> Promise<T>::operator && (const Promise<X> &other) {
 			//delete this callback
 			delete this;
 		}
-		virtual void reject(const PException &e) throw() {
+		virtual void resolve(const PException &e) throw() {
 			//reject the promise using exception
 			res.reject(e);
 			//delete this callback (with the result)
@@ -556,7 +607,7 @@ Promise<X> Promise<T>::operator && (const Promise<X> &other) {
 			//delete this callback
 			delete this;
 		}
-		virtual void reject(const PException &e) throw() {
+		virtual void resolve(const PException &e) throw() {
 			//forward rejection
 			res.reject(e);
 			delete this;
@@ -606,8 +657,8 @@ inline Promise<T> Promise<T>::then(const Result& result) {
 			resolution.resolve(v);
 			delete this;
 		}
-		virtual void reject(const PException &e) throw() {
-			resolution.reject(e);
+		virtual void resolve(const PException &e) throw() {
+			resolution.resolve(e);
 			delete this;
 		}
 
@@ -632,7 +683,7 @@ Promise<void> Promise<void>::transform(Promise<X> original)
 			rptr.resolve();
 			delete this;
 		}
-		virtual void reject(const PException &oe) throw() {
+		virtual void resolve(const PException &oe) throw() {
 			rptr.reject(oe);
 			delete this;
 		}
@@ -645,6 +696,13 @@ Promise<void> Promise<void>::transform(Promise<X> original)
 	return p;
 }
 
+
+template<typename T>
+void Promise<T>::Future::wait(const Timeout &tm) const
+{
+	Promise<T> me(const_cast<Future *>(this));
+	me.wait(tm);
+}
 
 }
 

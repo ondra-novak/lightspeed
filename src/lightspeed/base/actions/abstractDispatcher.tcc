@@ -139,7 +139,7 @@ public:
 		dispatcher.dispatchAction(new(dispatcher.getActionAllocator()) DispatchResult(pr,result));
 		delete this;
 	}
-	virtual void reject(const PException &e) throw() {
+	virtual void resolve(const PException &e) throw() {
 		dispatcher.dispatchAction(new(dispatcher.getActionAllocator()) DispatchReject(pr,e));
 		delete this;
 	}

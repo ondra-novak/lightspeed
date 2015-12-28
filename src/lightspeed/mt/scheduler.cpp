@@ -23,7 +23,7 @@ namespace {
 	public:
 		CancelPromise(Promise<void>::Result res):res(res) {}
 		void operator()(const PException &e) {
-			res.reject(e);
+			res.resolve(e);
 		}
 	protected:
 		Promise<void>::Result res;
@@ -97,7 +97,7 @@ Scheduler::~Scheduler() {
 
 void Scheduler::cancelAllEvents() {
 	for (natural i = 0; i < eventMap.length(); i++) {
-		eventMap[i].getPromise().reject(CanceledException(THISLOCATION));
+		eventMap[i].getPromise().resolve(CanceledException(THISLOCATION).clone());
 	}
 }
 

@@ -28,29 +28,78 @@ class IPromiseControl: public RefCntObj {
 public:
 	virtual ~IPromiseControl() {}
 
-	///Cancels the promise
-	/**
-	 * Function sends reject exception to all callbacks attached to this promise. Canceled
-	 * promise is not resolved, so owner of the resolution object still able to resolve promise.
-	 *
-	 * Dispatchers can use function to cancel all registered promises if they need to empty their
-	 * collectors
-	 *
-	 * @param pointer to exception to use for cancelation
+	///State of the promise
+	/** In the original idea, promise can have two states. Not resolved
+	 and resolved. The idea expects, that observers will be notified
+	 instantly and/or asynchronously so resolved promise doesn't care about
+	 state of the observers. In the LightSpeed, observers
+	 are notified synchronously in the context of the thread that 
+	 finally resolved the promise. Because of this, the promise is
+	 not resolved instantly, there is always chance that promise 
+	 is in the half-resolved state, when the value is already known,
+	 but not all observers has been notified.
 	 */
-	virtual void cancel(const PException &e) throw () = 0;
+	enum State {
+		///Promise is not resolved yet and waiting for resolution
+		stateNotResolved,
+		///Promise is currently resolving
+		/** In this state, you cannot resolve the promise, because
+		 promise has been already resolved and thread is currently
+		 notifies observers. However, promise is not
+		 considered as resolved yet, so new observers bound
+		 to the promise is not immediately notified, they are just
+		 enqueued to be notified later once the thread finishes of the notification
+		 of the observers registered previously */
+		stateResolving,
+		///Promise has been resolved
+		/** Observer added to the promise is immediately notified
+		 in the context of the current thread */
+		stateResolved
+	};
 
 	///Cancels the promise
 	/**
-	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * Function sends reject exception to all observers attached to this promise. Canceled
 	 * promise is not resolved, so owner of the resolution object still able to resolve promise.
 	 *
 	 * Dispatchers can use function to cancel all registered promises if they need to empty their
 	 * collectors
 	 *
-	 * @note function sends CanceledException to all subscribers
+	 * @param pointer to exception to use for cancellation
+	 * @retval stateNotResolved Promise was not resolved, all observers has been removed and
+	 *   thus they will not executed. Function was able to cancel all observers. 
+	 * @retval stateResolving Promise was in resolving state, so some observers has already 
+		 received the value and some observers are already queued for notification - they
+		 cannot be canceled. Function was unsuccessful, program need to wait until
+		 promise resolves complete.
+	   @retval stateResolved Promise was already resolved, so function can no longer 
+	    cancel anything.
+
+	   @note Function synchronously executes whenRejected() observers.
 	 */
-	virtual void cancel() throw () = 0;
+	virtual State cancel(const PException &e) throw () = 0;
+
+	///Cancels the promise
+	/**
+	 * Function sends reject exception to all observers attached to this promise. Canceled
+	 * promise is not resolved, so owner of the resolution object still able to resolve promise.
+	 *
+	 * Dispatchers can use function to cancel all registered promises if they need to empty their
+	 * collectors
+	 *
+	 * @retval stateNotResolved Promise was not resolved, all observers has been removed and
+	 *   thus they will not executed. Function was able to cancel all observers.
+	 * @retval stateResolving Promise was in resolving state, so some observers has already
+	 received the value and some observers are already queued for notification - they
+	 cannot be canceled. Function was unsuccessful, program need to wait until
+	 promise resolves complete.
+	 @retval stateResolved Promise was already resolved, so function can no longer
+	 cancel anything.
+
+	 @note Function synchronously executes whenRejected() observers.
+	 * @note function sends CanceledException to all observers
+	 */
+	virtual State cancel() throw () = 0;
 
 	///determines resolution state
 	/**
@@ -59,9 +108,24 @@ public:
 	 *
 	 * @retval true promise is resolved or rejected.
 	 * @retval false promise is still waiting for resolution
+	 *
+	 * @note To achieve backward compatibility, function returns true also when the promise is
+	 * in "resolving" state.
 	 */
 	virtual bool resolved() const throw () = 0;
 
+	///Retrieves the state of the promise
+	/**
+	 @retval the state of the promise
+	 @note if function is called from other thread, result can be inaccurate, because
+	  state can change anytime later. If called in the observer, function returns 
+	  stateResolving. The only stable state is stateResolved
+	 */
+	virtual State getState() const throw () = 0;
+
+	///Wait for promise resolution	
+	/** Function cannot determine result of the promise. It can just only wait for the promise resolution */
+	virtual void wait(const Timeout &tm) const = 0;
 
 };
 
@@ -75,12 +139,19 @@ typedef RefCntPtr<IPromiseControl> PPromiseControl;
  *
  * Promise object can be also destroyed before promise is resolved.
  *
- * You can attach various callbacks to the promise object, that are called once promise
+ * You can attach various observers to the promise object, that are called once promise
  * is resolved. You can use getValue() or wait() to read result. These functiio
  *
  * Promises can be stored in map as keys. You can compare two Promise references to find
  * whether both are connected with the same future value.
  *
+ * @tparam T defines type of the value that will be stored inside of the promise. You can use
+ * any type which has a copy constructor and the assignment operator. You can specify 'void' to
+ * declare promise without an internal value. However, you cannot declare a promise with T equal
+ * to PException, because this type is used for the rejection.
+ * 
+ * Promise object defines order operator which allows to easy store promises in a map. Promises
+ * are ordered by an address of the internal instances.
  */
 template<typename T>
 class Promise
@@ -99,7 +170,7 @@ public:
 	/** Use this to create variable that will later hold a promise. 
 	   You can later use assign operator to set promise. You need to 
 	   avoid calling of other methods until promise is set - Violation of this
-	   rule causes application crash */
+	   rule causes the application crash */
 	Promise() {}
 
 	///Creates the Result object
@@ -265,7 +336,7 @@ public:
 	 * Function can return Promise of <T> which means that on rejection, function
 	 * can handle the rejection and perform another action to resolve the promise.
 	 * In case of success, function resolves the promise and execution continues
-	 * like the orginal promise was resolved. Function also can reject the promise
+	 * like the original promise was resolved. Function also can reject the promise
 	 * and execution continues by next rejection handler. Regardless on
 	 * what returned, original promise is always rejected
 	 *
@@ -297,7 +368,7 @@ public:
 	 */
 	Promise thenWake(ISleepingObject &sleep, natural resolveReason=0, natural rejectReason=1);
 
-	///Registers additional callback 
+	///Registers additional observer 
 	/** Registers user defined observer.
 	 *
 	 * @param ifc pointer to an observer. Observer is identified by its address, so you cannot
@@ -311,7 +382,7 @@ public:
 	 * It is possible to register observer at multiple promises, but in this case, observer
 	 * will be called by multiple time without giving it track which promises did resolve.
 	 *
-	 * @note if promise is already resovled in time of registration, observer is immediatelly
+	 * @note if promise is already resolved in time of registration, observer is immediately
 	 * executed in the content of the current thread and before function returns. If observer
 	 * destroys itself with resolution then the pointer no longer points to a valid object
 	 *
@@ -333,47 +404,47 @@ public:
 
 	///Cancels the promise
 	/**
-	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * Function sends reject exception to all observers attached to this promise. Canceled
 	 * promise is not resolved, so owner of the resolution object still able to resolve promise. This
-	 * also mean, that you are still able to attach callback after cancelation. Function only
-	 * affects all currently registered callbacks.
+	 * also mean, that you are still able to attach observer after cancellation. Function only
+	 * affects all currently registered observers.
 	 *
-	 * @param exception exception to use for cancelation.
+	 * @param exception exception to use for cancellation.
 	 */
-	void cancel(const Exception &exception) throw();
+	IPromiseControl::State cancel(const Exception &exception) throw();
 
 	///Cancels the promise
 	/**
-	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * Function sends reject exception to all observers attached to this promise. Canceled
 	 * promise is not resolved, so owner of the resolution object still able to resolve promise. This
-	 * also mean, that you are still able to attach callback after cancelation. Function only
-	 * affects all currently registered callbacks.
+	 * also mean, that you are still able to attach observer after cancellation. Function only
+	 * affects all currently registered observers.
 	 *
-	 * @param pointer to exception to use for cancelation
+	 * @param pointer to exception to use for cancellation
 	 */
-	void cancel(PException exception) throw();
+	IPromiseControl::State cancel(PException exception) throw();
 
 
 	///Cancels the promise
 	/**
-	 * Function sends reject exception to all callbacks attached to this promise. Canceled
+	 * Function sends reject exception to all observers attached to this promise. Canceled
 	 * promise is not resolved, so owner of the resolution object still able to resolve promise. This
-	 * also mean, that you are still able to attach callback after cancelation. Function only
-	 * affects all currently registered callbacks.
+	 * also mean, that you are still able to attach observer after cancellation. Function only
+	 * affects all currently registered observers.
 	 *
 	 * @note function send CanceledException to all subscribers
 	 */
-	void cancel() throw();
+	IPromiseControl::State cancel() throw();
 
 
 	///Isolates this promise object
 	/**
-	 * By default, promise object shares all internals accross all instances. This function
-	 * isolates the promise and returns new object, which has separated status. Isolated
+	 * By default, promise object shares all internals across all instances. This function
+	 * isolates the promise and returns new object, which has separated state. Isolated
 	 * promise is still resolved, when original promise is resolved, but you can attach
-	 * own callbacks and use the cancel() to remove them. This is particular useful for queues
+	 * own observers and use the cancel() to remove them. This is particular useful for queues
 	 * or dispatches to handle destruction of such objects, when the promise must be canceled
-	 * because the queue or the dispatcher is going to destruction.
+	 * because the queue or the dispatcher is going to the destruction.
 	 *
 	 * @return new isolated promise
 	 *
@@ -482,7 +553,7 @@ public:
 		 * You cannot throw exception, because observers are declared "nothrow". In case of
 		 * exception, you should to store the exception object or resolve the next promise by reject()
 		 */
-		virtual void reject(const PException &e) throw()= 0;
+		virtual void resolve(const PException &e) throw()= 0;
 
 		virtual ~IObserver() {}
 	};
@@ -491,35 +562,19 @@ public:
 	class Resolution: public IObserver {
 	public:
 
-		///resolve promise using a new value
-		/**
-		 * Resolves promise.
-		 * @param result value used to resolve promise
-		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
-		 */
-		virtual void resolve(const T &result) throw() = 0;
+		using IObserver::resolve;
 		///resolve promise by constructing its value directly inside promise
 		/**
 		 * @param result reference to IConstructor which contains all necessary
 		 *    informations to construct the result
 		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
 		 */
-		virtual void resolve(const IConstructor<T> &result) throw();
+		void resolve(const IConstructor<T> &result) throw();
 
 		///resolve promise by using another promise
 		/**
 		 * @param result another promise. Function doesn't resolve the promise now
 		 *    but promise becomes resolved, once the supplied promise is also resolved
-		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
 		 */
 		void resolve(Promise<T> result);
 
@@ -529,71 +584,56 @@ public:
 		 * @param result reference to Constructor template which contains all necessary
 		 *    informations to construct the result.
 		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
 		 */
 		template<typename Impl>
 		void resolve(const Constructor<T, Impl> &result) throw();
 
-		///reject promise by an exception
-		/**
-		 * @param e exception used to reject promise. Function makes copy of the exception
-		 *           and stores the copy inside the promise object.
-		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
-		 */
-
-		virtual void reject(const Exception &e) throw();
-		///reject promise by an exception
-		/**
-		 * @param e exception used to reject promise. Function shares exception object
-		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
-		 */
-		virtual void reject(const PException &e) throw()= 0;
-		///reject promise by using another promise
-		/**
-		 * @param p promise that will resolve this promise in the future
-		 *
-		 * Actually function works same way as resolve, but this is useful for
-		 *  functions passed to the whenRejected that returns promise. When original
-		 *  promise is rejected, callback function still can supply another promise, which
-		 *  can be resolved and effectively stop rejection chain. This allows to
-		 *  implement an alternate way how to resolve promise depend on exception of
-		 *  the previous attempt
-		 *
-		 * @note once promise is resolved, this object is destroyed and pointer to it
-		 *    becomes invalid. Do not try to resolve the promise multiple times. Any
-		 *    additional attempt can crash your program
-		 */
-		void reject(Promise<T> p);
 
 		virtual ~Resolution() {}
 
 	};
 
+	///Object to store a  result of the promise
+	/** storing the result to this object makes promise resolved */
 	class Result: public Resolution {
 	public:
+		///you can clone result object however, it is still the same one result
 		Result(const Result &other);
 
+		///destruct the result clone
+		/** When last instance of the result is destroyed, promise is resolved with an exception */
 		~Result();
 
 		using Resolution::resolve;
-		using Resolution::reject;
+
+
 		virtual void resolve(const T &result) throw() {
 			if (ptr != nil) ptr->resolve(result);
 		}
 		virtual void resolve(const IConstructor<T> &result) throw() {
 			if (ptr != nil) ptr->resolve(result);
 		}
-		virtual void reject(const PException &e) throw() {
-			if (ptr != nil) ptr->reject(e);
+		virtual void resolve(const PException &e) throw() {
+			if (ptr != nil) ptr->resolve(e);
 		}
+
+		///Rejects this promise
+		/** You should reject the promise using resolve with an exception as argument. However
+		this can cause compiler confusion and generate errors about ambiguity. Function reject()
+		make rejection easier. Just pass exception object directly */
+		void reject(const Exception &e) throw() {
+			PException ce = e.clone();
+			resolve(ce.getMT());
+		}
+		///Rejects this promise
+		/** You should reject the promise using resolve with an exception as argument. However
+		this can cause compiler confusion and generate errors about ambiguity. Function reject()
+		make rejection easier. Just pass exception object directly */
+		void reject(const PException &e) throw() {
+			resolve(e.getMT());
+		}
+
+		///setting value to the promise also resolves the promise
 		const T &operator=(const T & v) {
 			resolve(v);
 			return v;
@@ -628,27 +668,31 @@ protected:
 	class Future:public IPromiseControl, public Resolution, public DynObject  {
 	public:
 		
-		Future(IRuntimeAlloc &alloc):alloc(alloc),resultRefCnt(0) {}
+		Future(IRuntimeAlloc &alloc):alloc(alloc),resultRefCnt(0),resolving(false) {}
 		~Future();
 		virtual bool resolved() const throw ();
+		virtual State getState() const throw ();
 		virtual void resolve(const T &result) throw() ;
 		virtual void resolve(const IConstructor<T> &result) throw ();
-		virtual void reject(const PException &e) throw();
+		virtual void resolve(const PException &e) throw();
 		void registerObserver(IObserver *ifc);
 		bool unregisterObserver(IObserver *ifc);
-		virtual void cancel(const PException &e) throw();
-		virtual void cancel() throw ();
+		virtual State cancel(const PException &e) throw();
+		virtual State cancel() throw ();
 		IRuntimeAlloc &alloc;
 		void addResultRef();
 		void releaseResultRef();
+
+		virtual void wait(const Timeout &tm) const;
 
 
 
 		FastLock *getLockPtr();
 	protected:
-		FastLock lock;
+		mutable FastLock lock;
 		Optional<T> value;
 		PException exception;
+		bool resolving;
 
 		typedef AutoArray<IObserver *, SmallAlloc<4> > Observers;
 		Observers observers;
@@ -658,6 +702,7 @@ protected:
 
 		template<typename X>
 		void resolveInternal( const X & result );
+		bool isResolved() const throw();
 	};
 
 
@@ -672,19 +717,19 @@ protected:
 
 ///Specialization for void argument.
 /** Because void argument is a special type, we have specialization for it. Promises with void
- * type should accept callback functions without arguments and they should not expect return value of the
- * callback function. Also resolve promise should be called without arguments.
+ * type should accept observer functions without arguments and they should not expect return value of the
+ * observer function. Also resolve promise should be called without arguments.
  *
  * Specialization uses Promise<Empty> where Empty is special empty class. During lifetime of
  * the promise, the Empty instance is carried through, but it should not leave the promise object out.
  *
- * Functions then() and thenCall() accepts callbacks without argument. Conversion to callback with
+ * Functions then() and thenCall() accepts observers without argument. Conversion to observer with
  * "the Empty" argument is done by the internal function EmptyCallVoid. This function shallows
- * the callback function and calls it without argument. It also doesn't expect return value.
+ * the observer function and calls it without argument. It also doesn't expect return value.
  *
  * To resolve Promise<void> you should construct PromiseResolution<void>. This object
  * contains simple function resolve() without argument. Function internally constructs Empty instance
- * and uses it to process whole callback chain.
+ * and uses it to process whole observer chain.
  *
  * Promise<void> can be anytime converted to Promise<Empty> and vice versa.
  *
@@ -753,7 +798,7 @@ public:
 	/**
 	 * @param tm desired timeout
 	 *
-	 * @exception TimeoutException timeout ellapsed before resolution
+	 * @exception TimeoutException timeout elapsed before resolution
 	 * @exception any promise has been rejected with an exception.
 	 */
 	void wait(const Timeout &tm) {Promise<Empty>::wait(tm);}
