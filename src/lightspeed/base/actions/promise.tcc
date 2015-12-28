@@ -32,48 +32,24 @@ IPromiseControl::State Promise<T>::Future::getState() const throw()
 template<typename T>
 void Promise<T>::Future::resolve( const T &result ) throw()
 {
-	resolveInternal<T>(result);
+	resolveInternal<Optional<T>, T>(value, result);
 }
 
 template<typename T>
 void Promise<T>::Future::resolve( const IConstructor<T> &result ) throw ()
 {
-	resolveInternal<IConstructor<T> >(result);
+	resolveInternal<Optional<T>, IConstructor<T> >(value, result);
 }
 
 template<typename T>
 void Promise<T>::Future::resolve(const PException &e ) throw ()
 {
-	//temporary array of loaded observers
-	Observers cpy;
-	//lock the promise internals
-	Synchronized<FastLock> _(lock);
-	//if already resolved, prevent future rejections
-	if (isResolved()) return;
-	//set to resolving state
-	resolving = true;
-	//store exception
-	exception = e.getMT();
-	//while there are observers
-	while (!observers.empty()) {
-		//load observers
-		cpy.swap(observers);
-		//unlock internals (observers are loaded at separate place)
-		SyncReleased<FastLock> _(lock);
-		//execute observers
-		for (natural i = 0; i < cpy.length(); i++)
-			cpy[i]->resolve(e);
-		//clear array of obervers
-		cpy.clear();
-		//repeat until observer's array is emptied
-	}
-	//finally finish resolving
-	resolving = false;
+	resolveInternal<PException, PException>(exception, e);
 }
 
 template<typename T>
-template<typename X>
-void Promise<T>::Future::resolveInternal(const X & result)
+template<typename X, typename Y>
+void Promise<T>::Future::resolveInternal(X &var, const Y & result)
 {
 	//temporary array of loaded observers
 	Observers cpy;
@@ -84,7 +60,7 @@ void Promise<T>::Future::resolveInternal(const X & result)
 	//set to resolving state
 	resolving = true;
 	//store value
-	value = result;
+	var = result;
 	//cycle until the list of observers is empty
 	while (!observers.empty()) {
 		//load observers to the other list to unlock internals as soon as possible
@@ -94,7 +70,7 @@ void Promise<T>::Future::resolveInternal(const X & result)
 		//process all obeservers
 		for (natural i = 0; i < cpy.length(); i++)
 			//send value
-			cpy[i]->resolve(value);
+			cpy[i]->resolve(var);
 		//clear the list
 		cpy.clear();
 	}
@@ -371,6 +347,8 @@ void Promise<T>::Resolution::resolve( const IConstructor<T> &result ) throw()
 
 template<typename T>
 IPromiseControl::State Promise<T>::Future::cancel( const PException &e ) throw() {	
+
+
 		Observers cpy;
 		{
 			Synchronized<FastLock> _(lock);
@@ -702,6 +680,65 @@ void Promise<T>::Future::wait(const Timeout &tm) const
 {
 	Promise<T> me(const_cast<Future *>(this));
 	me.wait(tm);
+}
+
+
+template<typename T>
+template<typename Fn>
+void Promise<T>::Result::callAndResolve(Fn fn) throw() {
+	try {
+		resolve(fn());
+	} catch (const Exception &e) {
+		reject(e);
+	} catch (const std::exception &e) {
+		reject(StdException(THISLOCATION,e));
+	} catch (...) {
+		reject(UnknownException(THISLOCATION));
+	}
+}
+
+template<typename Fn>
+void Promise<void>::Result::callAndResolve(Fn fn) throw() {
+	try {
+		fn();
+		resolve();
+	} catch (const Exception &e) {
+		reject(e);
+	} catch (const std::exception &e) {
+		reject(StdException(THISLOCATION,e));
+	} catch (...) {
+		reject(UnknownException(THISLOCATION));
+	}
+
+}
+
+template<typename T>
+template<typename Fn, typename Arg>
+void Promise<T>::Result::callAndResolve(Fn fn, Arg arg) throw() {
+	try {
+		resolve(fn(arg));
+	} catch (const Exception &e) {
+		reject(e);
+	} catch (const std::exception &e) {
+		reject(StdException(THISLOCATION,e));
+	} catch (...) {
+		reject(UnknownException(THISLOCATION));
+	}
+}
+
+template<typename Fn, typename Arg>
+void Promise<void>::Result::callAndResolve(Fn fn, Arg arg) throw() {
+	try {
+		fn(arg);
+		resolve();
+	} catch (const Exception &e) {
+		reject(e);
+	} catch (const std::exception &e) {
+		reject(StdException(THISLOCATION,e));
+	} catch (...) {
+		reject(UnknownException(THISLOCATION));
+	}
+
 }
 
 }

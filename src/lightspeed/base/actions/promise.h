@@ -517,6 +517,7 @@ public:
 
 //	Promise operator || (const Promise &other) ;
 
+
 	///Allows create much flexible observers than classical "then" or "whenRejected"
 	/** Observer is object, that receives result or rejection reason once the promise is resolved
 	 * You can create observer by implementing this interface. You have to implement methods
@@ -640,6 +641,14 @@ public:
 		}
 
 
+		PPromiseControl getControlInterface() const {return PPromiseControl(ptr.get());}
+
+
+		template<typename Fn>
+		void callAndResolve(Fn fn) throw();
+		template<typename Fn, typename Arg>
+		void callAndResolve(Fn fn, Arg arg) throw();
+
 	protected:
 		friend class Promise<T>;
 		Result(Future *r);
@@ -692,16 +701,17 @@ protected:
 		mutable FastLock lock;
 		Optional<T> value;
 		PException exception;
-		bool resolving;
 
 		typedef AutoArray<IObserver *, SmallAlloc<4> > Observers;
 		Observers observers;
 		atomic resultRefCnt;
 
+		bool resolving;
+
 		friend class Promise;
 
-		template<typename X>
-		void resolveInternal( const X & result );
+		template<typename X, typename Y>
+		void resolveInternal( X &var, const Y & result);
 		bool isResolved() const throw();
 	};
 
@@ -756,6 +766,11 @@ public:
 			Empty x;
 			Super::resolve(x);
 		}
+
+		template<typename Fn>
+		void callAndResolve(Fn fn) throw();
+		template<typename Fn, typename Arg>
+		void callAndResolve(Fn fn, Arg arg) throw();
 
 	};
 
