@@ -42,6 +42,8 @@ Exception::Exception(const Exception & other)
 Exception::~Exception() throw() {
 	exceptionDestroyed(this);
 }
+
+
 const char *Exception::what() const throw ()
 {
 	if (whatMsg.getSize() == 0) {
@@ -197,8 +199,6 @@ bool Exception::setLocation(const ProgramLocation &loc) {
 }
 
 void Exception::rethrow(const ProgramLocation &loc) {
-	if (std::uncaught_exception()) 
-		return;
 
 	try {
 		throw;

@@ -126,7 +126,7 @@ template<typename T>
 void Promise<T>::addObserver( IObserver*ifc )
 {
 	if (future == nil) {
-		throw NullPointerException(THISLOCATION);
+		init();
 	}
 	future->registerObserver(ifc);
 }
@@ -135,7 +135,7 @@ template<typename T>
 bool Promise<T>::removeObserver( IObserver *ifc )
 {
 	if (future == nil) {
-		throw NullPointerException(THISLOCATION);
+		return false;
 	}
 	return future->unregisterObserver(ifc);
 }
