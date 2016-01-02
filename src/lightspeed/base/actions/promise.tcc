@@ -10,19 +10,19 @@
 namespace LightSpeed {
 
 template<typename T>
-bool Promise<T>::Future::resolved() const throw()
+bool Future<T>::Value::resolved() const throw()
 {
 	return isResolved();
 }
 
 template<typename T>
-bool Promise<T>::Future::isResolved() const throw()
+bool Future<T>::Value::isResolved() const throw()
 {
 	return (value != nil || exception != nil);
 }
 
 template<typename T>
-IPromiseControl::State Promise<T>::Future::getState() const throw()
+IPromiseControl::State Future<T>::Value::getState() const throw()
 {
 	Synchronized<FastLock> _(lock);
 	if (resolving) return stateResolving;
@@ -30,26 +30,26 @@ IPromiseControl::State Promise<T>::Future::getState() const throw()
 }
 
 template<typename T>
-void Promise<T>::Future::resolve( const T &result ) throw()
+void Future<T>::Value::resolve( const T &result ) throw()
 {
 	resolveInternal<Optional<T>, T>(value, result);
 }
 
 template<typename T>
-void Promise<T>::Future::resolve( const IConstructor<T> &result ) throw ()
+void Future<T>::Value::resolve( const IConstructor<T> &result ) throw ()
 {
 	resolveInternal<Optional<T>, IConstructor<T> >(value, result);
 }
 
 template<typename T>
-void Promise<T>::Future::resolve(const PException &e ) throw ()
+void Future<T>::Value::resolve(const PException &e ) throw ()
 {
 	resolveInternal<PException, PException>(exception, e);
 }
 
 template<typename T>
 template<typename X, typename Y>
-void Promise<T>::Future::resolveInternal(X &var, const Y & result)
+void Future<T>::Value::resolveInternal(X &var, const Y & result)
 {
 	//temporary array of loaded observers
 	Observers cpy;
@@ -80,7 +80,7 @@ void Promise<T>::Future::resolveInternal(X &var, const Y & result)
 
 
 template<typename T>
-void Promise<T>::Future::registerObserver( IObserver *ifc )
+void Future<T>::Value::registerObserver( IObserver *ifc )
 {
 	//lock promise internals
 	lock.lock();
@@ -108,7 +108,7 @@ void Promise<T>::Future::registerObserver( IObserver *ifc )
 }
 
 template<typename T>
-bool Promise<T>::Future::unregisterObserver( IObserver *ifc )
+bool Future<T>::Value::unregisterObserver( IObserver *ifc )
 {
 	Synchronized<FastLock> _(lock);
 	for (natural i = observers.length(); i > 0 ;) {
@@ -123,7 +123,7 @@ bool Promise<T>::Future::unregisterObserver( IObserver *ifc )
 
 
 template<typename T>
-void Promise<T>::addObserver( IObserver*ifc )
+void Future<T>::addObserver( IObserver*ifc )
 {
 	if (future == nil) {
 		init();
@@ -132,7 +132,7 @@ void Promise<T>::addObserver( IObserver*ifc )
 }
 
 template<typename T>
-bool Promise<T>::removeObserver( IObserver *ifc )
+bool Future<T>::removeObserver( IObserver *ifc )
 {
 	if (future == nil) {
 		return false;
@@ -141,7 +141,7 @@ bool Promise<T>::removeObserver( IObserver *ifc )
 }
 
 template<typename T>
-const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
+const T & Future<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 {
 	class Ntf: public IObserver {
 	public:
@@ -179,26 +179,18 @@ const T & Promise<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 }
 
 template<typename T>
-const T & Promise<T>::wait( ) const {
+const T & Future<T>::wait( ) const {
 	return wait(Timeout());
 }
 
 template<typename T>
 template<typename Fn>
-Promise<T> Promise<T>::then( Fn fn) {
+Future<T> Future<T>::then( Fn fn) {
 	class X:public IObserver, public DynObject {
 	public:
-		X(Fn fn, const Result &rptr):fn(fn),rptr(rptr) {}
+		X(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const T &result) throw() {
-			try {
-				rptr.resolve(fn(result));
-			} catch (Exception &e) {
-				rptr.reject(e);
-			} catch (std::exception &e) {
-				rptr.reject(StdException(THISLOCATION,e));
-			} catch (...) {
-				rptr.reject(UnknownException(THISLOCATION));
-			}
+			rptr.callAndResolve(fn, result);
 			delete this;
 		}
 		virtual void resolve (const PException &e) throw() {
@@ -207,16 +199,17 @@ Promise<T> Promise<T>::then( Fn fn) {
 		}
 
 	protected:
-		Fn fn; Result rptr;
+		Fn fn; 
+		Promise<T> rptr;
 	};
-	Promise<T> p;
-	addObserver(new(future->alloc) X(fn,p.createResult(future->alloc)));
+	Future<T> p(future->alloc);
+	addObserver(new(future->alloc) X(fn,p.getPromise()));
 	return p;
 }
 
 template<typename T>
 template<typename Fn>
-Promise<T> Promise<T>::thenCall( Fn fn)
+Future<T> Future<T>::thenCall( Fn fn)
 {
 	class X:public IObserver, public DynObject {
 	public:
@@ -238,11 +231,11 @@ Promise<T> Promise<T>::thenCall( Fn fn)
 
 template<typename T>
 template<typename Fn>
-Promise<T> Promise<T>::whenRejected( Fn fn)
+Future<T> Future<T>::onException( Fn fn)
 {
 	class X:public IObserver, public DynObject {
 	public:
-		X(Fn fn, const Result &rptr):fn(fn),rptr(rptr) {}
+		X(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const T &x) throw() {
 			rptr.resolve(x);
 			delete this;
@@ -261,16 +254,17 @@ Promise<T> Promise<T>::whenRejected( Fn fn)
 		}
 
 	protected:
-		Fn fn; Result rptr;
+		Fn fn; 
+		Promise<T> rptr;
 	};
-	Promise<T> p;
-	addObserver(new(future->alloc) X(fn,p.createResult(future->alloc)));
+	Future<T> p(future->alloc);
+	addObserver(new(future->alloc) X(fn,p.getPromise()));
 	return p;
 }
 
 template<typename T>
 template<typename Fn>
-Promise<T> Promise<T>::whenRejectedCall( Fn fn)
+Future<T> Future<T>::onExceptionCall( Fn fn)
 {
 	class X:public Resolution, public DynObject {
 	public:
@@ -292,10 +286,10 @@ Promise<T> Promise<T>::whenRejectedCall( Fn fn)
 
 template<typename T>
 template<typename Fn, typename RFn>
-Promise<T> Promise<T>::then(Fn resolveFn, RFn rejectFn) {
+Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 	class X:public Resolution, public DynObject {
 	public:
-		X(Fn fn,RFn rfn,Result rptr):fn(fn),rfn(rfn),rptr(rptr) {}
+		X(Fn fn,RFn rfn,const Promise<T> &rptr):fn(fn),rfn(rfn),rptr(rptr) {}
 		virtual void resolve(const T &result) throw() {
 			try {
 				rptr.resolve(fn(result));
@@ -315,29 +309,29 @@ Promise<T> Promise<T>::then(Fn resolveFn, RFn rejectFn) {
 		}
 
 	protected:
-		Fn fn; RFn rfn;Result rptr;
+		Fn fn; RFn rfn;Promise<T> rptr;
 	};
-	Promise<T> p;
-	addObserver(new(future->alloc) X(resolveFn,rejectFn,p.createResult(future->alloc)));
+	Future<T> p(future->alloc);
+	addObserver(new(future->alloc) X(resolveFn,rejectFn,p.getPromise()));
 	return p;
 
 }
 
 template<typename T>
-void Promise<T>::Resolution::resolve(Promise<T> result) {
+void Future<T>::Resolution::resolve(Future<T> result) {
 	result.addObserver(this);
 }
 
 template<typename T>
 template<typename Impl>
-void Promise<T>::Resolution::resolve( const Constructor<T, Impl> &result ) throw()
+void Future<T>::Resolution::resolve( const Constructor<T, Impl> &result ) throw()
 {
 	resolve(VtConstructor<Constructor<T, Impl> >(result));
 }
 
 
 template<typename T>
-void Promise<T>::Resolution::resolve( const IConstructor<T> &result ) throw()
+void Future<T>::Resolution::resolve( const IConstructor<T> &result ) throw()
 {
 	Optional<T> temp;
 	temp = result;
@@ -346,7 +340,7 @@ void Promise<T>::Resolution::resolve( const IConstructor<T> &result ) throw()
 
 
 template<typename T>
-IPromiseControl::State Promise<T>::Future::cancel( const PException &e ) throw() {	
+IPromiseControl::State Future<T>::Value::cancel( const PException &e ) throw() {	
 
 
 		Observers cpy;
@@ -362,82 +356,71 @@ IPromiseControl::State Promise<T>::Future::cancel( const PException &e ) throw()
 }
 
 template<typename T>
-IPromiseControl::State Promise<T>::Future::cancel() throw() {
+IPromiseControl::State Future<T>::Value::cancel() throw() {
 	return cancel(new CanceledException(THISLOCATION));
 }
 
 template<typename T>
-void Promise<T>::init() {
-	IRuntimeAlloc *alloc = getPromiseAlocator();
-	future = new(*alloc) Future(*alloc);
+void Future<T>::clear() {
+	future = nil;
+}
+
+template<typename T>
+typename Promise<T> Future<T>::getPromise() {
+	if (future == nil) clear(*getPromiseAlocator());
+	return Promise<T>(future);
+}
+
+template<typename T>
+void Future<T>::clear(IRuntimeAlloc &alloc) {
+	future = new(alloc) Value(alloc);
 	future = future.getMT();
 }
 
+
 template<typename T>
-typename Promise<T>::Result Promise<T>::createResult() {
-	if (future == nil || readAcquire(&future->resultRefCnt) != 0) {
-		init();
-	}
-	return Result(future);
+IPromiseControl::State Future<T>::cancel(const Exception &exception) throw() {
+	if (future) return future->cancel(exception.clone()); else return IPromiseControl::stateResolved;
 }
 
 template<typename T>
-void Promise<T>::init(IRuntimeAlloc &alloc) {
-	future = new(alloc) Future(alloc);
-	future = future.getMT();
-}
-
-template<typename T>
-typename Promise<T>::Result Promise<T>::createResult(IRuntimeAlloc &alloc) {
-	if (future == nil || readAcquire(&future->resultRefCnt) != 0) {
-		init(alloc);
-	}
-	return Result(future);
-}
-
-template<typename T>
-IPromiseControl::State Promise<T>::cancel(const Exception &exception) throw() {
-	return future->cancel(exception.clone());
-}
-
-template<typename T>
-IPromiseControl::State Promise<T>::cancel(PException exception) throw()  {
-	return future->cancel(exception);
+IPromiseControl::State Future<T>::cancel(PException exception) throw()  {
+	if (future) return future->cancel(exception); else return IPromiseControl::stateResolved;
 
 }
 
 template<typename T>
-IPromiseControl::State Promise<T>::cancel() throw()  {
-	return future->cancel();
+IPromiseControl::State Future<T>::cancel() throw()  {
+	if (future) return future->cancel(); else return IPromiseControl::stateResolved;
 }
 
 template<typename T>
-Promise<T> Promise<T>::isolate() {
-	Promise<T> newPromise;
-	then(newPromise.createResult(future->alloc));
+Future<T> Future<T>::isolate() {
+	Future<T> newPromise(future->alloc);
+	then(newPromise.getPromise());
 	return newPromise;
 }
 
 template<typename T>
 template<typename X>
-X Promise<T>::transformHelper(const T &value) {
+X Future<T>::transformHelper(const T &value) {
 	return X(value);
 }
 
 
 template<typename T>
 template<typename X>
-Promise<T> Promise<T>::transform(Promise<X> original) {
+Future<T> Future<T>::transform(Future<X> original) {
 	return transform(original,&transformHelper<X>);
 }
 
 template<typename T>
 template<typename X, typename Fn>
-Promise<T> Promise<T>::transform(Promise<X> original, Fn fn) {
+Future<T> Future<T>::transform(Future<X> original, Fn fn) {
 
-	class A:public Promise<X>::Resolution, public DynObject {
+	class A:public Future<X>::Resolution, public DynObject {
 	public:
-		A(Fn fn, const Result &rptr):fn(fn),rptr(rptr) {}
+		A(Fn fn, const Promise &rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const X &result) throw() {
 			try {
 				rptr.resolve(fn(result));
@@ -457,27 +440,27 @@ Promise<T> Promise<T>::transform(Promise<X> original, Fn fn) {
 		}
 
 	protected:
-		Fn fn; Result rptr;
+		Fn fn; Promise rptr;
 	};
-	Promise<T> p;
+	Future<T> p;
 	original.registerCb(new(original.future->alloc) A(fn,p.createResult(original.future->alloc)));
 	return p;
 }
 
 template<typename T>
-void Promise<T>::Future::addResultRef()
+void Future<T>::Value::addResultRef()
 {
 	if (lockInc(resultRefCnt) == 1) {
-		RefCntPtr<Future> x(this);
+		RefCntPtr<Value> x(this);
 		x.manualAddRef();
 	}
 }
 
 template<typename T>
-void Promise<T>::Future::releaseResultRef()
+void Future<T>::Value::releaseResultRef()
 {
 	if (lockDec(resultRefCnt) == 0) {
-		RefCntPtr<Future> x(this);
+		RefCntPtr<Value> x(this);
 		x.manualRelease();
 		cancel();
 	}
@@ -485,20 +468,20 @@ void Promise<T>::Future::releaseResultRef()
 
 
 template<typename T>
-Promise<T>::Result::Result(Future *r)
+Promise<T>::Promise(typename Future<T>::Value *r)
 	:ptr(r)
 {
 	ptr->addResultRef();
 }
 
 template<typename T>
-Promise<T>::Result::~Result()
+Promise<T>::~Promise()
 {
 	ptr->releaseResultRef();
 }
 
 template<typename T>
-Promise<T>::Result::Result(const Result &other)
+Promise<T>::Promise(const Promise &other)
 :ptr(other.ptr)
 {
 	ptr->addResultRef();
@@ -507,7 +490,7 @@ Promise<T>::Result::Result(const Result &other)
 
 
 template<typename T>
-inline Promise<T>::Future::~Future() {
+inline Future<T>::Value::~Value() {
 	lock.lock();
 	if (!observers.empty()) {
 		CanceledException e(THISLOCATION);
@@ -519,7 +502,7 @@ inline Promise<T>::Future::~Future() {
 
 
 template<typename T>
-Promise<T> Promise<T>::thenWake(ISleepingObject &sleep, natural resolveReason, natural rejectReason) {
+Future<T> Future<T>::thenWake(ISleepingObject &sleep, natural resolveReason, natural rejectReason) {
 
 	class A: public Resolution, public DynObject {
 	public:
@@ -541,94 +524,32 @@ Promise<T> Promise<T>::thenWake(ISleepingObject &sleep, natural resolveReason, n
 		natural rejected;
 
 	};
-	registerCb(new(future->alloc) A(sleep,resolveReason,rejectReason));
+	addObserver(new(future->alloc) A(sleep,resolveReason,rejectReason));
 	return *this;
 
 }
 
 
-template<typename T>
-template<typename X>
-Promise<X> Promise<T>::operator && (const Promise<X> &other) {
-
-	class B: public Resolution, public DynObject {
-	public:
-		B(const X &value, const Result &res)
-			:value(value),res(res) {}
-
-		virtual void resolve(const T &) throw() {
-			//ignore value and resolve next promise by stored value
-			res.resolve(value);
-			//delete this callback
-			delete this;
-		}
-		virtual void resolve(const PException &e) throw() {
-			//reject the promise using exception
-			res.reject(e);
-			//delete this callback (with the result)
-			delete this;
-		}
-	protected:
-		X value;
-		Result res;
-	};
-
-	class A: public Promise<X>::Resolution, public DynObject {
-	public:
-		A(const Promise<T> &checkPromise, const typename Promise<X>::Result &res)
-			:checkPromise(checkPromise),res(res) {}
-
-		virtual void resolve(const X &v) throw() {
-			//create new callback which resolves once the other promise is resolved
-			//register it
-			checkPromise.registerCb(new(checkPromise.future->alloc) B(v,res));
-			//delete this callback
-			delete this;
-		}
-		virtual void resolve(const PException &e) throw() {
-			//forward rejection
-			res.reject(e);
-			delete this;
-		}
-
-
-	protected:
-		Promise<T> checkPromise;
-		typename Promise<X>::Result res;
-	};
-
-
-	Promise<X> p;
-	other.registerCb(new(other.future->alloc) A(*this,p.createResult(other.future->alloc)));
-	return p;
-}
-
-/*template<typename T>
-Promise<T> Promise<T>:: operator || (const Promise<T> &other)  {
-
-}*/
-
-
 template<typename Fn>
-Promise<void> Promise<void>::then(Fn fn) {
-	return Promise<Empty>::then(EmptyCallVoid<Fn>(fn));
+Future<void> Future<void>::then(Fn fn) {
+	return Future<Empty>::then(EmptyCallVoid<Fn>(fn));
 }
 
 template<typename Fn>
-Promise<void> Promise<void>::thenCall(Fn fn) {
-	return Promise<Empty>::thenCall(EmptyCallVoid<Fn>(fn));
+Future<void> Future<void>::thenCall(Fn fn) {
+	return Future<Empty>::thenCall(EmptyCallVoid<Fn>(fn));
 }
 
 template<typename Fn, typename RFn>
-Promise<void> Promise<void>::then(Fn resolveFn, RFn rejectFn){
-	return Promise<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+Future<void> Future<void>::then(Fn resolveFn, RFn rejectFn){
+	return Future<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
 }
 
 template<typename T>
-inline Promise<T> Promise<T>::then(const Result& result) {
+inline Future<T> Future<T>::then(const Promise<T>& result) {
 	class A: public IObserver, public DynObject {
 	public:
-		A(const Result& resolution)
+		A(const Promise<T>& resolution)
 			:resolution(resolution) {}
 
 		virtual void resolve(const T &v) throw() {
@@ -641,7 +562,7 @@ inline Promise<T> Promise<T>::then(const Result& result) {
 		}
 
 	protected:
-		Result resolution;
+		Promise<T> resolution;
 
 	};
 	addObserver(new(future->alloc) A(result));
@@ -649,14 +570,12 @@ inline Promise<T> Promise<T>::then(const Result& result) {
 
 }
 
-
-
 template<typename X>
-Promise<void> Promise<void>::transform(Promise<X> original)
+Future<void> Future<void>::transform(Future<X> original)
 {
-	class A:public Promise<X>::IObserver, public DynObject {
+	class A:public Future<X>::IObserver, public DynObject {
 	public:
-		A(Result &rptr):rptr(rptr) {}
+		A(Promise &rptr):rptr(rptr) {}
 		virtual void resolve(const X &) throw() {
 			rptr.resolve();
 			delete this;
@@ -667,25 +586,25 @@ Promise<void> Promise<void>::transform(Promise<X> original)
 		}
 
 	protected:
-		Result rptr;
+		Promise rptr;
 	};
-	Promise<void> p;
+	Future<void> p;
 	original.addObserver(new(original.future->alloc) A(p.createResult(original.future->alloc)));
 	return p;
 }
 
 
 template<typename T>
-void Promise<T>::Future::wait(const Timeout &tm) const
+void Future<T>::Value::wait(const Timeout &tm) const
 {
-	Promise<T> me(const_cast<Future *>(this));
+	Future<T> me(const_cast<Value *>(this));
 	me.wait(tm);
 }
 
 
 template<typename T>
 template<typename Fn>
-void Promise<T>::Result::callAndResolve(Fn fn) throw() {
+void Promise<T>::callAndResolve(Fn fn) throw() {
 	try {
 		resolve(fn());
 	} catch (const Exception &e) {
@@ -698,7 +617,7 @@ void Promise<T>::Result::callAndResolve(Fn fn) throw() {
 }
 
 template<typename Fn>
-void Promise<void>::Result::callAndResolve(Fn fn) throw() {
+void Promise<void>::callAndResolve(Fn fn) throw() {
 	try {
 		fn();
 		resolve();
@@ -714,7 +633,7 @@ void Promise<void>::Result::callAndResolve(Fn fn) throw() {
 
 template<typename T>
 template<typename Fn, typename Arg>
-void Promise<T>::Result::callAndResolve(Fn fn, Arg arg) throw() {
+void Promise<T>::callAndResolve(Fn fn, Arg arg) throw() {
 	try {
 		resolve(fn(arg));
 	} catch (const Exception &e) {
@@ -727,7 +646,7 @@ void Promise<T>::Result::callAndResolve(Fn fn, Arg arg) throw() {
 }
 
 template<typename Fn, typename Arg>
-void Promise<void>::Result::callAndResolve(Fn fn, Arg arg) throw() {
+void Promise<void>::callAndResolve(Fn fn, Arg arg) throw() {
 	try {
 		fn(arg);
 		resolve();
@@ -739,6 +658,25 @@ void Promise<void>::Result::callAndResolve(Fn fn, Arg arg) throw() {
 		reject(UnknownException(THISLOCATION));
 	}
 
+}
+
+
+template<typename T>
+void LightSpeed::Future<T>::init()
+{
+	clear(*getPromiseAlocator());
+}
+
+template<typename T>
+PPromiseControl Future<T>::getControlInterface()
+{
+	if (future == nil) init();
+	return PPromiseControl(future);
+}
+
+template<typename T>
+Future<T>::Future(IRuntimeAlloc &alloc) {
+	clear(alloc);
 }
 
 }

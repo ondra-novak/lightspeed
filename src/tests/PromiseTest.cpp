@@ -22,28 +22,28 @@ public:
 
 	void test_thenCall(int value);
 	int test_thenStd(int value);
-	Promise<int> test_thenPromise(int value);
+	Future<int> test_thenPromise(int value);
 	void test_catchCall(const PException &e);
 	const PException & test_catchStd(const PException &e);
-	Promise<int> test_catchPromise(const PException &e);
+	Future<int> test_catchPromise(const PException &e);
 
 	Thread th;
 	Thread th2;
 
 	typedef Message<void,int> Action;
 	typedef Message<int,int> IntAction;
-	typedef Message<Promise<int>,int> PromiseAction;
+	typedef Message<Future<int>,int> PromiseAction;
 
 	typedef Message<void,const PException &> ExceptionAction;
 	typedef Message<const PException &,const PException &> ExceptionExceptionAction;
-	typedef Message<Promise<int>,const PException &> PromiseExceptionAction;
+	typedef Message<Future<int>,const PException &> PromiseExceptionAction;
 
-	Promise<int> callTestAsync();
-	Promise<int> callRejectAsync();
+	Future<int> callTestAsync();
+	Future<int> callRejectAsync();
 };
 
 
-static void testThread(Promise<int>::Result resolution) {
+static void testThread(Promise<int> resolution) {
 
 	LS_LOGOBJ(lg);
 	lg.progress("Async task started");
@@ -53,7 +53,7 @@ static void testThread(Promise<int>::Result resolution) {
 
 }
 
-static void rejectThread(Promise<int>::Result resolution) {
+static void rejectThread(Promise<int> resolution) {
 
 	LS_LOGOBJ(lg);
 	lg.progress("Rejecting");
@@ -62,19 +62,19 @@ static void rejectThread(Promise<int>::Result resolution) {
 }
 
 
-Promise<int> PromiseTest::callTestAsync() {
+Future<int> PromiseTest::callTestAsync() {
 
-	Promise<int> p;
-	th.start(ThreadFunction::create(&testThread,p.createResult()));
+	Future<int> p;
+	th.start(ThreadFunction::create(&testThread,p.getPromise()));
 	return p;
 
 
 }
 
-Promise<int> PromiseTest::callRejectAsync() {
+Future<int> PromiseTest::callRejectAsync() {
 
-	Promise<int> p;
-	th.start(ThreadFunction::create(&rejectThread,p.createResult()));
+	Future<int> p;
+	th.start(ThreadFunction::create(&rejectThread, p.getPromise()));
 	return p;
 
 
@@ -93,7 +93,7 @@ int PromiseTest::test_thenStd( int value )
 	return value*value;
 }
 
-static void asyncCall(std::pair<int, Promise<int>::Result > arg) {
+static void asyncCall(std::pair<int, Promise<int> > arg) {
 	LS_LOG.progress("async call start");
 	Thread::deepSleep(2500);
 	LS_LOG.progress("async call finished");
@@ -101,12 +101,12 @@ static void asyncCall(std::pair<int, Promise<int>::Result > arg) {
 
 }
 
-Promise<int> PromiseTest::test_thenPromise( int value )
+Future<int> PromiseTest::test_thenPromise( int value )
 {
 	LS_LOG.progress("Called thenPromise with value: %1") << value;
-	Promise<int> res;
+	Future<int> res;
 
-	th2.start(ThreadFunction::create(&asyncCall,std::make_pair(value,res.createResult())));
+	th2.start(ThreadFunction::create(&asyncCall,std::make_pair(value,res.getPromise())));
 	return res;
 
 }
@@ -122,12 +122,12 @@ const PException &PromiseTest::test_catchStd( const PException &e )
 	return e;
 }
 
-Promise<int> PromiseTest::test_catchPromise( const PException &e )
+Future<int> PromiseTest::test_catchPromise( const PException &e )
 {
 	LS_LOG.error("Promise rejected %1, supplying alternative result") << e->what();
-	Promise<int> res;
+	Future<int> res;
 	//resolve promise now!
-	res.createResult().resolve(0);
+	res.getPromise().resolve(0);
 	return res;
 	
 }
@@ -143,7 +143,7 @@ integer PromiseTest::start( const Args & )
 {
 	LS_LOG.progress("Testing promise") ;
 
-	Promise<int> res = callTestAsync()
+	Future<int> res = callTestAsync()
 		.thenCall(Action::create(this,&PromiseTest::test_thenCall))
 		.then(IntAction::create(this, &PromiseTest::test_thenStd))
 		.then(PromiseAction::create(this, &PromiseTest::test_thenPromise));
@@ -156,11 +156,11 @@ integer PromiseTest::start( const Args & )
 	th2.join();
 
 
-	Promise<int> res2 = callRejectAsync()
+	Future<int> res2 = callRejectAsync()
 		.thenCall(Action::create(this,&PromiseTest::test_thenCall))
 		.then(IntAction::create(this, &PromiseTest::test_thenStd))
-		.whenRejectedCall(ExceptionAction(this,&PromiseTest::test_catchCall))
-		.whenRejected(ExceptionExceptionAction(this,&PromiseTest::test_catchStd))
+		.onExceptionCall(ExceptionAction(this,&PromiseTest::test_catchCall))
+		.onException(ExceptionExceptionAction(this,&PromiseTest::test_catchStd))
 		.then(PromiseAction::create(this, &PromiseTest::test_thenPromise),
 				PromiseExceptionAction(this,&PromiseTest::test_catchPromise));
 
@@ -170,12 +170,12 @@ integer PromiseTest::start( const Args & )
 	th.join();
 	th2.join();
 
-	Promise<int> res3 = callRejectAsync()
+	Future<int> res3 = callRejectAsync()
 		.thenCall(Action::create(this,&PromiseTest::test_thenCall))
 		.then(IntAction::create(this, &PromiseTest::test_thenStd))
 		.then(PromiseAction::create(this, &PromiseTest::test_thenPromise))
-		.whenRejectedCall(ExceptionAction(this,&PromiseTest::test_catchCall))
-		.whenRejected(ExceptionExceptionAction(this,&PromiseTest::test_catchStd));
+		.onExceptionCall(ExceptionAction(this,&PromiseTest::test_catchCall))
+		.onException(ExceptionExceptionAction(this,&PromiseTest::test_catchStd));
 
 	int val3 = res3.wait();
 	LS_LOG.progress("Testing finished: %1") << val3;
