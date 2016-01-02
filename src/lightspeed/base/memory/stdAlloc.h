@@ -15,6 +15,7 @@
 #include "runtimeAlloc.h"
 #include <new>
 #include "singleton.h"
+#include "../containers/move.h"
 
 namespace LightSpeed {
 
@@ -100,6 +101,7 @@ namespace LightSpeed {
 		StdAlloc() {}
 		template<typename X>
 		StdAlloc(const AllocatedMemory<X> &) {}
+		StdAlloc(MoveConstruct, StdAlloc &) {}
 
 	};
 

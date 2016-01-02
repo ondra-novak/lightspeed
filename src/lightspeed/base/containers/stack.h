@@ -14,29 +14,27 @@
 namespace LightSpeed {
 
 	
-    template<class T, natural citems = DequeClustSize<T>::n >
+    template<class T >
     class Stack
     {
     public:
 
     	Stack() {}
-		explicit Stack(NodeAlloc alloc):deque(alloc) {}
 
-		void push(const T &x) {deque.pushFront(x);}
-		const T &front() const {return deque.front();}
-		void pop() {deque.popFront();}
+		void push(const T &x) {deque.pushBack(x);}
+
+		template<typename I>
+		void push(const Constructor<T, I> &c) { deque.pushBack(c); }
+
+		const T &top() const {return deque.getBack();}
+		void pop() {deque.popBack();}
 		void clear() {deque.clear();}
 		bool empty() const {return deque.empty();}
 
 		natural length() const {return deque.length();}
 
-		template<typename Archive>
-		void serialize(Archive &arch) {
-			arch(deque);
-		}
-
     protected:
-        Deque<T,citems> deque;
+        Deque<T> deque;
     };
 
 } // namespace LightSpeed
