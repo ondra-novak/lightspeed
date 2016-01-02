@@ -16,7 +16,30 @@ namespace LightSpeed {
 	typedef Message<int> TestFn;
 
 	template void IDispatcher::dispatch(const TestFn &);
-	template void IDispatcher::dispatchPromise(const Promise<int> &, const Promise<int>::Result &);
-	template void IDispatcher::dispatch<TestFn, int>(const TestFn &, const Promise<int>::Result &);
+
+	void IDispatcher::dispatch(const Promise<void> &promise)
+	{
+		class A : public AbstractAction {
+		public:
+
+			A(const Promise<void> &promise) :promise(promise) {}
+			virtual void run() throw() 
+			{
+				promise.resolve();
+			}
+
+			virtual void reject() throw() 
+			{
+				promise.reject(CanceledException(THISLOCATION));
+			}
+		protected:
+			Promise<void> promise;
+		};
+		AbstractAction *aa = new(getActionAllocator()) A(promise);
+		dispatch(aa);
+	}
+
+	template void IDispatcher::dispatchFuture(const Future<int> &, const Promise<int> &);
+	template void IDispatcher::dispatch<TestFn, int>(const TestFn &, const Promise<int> &);
 
 }

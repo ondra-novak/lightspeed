@@ -450,18 +450,13 @@ Future<T> Future<T>::transform(Future<X> original, Fn fn) {
 template<typename T>
 void Future<T>::Value::addResultRef()
 {
-	if (lockInc(resultRefCnt) == 1) {
-		RefCntPtr<Value> x(this);
-		x.manualAddRef();
-	}
+	lockInc(resultRefCnt);
 }
 
 template<typename T>
 void Future<T>::Value::releaseResultRef()
 {
 	if (lockDec(resultRefCnt) == 0) {
-		RefCntPtr<Value> x(this);
-		x.manualRelease();
 		cancel();
 	}
 }
@@ -678,6 +673,13 @@ template<typename T>
 Future<T>::Future(IRuntimeAlloc &alloc) {
 	clear(alloc);
 }
+
+template<typename T>
+Promise<T>::Promise(const Future<T> &future) :ptr(future.future)
+{
+	ptr->addResultRef();
+}
+
 
 }
 

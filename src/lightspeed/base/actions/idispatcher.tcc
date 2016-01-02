@@ -39,11 +39,11 @@ namespace LightSpeed {
 
 
 	template<typename Fn, typename T>
-	void IDispatcher::dispatch(const Fn &fn, const typename Promise<T>::Result &returnValue)
+	void IDispatcher::dispatch(const Fn &fn, const typename Promise<T> &returnValue)
 	{
 		class A : public AbstractAction {
 		public:
-			A(const Fn &fn, const typename Promise<T>::Result &res) :fn(fn), res(res) {}
+			A(const Fn &fn, const Promise<T> &res) :fn(fn), res(res) {}
 			virtual void run() throw() {
 				res.callAndResolve(fn);
 			}
@@ -52,7 +52,7 @@ namespace LightSpeed {
 			}
 		protected:
 			Fn fn;
-			typename Promise<T>::Result res;
+			Promise<T> res;
 		};
 
 		AbstractAction *aa = new(getActionAllocator()) A(fn, returnValue);
@@ -62,7 +62,7 @@ namespace LightSpeed {
 	template<typename T, typename P>
 	class IDispatcher::PromiseSetResult : public IDispatcher::AbstractAction{
 	public:
-		PromiseSetResult(const T &value, const typename Promise<P>::Result &res) :value(value), res(res) {}
+		PromiseSetResult(const T &value, const Promise<P> &res) :value(value), res(res) {}
 
 		virtual void run() throw() override
 		{
@@ -75,17 +75,17 @@ namespace LightSpeed {
 		}
 	protected:
 		T value;
-		typename Promise<P>::Result res;
+		Promise<P> res;
 	};
 
 
 
 	template<typename T>
-	void IDispatcher::dispatchPromise(const Promise<T> &source, const typename Promise<T>::Result &returnValue)
+	void IDispatcher::dispatchFuture(const Future<T> &source, const typename Promise<T> &returnValue)
 	{
-		class Observer : public Promise<T>::IObserver, public DynObject {
+		class Observer : public Future<T>::IObserver, public DynObject {
 		public:
-			Observer(IDispatcher &owner, const typename Promise<T>::Result &res)
+			Observer(IDispatcher &owner, const typename Promise<T> &res)
 				:owner(owner), res(res) {}
 			virtual void resolve(const T &result) throw() override
 			{
@@ -113,16 +113,40 @@ namespace LightSpeed {
 			}
 		protected:
 			IDispatcher &owner;
-			typename Promise<T>::Result res;
+			typename Promise<T> res;
 
 		};
 
-		Promise<T> s = source;
-		Promise<T> newpromise;		
+		Future<T> s = source;
+		Future<T> newpromise;
 		newpromise.addObserver(new(*getPromiseAlocator()) Observer(*this, returnValue));
-		s.then(newpromise.createResult(*getPromiseAlocator()));		
+		s.then(newpromise.getPromise());		
 	}
 
+
+	template<typename T>
+	void IDispatcher::dispatch(const typename Promise<T> &promise, const T &value)
+	{
+		class A : public AbstractAction {
+		public:
+
+			A(const typename Future<void>::Promise &promise, const T &value) :promise(promise),value(value) {}
+			virtual void run() throw()
+			{
+				promise.resolve();
+			}
+
+			virtual void reject() throw()
+			{
+				promise.reject(CanceledException(THISLOCATION));
+			}
+		protected:
+			typename Future<T>::Promise promise;
+			T value;
+		};
+		AbstractAction *aa = new(getActionAllocator()) A(promise,value);
+		dispatch(aa);
+	}
 
 
 }

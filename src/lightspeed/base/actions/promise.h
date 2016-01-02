@@ -748,6 +748,8 @@ public:
 	///you can clone result object however, it is still the same one result
 	Promise(const Promise &other);
 
+	Promise(const Future<T> &future);
+
 	///destruct the result clone
 	/** When last instance of the result is destroyed, promise is resolved with an exception */
 	~Promise();
@@ -832,6 +834,7 @@ class Promise<void> : public Promise<Empty> {
 public:
 	typedef Promise<Empty> Super;
 	Promise(const Super &other) :Super(other) {}
+	Promise(const Future<void> &future) : Super(future) {}
 	using Super::resolve;
 	virtual void resolve() throw() {
 		Empty x;

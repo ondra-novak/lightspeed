@@ -328,6 +328,7 @@
     <ClInclude Include="src\lightspeed\base\defaultInit.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\anyExcept.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\badcast.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\container.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\errorMessageException.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\exception.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\exceptionBuilder.h" />
@@ -513,6 +514,7 @@
     <ClInclude Include="src\lightspeed\mt\apcthread.h" />
     <ClInclude Include="src\lightspeed\mt\atomic.h" />
     <ClInclude Include="src\lightspeed\mt\atomic_type.h" />
+    <ClInclude Include="src\lightspeed\mt\dispatcher.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\fiberException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\threadException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\timeoutException.h" />
@@ -656,10 +658,12 @@
     <ClCompile Include="src\lightspeed\base\windows\wintimestamp.cpp" />
     <ClCompile Include="src\lightspeed\base\windows\win_string.cpp" />
     <ClCompile Include="src\lightspeed\mt\apcthread.cpp" />
+    <ClCompile Include="src\lightspeed\mt\dispatcher.cpp" />
     <ClCompile Include="src\lightspeed\mt\exceptions\mt_messages.cpp" />
     <ClCompile Include="src\lightspeed\mt\msgthread.cpp" />
     <ClCompile Include="src\lightspeed\mt\mutex.cpp" />
     <ClCompile Include="src\lightspeed\mt\notifier.cpp" />
+    <ClCompile Include="src\lightspeed\mt\scheduler.cpp" />
     <ClCompile Include="src\lightspeed\mt\shareExclusiveLock.cpp" />
     <ClCompile Include="src\lightspeed\mt\syncPt.cpp" />
     <ClCompile Include="src\lightspeed\mt\threadHook.cpp" />

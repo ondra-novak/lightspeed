@@ -55,7 +55,7 @@ public:
 	*
 	*/
 	template<typename Fn, typename T >
-	void dispatch(const Fn &fn, const typename Promise<T>::Result &returnValue);
+	void dispatch(const Fn &fn, const typename Promise<T> &returnValue);
 
 
 	///dispatch promise
@@ -64,11 +64,40 @@ public:
 	 * works also if the promise is already resolved
 	 *
 	 * @param source source promise - can be already resolved
-	 * @param returnValue Result of another Promise. It should have observers attached already.
+	 * @param returnValue Promise of another Promise. It should have observers attached already.
 	 */
 	template<typename T>
-	void dispatchPromise(const Promise<T> &source, const typename Promise<T>::Result &returnValue);
+	void dispatchFuture(const Future<T> &source, const typename Promise<T> &returnValue);
 
+
+	///Dispatch resolution of the promise through the dispatcher
+	/**
+	 * dispatcher just resolves promise by supplied value. Main benefit of this is
+	 * that observers are called by the dispatcher and possible in its thread. So
+	 * caller is not blocked and can continue.
+	 *
+	 * The Promise can be also canceled without support from the dispatcher. Canceled 
+	 * Promise is still resolved, but without notifying the observers.
+	 *
+	 * @param promise promise to resolve by the dispatcher
+	 * @param value of the promise
+	 */
+
+	template<typename T>
+	void dispatch(const typename Promise<T> &promise, const T &value);
+
+	///Dispatch resolution of the promise through the dispatcher
+	/**
+	* dispatcher just resolves promise by supplied value. Main benefit of this is
+	* that observers are called by the dispatcher and possible in its thread. So
+	* caller is not blocked and can continue.
+	*
+	* The Promise can be also canceled without support from the dispatcher. Canceled
+	* Promise is still resolved, but without notifying the observers.
+	*
+	* @param promise promise to resolve
+	*/
+	void dispatch(const Promise<void> &promise);
 
 
 
