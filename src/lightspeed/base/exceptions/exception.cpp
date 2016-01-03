@@ -164,8 +164,10 @@ String Exception::getMessageWithReason() const
 {
 	ExceptionMsgImpl<exceptionSmallBuffer> msg;
 	message(msg);
+	String t;
 	if (reason != nil) {
-		msg("%1\n%2") << str_because << reason->getMessageWithReason();
+		t = reason->getMessageWithReason();
+		msg("%1\n%2") << str_because << t;
 	}
 
 	return msg.getString();

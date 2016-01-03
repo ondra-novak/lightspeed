@@ -365,6 +365,7 @@
     <ClInclude Include="src\lightspeed\base\framework\serviceapp.h" />
     <ClInclude Include="src\lightspeed\base\framework\services.h" />
     <ClInclude Include="src\lightspeed\base\framework\TCPServer.h" />
+    <ClInclude Include="src\lightspeed\base\framework\testapp.h" />
     <ClInclude Include="src\lightspeed\base\iexception.h" />
     <ClInclude Include="src\lightspeed\base\interface.h" />
     <ClInclude Include="src\lightspeed\base\invokable.h" />
@@ -610,6 +611,7 @@
     <ClCompile Include="src\lightspeed\base\framework\serviceapp.cpp" />
     <ClCompile Include="src\lightspeed\base\framework\services.cpp" />
     <ClCompile Include="src\lightspeed\base\framework\TCPServer.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\testapp.cpp" />
     <ClCompile Include="src\lightspeed\base\iter\generator.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\clusterAlloc.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\dynobject.cpp" />

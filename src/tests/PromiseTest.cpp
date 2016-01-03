@@ -1,12 +1,9 @@
-#include "../lightspeed/mt/thread.h"
-#include "../lightspeed/base/framework/app.h"
-#include "../lightspeed/base/actions/message.h"
-#include "../lightspeed/base/debug/dbglog.h"
-#include <utility>
-
+#include "../lightspeed/base/text/textstream.tcc"
+#include "../lightspeed/base/framework/testapp.h"
 #include "../lightspeed/base/actions/promise.tcc"
-#include "../lightspeed/base/exceptions/exception.h"
-#include "../lightspeed/base/exceptions/errorMessageException.h"
+#include <utility>
+#include "../lightspeed/mt/thread.h"
+#include "../lightspeed/base/actions/message.h"
 
 
 namespace LightSpeedTest {
@@ -14,174 +11,135 @@ namespace LightSpeedTest {
 using namespace LightSpeed;
 
 
-class PromiseTest: public App {
+static void testPromises(SeqFileOutput output);
+
+TestApp promiseTest("lightspeed.promises", "4135,ST,0-1-2-3-4,65-1,42", &testPromises);
+
+class TestObserver : public Future<void>::IObserver {
 public:
-
-	virtual integer start( const Args &args );
-
-
-	void test_thenCall(int value);
-	int test_thenStd(int value);
-	Future<int> test_thenPromise(int value);
-	void test_catchCall(const PException &e);
-	const PException & test_catchStd(const PException &e);
-	Future<int> test_catchPromise(const PException &e);
-
-	Thread th;
-	Thread th2;
-
-	typedef Message<void,int> Action;
-	typedef Message<int,int> IntAction;
-	typedef Message<Future<int>,int> PromiseAction;
-
-	typedef Message<void,const PException &> ExceptionAction;
-	typedef Message<const PException &,const PException &> ExceptionExceptionAction;
-	typedef Message<Future<int>,const PException &> PromiseExceptionAction;
-
-	Future<int> callTestAsync();
-	Future<int> callRejectAsync();
+	TestObserver(PrintTextA &prn, int number)
+		:prn(prn), number(number) {}
+	virtual void resolve(const PException &e) throw() 	{
+		prn("%1") << -(integer)number;
+	}
+	virtual void resolve() throw() {
+		prn("%1") << number;
+	}
+	PrintTextA &prn; int number;
 };
 
 
-static void testThread(Promise<int> resolution) {
+static void observerTest(PrintTextA &print) {
 
-	LS_LOGOBJ(lg);
-	lg.progress("Async task started");
-	Thread::deepSleep(5000);
-	lg.progress("Async task finished");
-	resolution.resolve(Constructor1<int,int>(42));
-
-}
-
-static void rejectThread(Promise<int> resolution) {
-
-	LS_LOGOBJ(lg);
-	lg.progress("Rejecting");
-	resolution.reject(ErrorMessageException(THISLOCATION,"rejected"));
-
-}
-
-
-Future<int> PromiseTest::callTestAsync() {
-
-	Future<int> p;
-	th.start(ThreadFunction::create(&testThread,p.getPromise()));
-	return p;
-
-
-}
-
-Future<int> PromiseTest::callRejectAsync() {
-
-	Future<int> p;
-	th.start(ThreadFunction::create(&rejectThread, p.getPromise()));
-	return p;
-
-
-}
-
-
-
-void PromiseTest::test_thenCall( int value )
-{
-	LS_LOG.progress("Called thenCall with value: %1") << value;
-}
-
-int PromiseTest::test_thenStd( int value )
-{
-	LS_LOG.progress("Called thenStr with value: %1") << value;
-	return value*value;
-}
-
-static void asyncCall(std::pair<int, Promise<int> > arg) {
-	LS_LOG.progress("async call start");
-	Thread::deepSleep(2500);
-	LS_LOG.progress("async call finished");
-	arg.second.resolve(arg.first + 200);
-
-}
-
-Future<int> PromiseTest::test_thenPromise( int value )
-{
-	LS_LOG.progress("Called thenPromise with value: %1") << value;
-	Future<int> res;
-
-	th2.start(ThreadFunction::create(&asyncCall,std::make_pair(value,res.getPromise())));
-	return res;
-
-}
-
-void PromiseTest::test_catchCall( const PException &e )
-{
-	LS_LOG.error("Promise rejected %1") << e->what();
-}
-
-const PException &PromiseTest::test_catchStd( const PException &e )
-{
-	LS_LOG.error("Promise rejected %1") << e->what();
-	return e;
-}
-
-Future<int> PromiseTest::test_catchPromise( const PException &e )
-{
-	LS_LOG.error("Promise rejected %1, supplying alternative result") << e->what();
-	Future<int> res;
-	//resolve promise now!
-	res.getPromise().resolve(0);
-	return res;
+	TestObserver a(print,1), b(print,2), c(print,3), d(print,4), e(print,5);
+	Future<void> f;
+	f.addObserver(&a); // 1
+	f.addObserver(&b); // 12
+	f.addObserver(&c); // 123
+	f.addObserver(&d); // 1234
+	f.removeObserver(&c); // 124
+	f.removeObserver(&a); // 24
+	f.addObserver(&a); // 241
+	f.addObserver(&c); // 2413
+	f.addObserver(&e); // 24135
+	f.removeObserver(&b); // 4135
+	f.getPromise().resolve();
 	
 }
 
-static PromiseTest theApp;
-
-void promiseTestLink() {
-	theApp.start(PromiseTest::Args());
-}
-
-
-integer PromiseTest::start( const Args & )
+static void singleThreadTest(PrintTextA &print)
 {
-	LS_LOG.progress("Testing promise") ;
+	Future<const char *> f;
 
-	Future<int> res = callTestAsync()
-		.thenCall(Action::create(this,&PromiseTest::test_thenCall))
-		.then(IntAction::create(this, &PromiseTest::test_thenStd))
-		.then(PromiseAction::create(this, &PromiseTest::test_thenPromise));
-
-
-	int val = res.wait();
-	LS_LOG.progress("Testing finished: %1") << val;
-
-	th.join();
-	th2.join();
-
-
-	Future<int> res2 = callRejectAsync()
-		.thenCall(Action::create(this,&PromiseTest::test_thenCall))
-		.then(IntAction::create(this, &PromiseTest::test_thenStd))
-		.onExceptionCall(ExceptionAction(this,&PromiseTest::test_catchCall))
-		.onException(ExceptionExceptionAction(this,&PromiseTest::test_catchStd))
-		.then(PromiseAction::create(this, &PromiseTest::test_thenPromise),
-				PromiseExceptionAction(this,&PromiseTest::test_catchPromise));
-
-	int val2 = res2.wait();
-	LS_LOG.progress("Testing finished: %1") << val2;
-
-	th.join();
-	th2.join();
-
-	Future<int> res3 = callRejectAsync()
-		.thenCall(Action::create(this,&PromiseTest::test_thenCall))
-		.then(IntAction::create(this, &PromiseTest::test_thenStd))
-		.then(PromiseAction::create(this, &PromiseTest::test_thenPromise))
-		.onExceptionCall(ExceptionAction(this,&PromiseTest::test_catchCall))
-		.onException(ExceptionExceptionAction(this,&PromiseTest::test_catchStd));
-
-	int val3 = res3.wait();
-	LS_LOG.progress("Testing finished: %1") << val3;
-
-	return 0;
+	Promise<const char *> p(f);
+	p.resolve("ST");
+	const char *result = f.wait(Timeout(0));
+	print("%1") << result;
 }
+
+static void leftPromise(PrintTextA &print)  {
+	Future<void> f;
+	TestObserver a(print, 1), b(print, 2), c(print, 3), d(print, 4), e(print, 5);
+	f.addObserver(&a); // 1
+	f.addObserver(&b); // 12
+	f.addObserver(&c); // 123
+	f.addObserver(&d); // 1234
+	Promise<void> p(f);
+	print("%1") << p.getControlInterface()->getState();
+}
+
+class ThreadResolve {
+public:
+	Thread &t;
+	ThreadResolve(Thread &t) :t(t) {}
+	Future<int> operator()(int value) const {
+		Future<int> res;
+		t.start(ThreadFunction::create(&ThreadResolve::runResolve, std::make_pair(res.getPromise(), value)));
+		return res;
+	}
+	static void runResolve(std::pair<Promise<int>, int> arg) {
+		Thread::sleep(100);
+		arg.first.resolve(arg.second + 42);
+	}
+};
+
+static void produceResult(Promise<int> result) {
+	Thread::sleep(100);
+	result = 23;
+}
+
+static void testThenPromise(PrintTextA &print) {
+	TimeStamp start = TimeStamp::now();
+	Future<int> f1;
+	Thread t,t2;
+	ThreadResolve resolveFn(t);
+	t2.start(ThreadFunction::create(&produceResult, f1.getPromise()));
+	int res = f1.then(resolveFn).getValue();
+	TimeStamp end = TimeStamp::now();
+	natural dist = (end - start).getMilis();
+	print("%1-%2") << res << (dist>100 && dist < 300);
+
+}
+
+static PException testReturnException(int value) {
+	return new ErrorMessageException(THISLOCATION, ToString<int>(value));
+}
+
+static int testDoAlternativeResult(const PException &e) {
+	ErrorMessageException *eme = dynamic_cast<ErrorMessageException *>(e.get());
+	if (NULL != eme)
+	{
+		return 42;
+	}
+	else {
+		e->throwAgain(THISLOCATION);
+		return 0;
+	}
+}
+
+static void testAlternativeResult(PrintTextA &print) {
+	Future<int> f;
+	Thread t;
+	t.start(ThreadFunction::create(&produceResult, f.getPromise()));
+	int res = f.then(&testReturnException).onException(&testDoAlternativeResult).getValue();
+	print("%1") << res;
+
+}
+
+static void testPromises(SeqFileOutput output) {
+	PrintTextA print(output);
+	observerTest(print);
+	print(",");
+	singleThreadTest(print);
+	print(",");
+	leftPromise(print);
+	print(",");
+	testThenPromise(print);
+	print(",");
+	testAlternativeResult(print);
+}
+
+
 
 }
 

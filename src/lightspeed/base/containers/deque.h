@@ -60,8 +60,6 @@ public:
 	 @param count of items to preallocate
 	 */
 	bool reserve(natural count);
-	///Releases extra unused memory
-	bool freeExtra();
 
 protected:
 
@@ -71,9 +69,16 @@ protected:
 	typedef typename Alloc::template AllocatedMemory<T> MemBlock;
 
 	MemBlock memBlock;
+	/*contains index of next item. 
+	  it runs in range <1, bufferSize>
+	  If head == 0, then container is empty, because this will not happen, when container contains items
+	*/
 	natural head;
-	natural tail;
-	bool noitems;
+	/*contains index of last item.
+      it runs in range <0, bufferSize-1>
+	  if head == tail, then container is full and must be expanded, unless head == 0 - then it is empty,
+	*/
+	natural tail;	
 
 };
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "../containers/optional.h"
-#include "../containers/autoArray.h"
 #include "../memory/smallAlloc.h"
 #include "../iexception.h"
 #include "../constructor.h"
@@ -8,6 +7,7 @@
 #include "../../mt/sleepingobject.h"
 #include "../../mt/exceptions/timeoutException.h"
 #include "../../mt/fastlock.h"
+#include "../containers/deque.h"
 
 namespace LightSpeed {
 
@@ -416,6 +416,8 @@ public:
 	 */
 	bool removeObserver(IObserver *ifc);
 
+	IPromiseControl::State getState() const throw ();
+
 	///Cancels the promise
 	/**
 	 * Function sends reject exception to all observers attached to this promise. Canceled
@@ -560,7 +562,7 @@ public:
 		 *    informations to construct the result
 		 *
 		 */
-		void resolve(const IConstructor<T> &result) throw();
+		virtual void resolve(const IConstructor<T> &result) throw();
 
 		///resolve promise by using another promise
 		/**
@@ -579,6 +581,7 @@ public:
 		template<typename Impl>
 		void resolve(const Constructor<T, Impl> &result) throw();
 
+		virtual Value *getValue() = 0;
 
 		virtual ~Resolution() {}
 
@@ -617,6 +620,7 @@ protected:
 		void releaseResultRef();
 
 		virtual void wait(const Timeout &tm) const;
+		virtual Value *getValue() { return this; }
 
 
 
@@ -625,7 +629,7 @@ protected:
 		Optional<T> value;
 		PException exception;
 
-		typedef AutoArray<IObserver *, SmallAlloc<4> > Observers;
+		typedef Deque<IObserver *, SmallAlloc<4> > Observers;
 		Observers observers;
 		atomic resultRefCnt;
 
@@ -646,6 +650,11 @@ protected:
 	static X transformHelper(const T &value);
 
 	template<typename X> friend class Future;
+
+	Value *getValuePtr() const  {
+		if (future == nil) const_cast<Future *>(this)->init();
+		return future;
+	}
 
 
 };
@@ -691,6 +700,15 @@ public:
 		EmptyCallVoid(Fn fn):fn(fn) {}
 		const Empty &operator()(const Empty &x) const {fn();return x;}
 
+	};
+
+	class IObserver : public Future<Empty>::IObserver {
+	public:
+		virtual void resolve(const Empty &e) throw() {
+			resolve();
+		}
+		virtual void resolve() throw() = 0;
+		virtual void resolve(const PException &e) throw() = 0;		
 	};
 
 	template<typename Fn>
@@ -821,6 +839,8 @@ protected:
 		ptr->releaseResultRef();
 		ptr = nil;
 	}
+
+	virtual typename Future<T>::Value *getValue() { return ptr; }
 
 	RefCntPtr<typename Future<T>::Value> ptr;
 

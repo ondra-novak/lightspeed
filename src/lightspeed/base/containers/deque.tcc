@@ -19,14 +19,14 @@ namespace LightSpeed {
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	Deque<T, Alloc>::Deque()
-		:head(0), tail(0), noitems(true)
+		:memBlock(Alloc(),0), head(0), tail(0)
 	{
 
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	Deque<T, Alloc>::Deque(const Alloc &alloc)
-		:memBlock(alloc,0), head(0), tail(0), noitems(true)
+		:memBlock(alloc,0), head(0), tail(0)
 	{
 
 	}
@@ -43,6 +43,7 @@ namespace LightSpeed {
 	typename Deque<T, Alloc>::Ref Deque<T, Alloc>::mutableAt(natural index)
 	{
 		if (index >= length()) throwRangeException_To<integer>(THISLOCATION, length() - 1, index);
+		index += tail;
 		return memBlock.getBase()[index % memBlock.getSize()];
 	}
 
@@ -50,15 +51,18 @@ namespace LightSpeed {
 	typename Deque<T, Alloc>::ConstRef Deque<T, Alloc>::at(natural index) const
 	{		
 		if (index >= length()) throwRangeException_To<integer>(THISLOCATION, length() - 1, index);
+		index += tail;
 		return memBlock.getBase()[index % memBlock.getSize()];
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	natural Deque<T, Alloc>::length() const
 	{
-		if (noitems) return 0;
-		natural sz = memBlock.getSize();
-		return (head + sz - tail) % sz;
+		
+		if (head && head <= tail) {
+			return head + memBlock.getSize() -tail;
+		}
+		else return head - tail;
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
@@ -67,9 +71,9 @@ namespace LightSpeed {
 	{
 		if (isFull())  tryExpand(); 
 		natural memSz = memBlock.getSize();
-		val.construct(memBlock.getBase() + head);
-		head = (head + 1) % memSz;
-		noitems = false;
+		natural at = head % memSz;
+		val.construct(memBlock.getBase() + at);
+		head = at + 1;
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
@@ -78,9 +82,11 @@ namespace LightSpeed {
 	{
 		if (isFull()) tryExpand();
 		natural memSz = memBlock.getSize();
-		tail = (tail + memSz - 1) % memSz;
-		val.construct(memBlock.getBase() + tail);
-		noitems = false;
+		if (head == 0) head = memSz;
+		natural at = (tail + memSz - 1) % memSz;
+		val.construct(memBlock.getBase() + at);
+		tail = at;
+
 	}
 
 
@@ -93,56 +99,59 @@ namespace LightSpeed {
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	bool Deque<T, Alloc>::empty() const
 	{
-		return noitems;
+		return head == 0;
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	typename Deque<T, Alloc>::ConstRef Deque<T, Alloc>::getBack() const
 	{
-		if (noitems) throw ContainerIsEmptyException(THISLOCATION);
+		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		return memBlock.getBase()[tail];
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	typename Deque<T, Alloc>::ConstRef Deque<T, Alloc>::getFront() const
 	{
-		if (noitems) throw ContainerIsEmptyException(THISLOCATION);
+		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		return memBlock.getBase()[head-1];
 
 	}
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	typename Deque<T, Alloc>::Ref Deque<T, Alloc>::getBack() 
 	{
-		if (noitems) throw ContainerIsEmptyException(THISLOCATION);
+		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		return memBlock.getBase()[tail];
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	typename Deque<T, Alloc>::Ref Deque<T, Alloc>::getFront()
 	{
-		if (noitems) throw ContainerIsEmptyException(THISLOCATION);
+		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		return memBlock.getBase()[head - 1];
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	void Deque<T, Alloc>::popFront()
 	{
-		if (noitems) throw ContainerIsEmptyException(THISLOCATION);
+	
+		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		natural memSz = memBlock.getSize();
-		head = (head + memSz - 1) % memSz;
-		if (head == tail) noitems = true;
-		memBlock.getBase()[head].~T();
+		head--;
+		T &itm = memBlock.getBase()[head];		
+		if (head == tail) head = tail = 0; //< set empty (both zero)
+		else head = (head + memSz - 1) % memSz + 1;
+		itm.~T();
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
 	void Deque<T, Alloc>::popBack()
 	{
-		if (noitems) throw ContainerIsEmptyException(THISLOCATION);
+		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		natural memSz = memBlock.getSize();
-		natural idx = tail;
+		T &itm = memBlock.getBase()[tail];
 		tail = (tail + 1) % memSz;
-		if (head == tail) noitems = true;
-		memBlock.getBase()[idx].~T();
+		if (head == tail) head = tail = 0; //<set empty (both zero)
+		itm.~T();
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
@@ -155,19 +164,6 @@ namespace LightSpeed {
 	void Deque<T, Alloc>::pushBack(ConstRef val)
 	{
 		pushBack(Constructor1<T,T>(val));
-	}
-
-	template<typename T, typename Alloc /*= StdAlloc*/>
-	bool LightSpeed::Deque<T, Alloc>::freeExtra()
-	{
-		natural curSz = length();
-		if (!memBlock.shrink(curSz)) {
-			natural reqSz = curSz;
-			return internalResize(reqSz, curSz);
-		}
-		else {
-			return true;
-		}
 	}
 
 	template<typename T, typename Alloc /*= StdAlloc*/>
@@ -232,12 +228,7 @@ namespace LightSpeed {
 	{
 		natural sz = length();
 		if (count > sz) {
-			if (!memBlock.expand(count)) {
-				return internalResize(count, sz);
-			}
-			else {
-				return true;
-			}
+			return internalResize(count, sz);
 		}
 		else {
 			return false;
@@ -250,10 +241,8 @@ namespace LightSpeed {
 		natural curLen = length();		
 		natural newSz = curLen ? curLen + (curLen + 1) / 2 : 1;
 		natural curBlock = memBlock.getSize();
-		if (!memBlock.expand(newSz)) {
-			if (!reserve(newSz)) {
-				throwAllocatorLimitException(THISLOCATION, newSz, memBlock.getSize(), typeid(MemBlock));
-			}
+		if (!reserve(newSz)) {
+			throwAllocatorLimitException(THISLOCATION, newSz, memBlock.getSize(), typeid(MemBlock));
 		}
 	}
 

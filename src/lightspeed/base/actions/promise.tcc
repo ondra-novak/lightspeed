@@ -3,6 +3,7 @@
 #include "promise.h"
 
 
+#include "../containers/deque.tcc"
 #include "../containers/autoArray.tcc"
 #include "../exceptions/canceledException.h"
 #include "../exceptions/pointerException.h"
@@ -63,16 +64,10 @@ void Future<T>::Value::resolveInternal(X &var, const Y & result)
 	var = result;
 	//cycle until the list of observers is empty
 	while (!observers.empty()) {
-		//load observers to the other list to unlock internals as soon as possible
-		cpy.swap(observers);
-		//unlock internals
+		IObserver *x = observers.getFront();
+		observers.popFront();
 		SyncReleased<FastLock> _(lock);
-		//process all obeservers
-		for (natural i = 0; i < cpy.length(); i++)
-			//send value
-			cpy[i]->resolve(var);
-		//clear the list
-		cpy.clear();
+		x->resolve(var);
 	}
 	//reset state
 	resolving = false;
@@ -102,7 +97,7 @@ void Future<T>::Value::registerObserver( IObserver *ifc )
 		}
 	}
 	//otherwise add the observer to the list
-	observers.add(ifc);
+	observers.pushBack(ifc);
 	//unlock internals
 	lock.unlock();
 }
@@ -110,15 +105,33 @@ void Future<T>::Value::registerObserver( IObserver *ifc )
 template<typename T>
 bool Future<T>::Value::unregisterObserver( IObserver *ifc )
 {
+	bool found = false;
 	Synchronized<FastLock> _(lock);
-	for (natural i = observers.length(); i > 0 ;) {
-		--i;
-		if (observers[i] == ifc) {
-			observers.erase(i); 
-			return true;
+	natural cnt = observers.length();
+	natural i = 0;
+	while (i < cnt) {
+		IObserver *x = observers.getBack();
+		observers.popBack();
+		if (x == ifc) {
+			if (i < cnt / 2) {
+				while (i > 0) {
+					x = observers.getFront();
+					observers.popFront();
+					observers.pushBack(x);
+					i--;
+				}
+				return true;
+			}
+			else {
+				found = true;
+			}
 		}
+		else {
+			observers.pushFront(x);
+		}
+		i++;
 	}
-	return false;
+	return found;
 }
 
 
@@ -168,10 +181,29 @@ const T & Future<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 		}
 	};
 
+	//shortcut - if resolved, return value now
+	if (getState() != IPromiseControl::stateNotResolved) {
+		if (future->value != nil) return future->value;
+		if (future->exception != nil) future->exception->throwAgain(THISLOCATION);
+	}
+	//shortcut - if not resolved and timeout is expired
+	else if (tm.expired())
+		//throw exception
+		throw TimeoutException(THISLOCATION);
+
+	//perform full waiting - create observer
 	Ntf ntf(getCurThreadSleepingObj());
+	//register observer
 	future->registerObserver(&ntf);
+	//wait until observer gets value or timeout
 	while (!ntf.resolved() && !threadSleep(tm)) {}
-	future->unregisterObserver(&ntf);
+	//remove observer
+	if (!future->unregisterObserver(&ntf)) {
+		//we were unable to unregister observer
+		//because observer is currently running
+		//just wait for finishing - without timeout - we cannot remove it!
+		while (!ntf.resolved()) threadSleep(nil);
+	}
 	if (ntf.exception) ntf.exception->throwAgain();
 	if (!ntf.result) throw TimeoutException(THISLOCATION);
 	return *ntf.result;	
@@ -186,6 +218,7 @@ const T & Future<T>::wait( ) const {
 template<typename T>
 template<typename Fn>
 Future<T> Future<T>::then( Fn fn) {
+	if (future == nil) init();
 	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
@@ -211,6 +244,8 @@ template<typename T>
 template<typename Fn>
 Future<T> Future<T>::thenCall( Fn fn)
 {
+	if (future == nil) init();
+
 	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn):fn(fn) {}
@@ -233,6 +268,8 @@ template<typename T>
 template<typename Fn>
 Future<T> Future<T>::onException( Fn fn)
 {
+	if (future == nil) init();
+
 	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
@@ -266,7 +303,9 @@ template<typename T>
 template<typename Fn>
 Future<T> Future<T>::onExceptionCall( Fn fn)
 {
-	class X:public Resolution, public DynObject {
+	if (future == nil) init();
+
+	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn):fn(fn) {}
 		virtual void resolve(const T &) throw() {
@@ -287,7 +326,9 @@ Future<T> Future<T>::onExceptionCall( Fn fn)
 template<typename T>
 template<typename Fn, typename RFn>
 Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
-	class X:public Resolution, public DynObject {
+	if (future == nil) init();
+
+	class X :public IObserver, public DynObject {
 	public:
 		X(Fn fn,RFn rfn,const Promise<T> &rptr):fn(fn),rfn(rfn),rptr(rptr) {}
 		virtual void resolve(const T &result) throw() {
@@ -319,7 +360,25 @@ Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 
 template<typename T>
 void Future<T>::Resolution::resolve(Future<T> result) {
-	result.addObserver(this);
+	class A : public IObserver, public DynObject {
+	public:
+		A(Promise<T> x) :x(x) {}
+
+		virtual void resolve(const T &result) throw() override
+		{
+			x.resolve(result);
+			delete this;
+		}
+
+		virtual void resolve(const PException &e) throw() override
+		{
+			x.resolve(e); delete this;
+
+		}
+		Promise<T> x;
+	};
+	Value *x = getValue();
+	result.addObserver(new(x->alloc) A(Promise<T>(x)));
 }
 
 template<typename T>
@@ -343,15 +402,20 @@ template<typename T>
 IPromiseControl::State Future<T>::Value::cancel( const PException &e ) throw() {	
 
 
-		Observers cpy;
-		{
-			Synchronized<FastLock> _(lock);
-			cpy.swap(observers);
+	AutoArray<IObserver *, SmallAlloc<16> > cpy;
+	{
+		Synchronized<FastLock> _(lock);
+		cpy.reserve(observers.length());
+		while (!observers.empty()) {
+			cpy.add(observers.getFront());
+			observers.popFront();
 		}
-		for (natural i = 0; i < cpy.length(); i++)
-			cpy[i]->resolve(e);
+	}
+
+	for (natural i = 0; i < cpy.length(); i++)
+		cpy[i]->resolve(e);
 		
-		return getState();
+	return getState();
 	
 }
 
@@ -675,11 +739,18 @@ Future<T>::Future(IRuntimeAlloc &alloc) {
 }
 
 template<typename T>
-Promise<T>::Promise(const Future<T> &future) :ptr(future.future)
+Promise<T>::Promise(const Future<T> &future) :ptr(future.getValuePtr())
 {
 	ptr->addResultRef();
 }
 
+
+template<typename T>
+IPromiseControl::State Future<T>::getState() const throw () 
+{
+	if (future == nil) return IPromiseControl::stateNotResolved;
+	return future->getState();
+}
 
 }
 
