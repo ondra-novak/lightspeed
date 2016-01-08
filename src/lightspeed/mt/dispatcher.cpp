@@ -24,12 +24,12 @@ namespace LightSpeed {
 		return alloc;
 	}
 
-	void Dispatcher::promiseRegistered(PPromiseControl ppromise)
+	void Dispatcher::promiseRegistered(PPromiseControl )
 	{
 		
 	}
 
-	void Dispatcher::promiseResolved(PPromiseControl ppromise)
+	void Dispatcher::promiseResolved(PPromiseControl )
 	{
 		
 	}
@@ -103,7 +103,7 @@ namespace LightSpeed {
 
 	void Dispatcher::rejectQueue()
 	{
-		AllocPointer<AbstractAction> aa = getNextAction();
+		AllocPointer<AbstractAction> aa(getNextAction());
 		while (aa != nil) {
 			aa->reject();
 			aa = getNextAction();

@@ -1,3 +1,0 @@
-#! /bin/bash
-make "$@" | grep ^Building --line-buffered
-exit ${PIPESTATUS[0]}

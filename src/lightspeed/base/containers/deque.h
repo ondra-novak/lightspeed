@@ -10,7 +10,7 @@
 
 
 #include "arrayt.h"
-#include "..\constructor.h"
+#include "../constructor.h"
 
 
 namespace LightSpeed {
@@ -24,7 +24,7 @@ public:
 	typedef ArrayTBase<T, Deque<T, Alloc> > Super;
 	typedef typename Super::ConstRef ConstRef;
 	typedef typename Super::Ref Ref;
-	typedef typename T Impl;
+	typedef T Impl;
 
 	Deque();
 	Deque(const Alloc &alloc);

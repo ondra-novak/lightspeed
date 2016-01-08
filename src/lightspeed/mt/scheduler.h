@@ -1,6 +1,6 @@
 #pragma once
 #include "dispatcher.h"
-#include "..\base\containers\sort.h"
+#include "../base/containers/sort.h"
 
 namespace LightSpeed {
 

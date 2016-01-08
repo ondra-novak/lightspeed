@@ -32,6 +32,7 @@ namespace LightSpeed {
 			{
 				promise.reject(CanceledException(THISLOCATION));
 			}
+			~A() throw() {}
 		protected:
 			Promise<void> promise;
 		};

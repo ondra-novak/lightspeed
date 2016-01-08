@@ -704,7 +704,7 @@ public:
 
 	class IObserver : public Future<Empty>::IObserver {
 	public:
-		virtual void resolve(const Empty &e) throw() {
+		virtual void resolve(const Empty &) throw() {
 			resolve();
 		}
 		virtual void resolve() throw() = 0;
@@ -772,7 +772,7 @@ public:
 	/** When last instance of the result is destroyed, promise is resolved with an exception */
 	~Promise();
 
-	using Resolution::resolve;
+	using  Future<T>::Resolution::resolve;
 
 
 	virtual void resolve(const T &result) throw() {

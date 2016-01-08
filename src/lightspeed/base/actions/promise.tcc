@@ -364,13 +364,13 @@ void Future<T>::Resolution::resolve(Future<T> result) {
 	public:
 		A(Promise<T> x) :x(x) {}
 
-		virtual void resolve(const T &result) throw() override
+		virtual void resolve(const T &result) throw()
 		{
 			x.resolve(result);
 			delete this;
 		}
 
-		virtual void resolve(const PException &e) throw() override
+		virtual void resolve(const PException &e) throw()
 		{
 			x.resolve(e); delete this;
 
@@ -430,7 +430,7 @@ void Future<T>::clear() {
 }
 
 template<typename T>
-typename Promise<T> Future<T>::getPromise() {
+Promise<T> Future<T>::getPromise() {
 	if (future == nil) clear(*getPromiseAlocator());
 	return Promise<T>(future);
 }
@@ -484,7 +484,7 @@ Future<T> Future<T>::transform(Future<X> original, Fn fn) {
 
 	class A:public Future<X>::Resolution, public DynObject {
 	public:
-		A(Fn fn, const Promise &rptr):fn(fn),rptr(rptr) {}
+		A(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const X &result) throw() {
 			try {
 				rptr.resolve(fn(result));
@@ -504,7 +504,7 @@ Future<T> Future<T>::transform(Future<X> original, Fn fn) {
 		}
 
 	protected:
-		Fn fn; Promise rptr;
+		Fn fn; Promise<T> rptr;
 	};
 	Future<T> p;
 	original.registerCb(new(original.future->alloc) A(fn,p.createResult(original.future->alloc)));
@@ -634,7 +634,7 @@ Future<void> Future<void>::transform(Future<X> original)
 {
 	class A:public Future<X>::IObserver, public DynObject {
 	public:
-		A(Promise &rptr):rptr(rptr) {}
+		A(Promise<void> &rptr):rptr(rptr) {}
 		virtual void resolve(const X &) throw() {
 			rptr.resolve();
 			delete this;
@@ -645,10 +645,10 @@ Future<void> Future<void>::transform(Future<X> original)
 		}
 
 	protected:
-		Promise rptr;
+		Promise<void> rptr;
 	};
-	Future<void> p;
-	original.addObserver(new(original.future->alloc) A(p.createResult(original.future->alloc)));
+	Future<void> p(original.future->alloc);
+	original.addObserver(new(original.future->alloc) A(p.getPromise()));
 	return p;
 }
 

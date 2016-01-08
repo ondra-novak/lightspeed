@@ -12,7 +12,7 @@
 
 #include "deque.h"
 #include "move.h"
-#include "..\exceptions\container.h"
+#include "../exceptions/container.h"
 
 
 namespace LightSpeed {
@@ -240,7 +240,7 @@ namespace LightSpeed {
 	{
 		natural curLen = length();		
 		natural newSz = curLen ? curLen + (curLen + 1) / 2 : 1;
-		natural curBlock = memBlock.getSize();
+//		natural curBlock = memBlock.getSize();
 		if (!reserve(newSz)) {
 			throwAllocatorLimitException(THISLOCATION, newSz, memBlock.getSize(), typeid(MemBlock));
 		}
@@ -273,8 +273,8 @@ namespace LightSpeed {
 			T *pole;
 			natural offset;
 			natural len;
-			natural i;
 			natural wrap;
+			natural i;
 		};
 
 		Deleter(memBlock.getBase(), tail, length(), memBlock.getSize()).run();

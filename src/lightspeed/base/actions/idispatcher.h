@@ -55,7 +55,7 @@ public:
 	*
 	*/
 	template<typename Fn, typename T >
-	void dispatch(const Fn &fn, const typename Promise<T> &returnValue);
+	void dispatch(const Fn &fn, const Promise<T> &returnValue);
 
 
 	///dispatch promise
@@ -67,7 +67,7 @@ public:
 	 * @param returnValue Promise of another Promise. It should have observers attached already.
 	 */
 	template<typename T>
-	void dispatchFuture(const Future<T> &source, const typename Promise<T> &returnValue);
+	void dispatchFuture(const Future<T> &source, const Promise<T> &returnValue);
 
 
 	///Dispatch resolution of the promise through the dispatcher
@@ -84,7 +84,7 @@ public:
 	 */
 
 	template<typename T>
-	void dispatch(const typename Promise<T> &promise, const T &value);
+	void dispatch(const Promise<T> &promise, const T &value);
 
 	///Dispatch resolution of the promise through the dispatcher
 	/**
@@ -117,7 +117,7 @@ public:
 protected:
 
 	template<typename T>
-	static T throwFn() throw (...);
+	static T throwFn();
 
 	template<typename T, typename P>
 	class PromiseSetResult;

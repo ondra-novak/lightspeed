@@ -28,6 +28,7 @@ public:
 
 		StringA getExpectedOutput() const { return expectedOutput; }
 		StringA getProducedOutput() const { return producedOutput; }
+		virtual ~FailedTest() throw() {}
 	protected:
 		StringA expectedOutput;
 		StringA producedOutput;	

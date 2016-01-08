@@ -65,7 +65,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.420479983" name="bmake" rcbsApplicability="disable" resourcePath="bmake" toolsToInvoke=""/>
 					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1740631768" name="FilePath.h" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/FilePath.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="lightspeed/utils/impl/sha1.cpp|lightspeed/utils/json/bsjson.cpp|lightspeed/utils/dims.cpp|lightspeed/utils/json/jsonbin.cpp|lightspeed/base/linux/MemCheck.cpp|lightspeed/base/actions/scheduler.new.cpp|lightspeed/base/actions/msgQueue.new.cpp|lightspeed/mt/windows|lightspeed/base/streams/netio_sockets.cpp|lightspeed/uiapp|lightspeed/base/memory/shortAlloc.cpp|lightspeed/base/windows|lightspeed/uiapp_old|lightspeed/utils/windows|lightspeed/gc/gcmt.cpp|lightspeed/rpc|lightspeed/base/linux/netio.cpp|lightspeed/mt/linux/threadEngine.cpp|lightspeed/base/containers/dictionary.cpp|lightspeed/mt/masterThread.cpp|lightspeed/mt/linux/threadEngine.h|lightspeed/gc_old|lightspeed/base/memory/extendedClusterFactory.cpp|lightspeed/gc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
@@ -159,7 +158,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="a" artifactName="lightspeed" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.staticLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.staticLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950" name="Release" parent="cdt.managedbuild.config.gnu.lib.debug">
+				<configuration artifactExtension="a" artifactName="lightspeed" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.staticLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.staticLib" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950" name="Release" parent="cdt.managedbuild.config.gnu.lib.debug">
 					<folderInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.lib.debug.1633461345" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.lib.debug">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.lib.debug.1501663153" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.lib.debug"/>
@@ -203,7 +202,6 @@
 						</toolChain>
 					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950.src/lightspeed/utils/FilePath.h" name="FilePath.h" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/FilePath.h" toolsToInvoke=""/>
-					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950.bmake" name="bmake" rcbsApplicability="disable" resourcePath="bmake" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="autobuild|lightspeed|base/obsolete|build|debian|mutex.cpp|build_release|mt/windows|base/windows|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry excluding="lightspeed/utils/impl/sha1.cpp|lightspeed/utils/json/bsjson.cpp|lightspeed/utils/dims.cpp|lightspeed/utils/json/jsonbin.cpp|lightspeed/base/linux/MemCheck.cpp|lightspeed/base/actions/scheduler.new.cpp|lightspeed/base/actions/msgQueue.new.cpp|lightspeed/mt/windows|lightspeed/base/streams/netio_sockets.cpp|lightspeed/uiapp|lightspeed/base/memory/shortAlloc.cpp|lightspeed/base/windows|lightspeed/uiapp_old|lightspeed/utils/windows|lightspeed/gc/gcmt.cpp|lightspeed/rpc|lightspeed/base/linux/netio.cpp|lightspeed/mt/linux/threadEngine.cpp|lightspeed/base/containers/dictionary.cpp|lightspeed/mt/masterThread.cpp|lightspeed/mt/linux/threadEngine.h|lightspeed/gc_old|lightspeed/base/memory/extendedClusterFactory.cpp|lightspeed/gc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>

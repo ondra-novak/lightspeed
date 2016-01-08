@@ -1,4 +1,4 @@
-#include "..\memory\stdAlloc.h"
+#include "../memory/stdAlloc.h"
 #include "deque.tcc"
 #include "queue.h"
 #include "stack.h"
