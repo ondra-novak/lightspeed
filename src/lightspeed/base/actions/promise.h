@@ -843,9 +843,6 @@ protected:
 	virtual typename Future<T>::Value *getValue() { return ptr; }
 
 	RefCntPtr<typename Future<T>::Value> ptr;
-
-private:
-	Promise &operator=(const Promise &other);
 };
 
 
@@ -865,6 +862,7 @@ public:
 	void callAndResolve(Fn fn) throw();
 	template<typename Fn, typename Arg>
 	void callAndResolve(Fn fn, Arg arg) throw();
+
 };
 
 }

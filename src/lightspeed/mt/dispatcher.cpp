@@ -11,6 +11,11 @@ namespace LightSpeed {
 
 	}
 
+	Dispatcher::~Dispatcher()
+	{
+		join();
+	}
+
 	void Dispatcher::dispatch(AbstractAction *action)
 	{
 		Synchronized<FastLock> _(lock);
