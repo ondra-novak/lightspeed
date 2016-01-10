@@ -12,6 +12,8 @@
 #include "../../base/memory/cloneable.h"
 #include "../exceptions/stdexception.h"
 #include "../exceptions/canceledException.h"
+#include "promise.tcc"
+
 namespace LightSpeed {
 
 
@@ -39,7 +41,7 @@ namespace LightSpeed {
 
 
 	template<typename Fn, typename T>
-	void IDispatcher::dispatch(const Fn &fn, const Promise<T> &returnValue)
+	void IDispatcher::dispatch(const Fn &fn, const typename Promise<T> &returnValue)
 	{
 		class A : public AbstractAction {
 		public:
@@ -50,7 +52,6 @@ namespace LightSpeed {
 			virtual void reject() throw() {
 				res.reject(CanceledException(THISLOCATION));
 			}
-			~A() throw() {}
 		protected:
 			Fn fn;
 			Promise<T> res;
@@ -65,16 +66,15 @@ namespace LightSpeed {
 	public:
 		PromiseSetResult(const T &value, const Promise<P> &res) :value(value), res(res) {}
 
-		virtual void run() throw()
+		virtual void run() throw() override
 		{
 			res.resolve(value);
 		}
 
-		virtual void reject() throw()
+		virtual void reject() throw() override
 		{
 			res.reject(CanceledException(THISLOCATION));
 		}
-		~PromiseSetResult() throw() {}
 	protected:
 		T value;
 		Promise<P> res;
@@ -83,13 +83,13 @@ namespace LightSpeed {
 
 
 	template<typename T>
-	void IDispatcher::dispatchFuture(const Future<T> &source, const  Promise<T> &returnValue)
+	void IDispatcher::dispatchFuture(const Future<T> &source, const typename Promise<T> &returnValue)
 	{
 		class Observer : public Future<T>::IObserver, public DynObject {
 		public:
-			Observer(IDispatcher &owner, const  Promise<T> &res)
+			Observer(IDispatcher &owner, const typename Promise<T> &res)
 				:owner(owner), res(res) {}
-			virtual void resolve(const T &result) throw()
+			virtual void resolve(const T &result) throw() override
 			{
 				AbstractAction *aa = new PromiseSetResult<T, T>(result, res);				
 				try {
@@ -101,7 +101,7 @@ namespace LightSpeed {
 					delete this;
 				}
 			}
-			virtual void resolve(const PException &e) throw()
+			virtual void resolve(const PException &e) throw() override
 			{
 				AbstractAction *aa = new PromiseSetResult<PException, T>(e, res);
 				try {
@@ -115,7 +115,7 @@ namespace LightSpeed {
 			}
 		protected:
 			IDispatcher &owner;
-			Promise<T> res;
+			typename Promise<T> res;
 
 		};
 
@@ -127,12 +127,12 @@ namespace LightSpeed {
 
 
 	template<typename T>
-	void IDispatcher::dispatch(const  Promise<T> &promise, const T &value)
+	void IDispatcher::dispatch(const typename Promise<T> &promise, const T &value)
 	{
 		class A : public AbstractAction {
 		public:
 
-			A(const Promise<void> &promise, const T &value) :promise(promise),value(value) {}
+			A(const typename Future<void>::Promise &promise, const T &value) :promise(promise),value(value) {}
 			virtual void run() throw()
 			{
 				promise.resolve();
@@ -148,6 +148,14 @@ namespace LightSpeed {
 		};
 		AbstractAction *aa = new(getActionAllocator()) A(promise,value);
 		dispatch(aa);
+	}
+
+
+
+	template<typename T>
+	T LightSpeed::IDispatcher::throwFn()
+	{
+		throw;
 	}
 
 

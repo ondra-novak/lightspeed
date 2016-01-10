@@ -1,4 +1,7 @@
+#include "dispatcher.h"
+#include "../base/containers/sort.tcc"
 #include "scheduler.h"
+#include "../base/containers/autoArray.tcc"
 
 namespace LightSpeed {
 

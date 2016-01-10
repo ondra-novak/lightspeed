@@ -11,6 +11,8 @@
 
 namespace LightSpeed {
 
+	const char *Job::unexpectedJobStateMsg = "Unexpected job state";
+
 Job::Job():state(not_running)
 {
 }
