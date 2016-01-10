@@ -13,32 +13,29 @@
 
 namespace LightSpeed {
 
-	template<class T,  natural citems = DequeClustSize<T>::n >
+	template<class T>
 	class Queue
 	{
 	public:
 
 		Queue() {}
-		explicit Queue(NodeAlloc alloc):deque(alloc) {}
 
 		void push(const T &x) {deque.pushBack(x);}
-		const T &front() const {return deque.front();}
-		void pop() {deque.popFront();}
+
+		template<typename I>
+		void push(const Constructor<T, I> &c) { deque.pushBack(c); }
+
+		const T &top() const { return deque.getFront(); }
+		T &top() { return deque.getFront(); }
+		void pop() { deque.popFront(); }
 		void clear() {deque.clear();}
 		bool empty() const {return deque.empty();}
 
 		natural length() const {return deque.length();}
 
-		template<typename Archive>
-		void serialize(Archive &arch) {
-			arch(deque);
-		}
-
-		typedef typename Deque<T,citems>::Iterator Iterator;
-		Iterator getFwIter() const {return deque.getFwIter();}
 
 	protected:
-		Deque<T,citems> deque;
+		Deque<T> deque;
 	};
 
 

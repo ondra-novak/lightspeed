@@ -404,7 +404,24 @@ namespace LightSpeed {
 			 */
 			virtual INode *add(ConstStrA name, PNode newNode) = 0;
 
+			///Adds new node directly from iterator result
+			INode *add(const KeyValue &kv) {
+				if (kv.getKeyType() == IKey::index) return add(kv.node);
+				else return add(kv.getStringKey(),kv.node);
+			}
+
 			INode *replace(ConstStrA name, PNode newNode) {return erase(name)->add(name,newNode);}
+
+			///Copies array or object to the current array or object
+			/** function cannot copy value for other node types. It just iterates though values and
+			 * adds it to the current object. Items are not deeply copied, actually they are shared.
+			 *
+			 * @param from source object
+			 */
+			INode *copy(PNode from) {
+				for (JSON::Iterator iter = from->getFwIter(); iter.hasItems();) add(iter.getNext());
+				return this;
+			}
 
 			///Returns true, when node is non-empty container
 			virtual bool empty() const {return false;}

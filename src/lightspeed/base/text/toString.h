@@ -92,7 +92,7 @@ namespace LightSpeed {
 			this->commitBuffer();
 		}
 		void extract(NumType val, natural base, bool up) {
-			if (val >= base) extract(val / base, base, up);
+			if (val >= (NumType)base) extract(val / base, base, up);
 			natural x = val % base;
 			if (x > 9) this->buffer.write(ChT((up ? 'A' : 'a') + x - 10));
 			else this->buffer.write(ChT('0' + x));

@@ -80,7 +80,7 @@ public:
 	///Retrieves pointer to the server's executor
 	/** Anytime handler need to spawn a asynchronous job, it can use
 	 * server's internal executor. Executor uses server's thread pool, so
-	 * you shuld use this wisely especially when handler creates a lot of
+	 * you should use this wisely especially when handler creates a lot of
 	 * threads.
 	 *
 	 * Best use of this function is to request server thread for request
@@ -92,7 +92,7 @@ public:
 	 */
 	virtual IExecutor *getServerExecutor() const = 0;
 
-	///Retrurns object that can be used to wake connection while it has been put into inactive state
+	///Returns object that can be used to wake connection while it has been put into inactive state
 	/**
 	 *
 	 *
@@ -103,51 +103,50 @@ public:
 
 };
 
-///Brand new handler which can be used instead old ITCPServerConnection.
-/** Server supports both handlers, but only one at same time. You can initialize
- * server using new handler, then events of this handler will be calleded
- */
+///User handler to define actions on various events happened in TCP Server
 class ITCPServerConnHandler: virtual public IInterface {
 public:
 
-	///Defines various commands for Socket pool
-	/** When handler finish all operations on connection, it can specify, what it should TCP server
-	 * do with finished connection
+	///Defines various commands for
+	/** When the handler finish all operations on the connection, 
+	* it can specify, what it should the TCP server
+	 * do with the finished connection
 	 */
 	enum Command {
-		/** Removes connection from the pool. TCP server stops monitor this connection and if it
-		 * is not shared, connection is disconnected. Because you can keep pointer to the connection
-		 * outside of TCP server (it is RefCntPtr), connection can remain opened until last reference
-		 * is destroyed. This rule is not applied on ITCPServerContext, which is destroyed regardless
-		 * how many objects refers this connection
+		/** Removes the connection from the pool. The TCP server stops monitor this connection 
+		 * and if it is not shared, the connection is disconnected. Because you can keep pointer 
+		 * to the connection outside of the TCP server (it is RefCntPtr), the connection can remain 
+		 * opened until the last reference is destroyed. This rule is not valid for the ITCPServerContext, 
+		 * which is always destroyed despite on how many objects refers this connection
 		 *
 		 */
 		cmdRemove = 0,
-		/** commands TCP server to monitor connection for incoming data. Once
-		 * there is at least one byte to read, onDataReady() is called
+		/** commands the TCP server to monitor the connection for an incoming data. Once
+		 * there is at least one byte to read, the function onDataReady() is called
 		 */
 		cmdWaitRead = 1,
-		/** commands TCP Server to monitor connection for space in output buffer.
-		 * While there is a lot of writing because output connection is slow, handler can request
-		 * TCP Server to monitor output buffers. When there is space in the ouput buffer,
-		 * onWriteReady() is called
+		/** commands the TCP Server to monitor the connection for a space in the output buffer.
+		 * If there is a lot of writing because the output connection is slow, handler can request
+		 * the TCP Server to monitor output buffers. When there is a space in the ouptut buffer,
+		 * the function onWriteReady() is called
 		 */
 		cmdWaitWrite = 2,
-		/** commands TCP Server to monitor both. If one of events is caught, appropriate function
-		 * is called. TCP Server always trigger only one event at once and disables monitoring until
-		 * handler returns
+		/** commands the TCP Server to monitor both the input and the output. 
+		* If one of events is caught,the appropriate function
+		 * is called. The TCP Server always trigger only one event at once and disables monitoring until
+		 * the handler returns
 		 */
 		cmdWaitReadOrWrite = 3,
 		/**
-		 * Stops monitoring and enables user wakeup. In this state, connection's handler can
-		 * be activated through the "User-wakeup". This can be achieved through an object
+		 * Stops monitoring and enables the "user wakeup". In this state, connection's handler can
+		 * be activated through the "User-wakeup" feature. This can be achieved through an object
 		 * returned by the function getUserSleeper() on the ITCPServerConnControl. Invoking
 		 * the function wakeUp() brings connection back to the live through the function onUserWakeup.
 		 *
 		 * Note that this feature is available only when connection is in this state. Invoking the
-		 * function wakeUp other time will not wake the connection, but the request is recorded
-		 * and once the connection is later put into this state, it is immediatelly woken back. The
-		 * same behaviour happen, when somebody calls wakeUp during handler is executed.
+		 * function wakeUp other time will not wake the connection. However the request is recorded
+		 * and once the connection is later put into this state, it is immediately woken back. The
+		 * same behavior happen, when somebody calls wakeUp during handler is executed.
 		 *
 		 *
 		*/
@@ -192,12 +191,12 @@ public:
 	 *
 	 */
 	virtual Command onUserWakeup(const PNetworkStream &stream, ITCPServerContext *context) throw() = 0;
-	///Called when peer connection has been closed
-	/**If disconnection is detected during waiting,
+	///Called when the peer connection has been closed
+	/**If the disconnection is detected during a waiting,
 	 * function onDisconnectByPeer is called. Function is not called, when disconnection is detected
-	 * by handler while reading. When function read() returns 0, handler should return cmdRemove as reaction.
+	 * by the handler while reading. When the function read() returns 0, handler should return cmdRemove as reaction.
 	 *
-	 * @param context associated context. Because stream has been disconnected, you cannot access it.
+	 * @param context associated context.
 	 *
 	 * @note This function is called in control thread. You should not perform long task, because it blocks
 	 * processing other connections. If you need to execute a long task, use server's parallel executor to
@@ -206,14 +205,14 @@ public:
 	 */
 	virtual void onDisconnectByPeer(ITCPServerContext *context) throw () = 0;
 
-	///Called, when connection has incomed
+	///Called, when connection income
 	/**
-	 * Function prepares handler to new connection. It can create new context, which will be associated with
+	 * The function prepares the handler to new connection. It can create new context, which will be associated with
 	 * the new connection or it can reject connection.
 	 *
-	 * @param addr address of incomming connection.
+	 * @param addr address of the incoming connection.
 	 * @return pointer to newly created context. Server expects, that object will be destroyable by delete operator,
-	 *   	so it should be allocated on heap (but it can have overloaded delete operator to perform another cleanup
+	 *   	so it should be allocated on the heap (but it can have overloaded delete operator to perform another cleanup
 	 *   	action). Context is destroyed when connection is disconnected or removed from the server. Function
 	 *   	can also return 0 to reject connection. This contradicts with old interface, where returned 0
 	 *   	caused, that conection has been created without context. This is not permitted here, you should
@@ -234,8 +233,8 @@ public:
 	 * @return command to TCP server
 	 *
 	 * @note function is called in control thread. You should not perform long task, because this blocks
-	 * processing other connections. Function should only configure connection and return command to allow TCPServer to
-	 * insert connection into connection-pool. At this point, stream is not available. To send welcome
+	 * processing of other connections. Function should only configure connection and return command to allow TCPServer to
+	 * insert connection into the connection-pool. At this point, stream is not available. To send welcome
 	 * message, return cmdWaitWrite and function onWriteReady() will be called immediately with the stream.
 	 *
 	 */
@@ -243,6 +242,7 @@ public:
 	virtual ~ITCPServerConnHandler() {}
 };
 
+///helper class to build connection contexts
 class AbstractTCPServerContext: public ITCPServerContext {
 public:
 	const NetworkAddress addr;

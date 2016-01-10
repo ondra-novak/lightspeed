@@ -1,11 +1,13 @@
+#include "../memory/stdAlloc.h"
 #include "deque.tcc"
-#include "stack.tcc"
-#include "queue.tcc"
+#include "queue.h"
+#include "stack.h"
 
 namespace LightSpeed {
 
-// #pragma warning (disable : 4661) 
+	template class Stack<int>;
+	template class Queue<int>;
+	template class Deque<int>;
 
-template class Queue<natural>;
 
 }

@@ -245,13 +245,19 @@ template<typename T, typename Alloc>
 void AutoArrayT<T,Alloc>::swap(AutoArrayT<T,Alloc> &other) {
 
 	if (!allocBk.swap(other.allocBk)) {
-		if (other.length() > length()) other.swap(*this);
-		other.reserve(length());
-		::LightSpeed::swap(data(),other.data(),other.length());
-		if (other.length() < length()) {
-			::LightSpeed::move(data()+other.length(),length() - other.length(),other.data()+other.length());
-		} else  if (other.length() > length()) {
-			::LightSpeed::move(other.data()+other.length(),length() - other.length(),data()+other.length());
+		if (other.length() > length()) {
+			other.swap(*this);
+			return;
+		}
+		else {
+			other.reserve(length());
+			::LightSpeed::swap(data(), other.data(), other.length());
+			if (other.length() < length()) {
+				::LightSpeed::move(data() + other.length(), length() - other.length(), other.data() + other.length());
+			}
+			else  if (other.length() > length()) {
+				::LightSpeed::move(other.data() + other.length(), length() - other.length(), data() + other.length());
+			}
 		}
 
 	}

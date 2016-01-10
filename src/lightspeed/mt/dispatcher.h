@@ -1,89 +1,78 @@
-/*
- * dispatchThread.h
- *
- *  Created on: 15. 9. 2015
- *      Author: ondra
- */
-
-#ifndef LIGHTSPEED_MT_DISPATCHER_H_
-#define LIGHTSPEED_MT_DISPATCHER_H_
+#pragma once
+#include "../base/actions/idispatcher.h"
+#include "../base/memory/pointer.h"
+#include "gate.h"
 #include "thread.h"
-#include "../base/actions/abstractDispatcher.h"
+#include "../base/memory/poolalloc.h"
+#include "../base/memory/sharedPtr.h"
+#include "../base/containers/queue.h"
 
 namespace LightSpeed {
+	
 
-class Dispatcher: public AbstractDispatcher {
-public:
-	Dispatcher();
-	explicit Dispatcher(IRuntimeAlloc *allocator);
-	explicit Dispatcher(ISleepingObject *observer);
-	Dispatcher(ISleepingObject *observer, IRuntimeAlloc *allocator);
-	~Dispatcher();
+	class Dispatcher : public IDispatcher {
+	public:
+		Dispatcher();
+		~Dispatcher();
 
-	virtual void dispatchAction(AbstractAction *action);
+		virtual void dispatch(AbstractAction *action);
 
-	bool sleep(const Timeout &tm, natural &reason);
-	bool sleep(const Timeout &tm);
+		///starts dispatcher thread
+		virtual void run();
+		///signals dispatcher to quit dispatching
+		virtual void quit();
+		///synchronizes current thread with dispatcher
+		virtual void join();
 
-protected:
+	protected:
+		virtual IRuntimeAlloc & getActionAllocator();
+		virtual void promiseRegistered(PPromiseControl ppromise);
+		virtual void promiseResolved(PPromiseControl ppromise);
 
-	virtual bool implSleep(const Timeout &tm, natural &reason);
+		///Called to notify thread about new message		
+		/**
+		 @note if there are messages, function is not called, because it expects, that thread will
+		  check messages before it goes to sleep 
+		 */
+		virtual void onNewMessage() throw();
 
-	AbstractAction * volatile queue;
-	IRuntimeAlloc *allocator;
-	ISleepingObject *observer;
+		///Called, when thread has no work to do
+		/**
+		  @param cnt idle counter - each time function is called, argument is increased. When a new
+		   message is dispatched, counter is reset. Function can use this argument to count how long
+		   there were no message dispatched
+		  @return timeout-value which is passed to the sleep() function. Sleep can be interrupted by
+		  a new message or by any other wakeUp() request. Function onNewMessage() can also interrupt 
+		  the sleep (event if there were no message enqueued)
 
-	void executeQueue();
-	void cancelQueue();
-	virtual IRuntimeAlloc &getActionAllocator();
-
-};
-
-///Implements thread with embedded dispatcher
-/** Main benefit of this combination is that dispatcher can dispatch messages
- * while thread is waiting for an event. To dispatch messages, the thread just need
- * to call Thread::sleep() or Thread::deepSleep() function. Messages are dispatched in context
- * of the thread.
- *
- * @note Because dispatching messages can take a time, functions sleep() or deepSleep() can
- * actually return later than requested.
- *
- * Note, this feature affects just Thread::sleep, which is used in most of synchronization objects
- * exposed by the library LightSpeed (FastLock,Promise,SyncPt). Any other places, where thread is blocked, including
- * waiting on I/O, doesn't execute dispatching
- */
-class DispatcherThread: public Dispatcher, public Thread {
-public:
-	DispatcherThread();
-	DispatcherThread(IRuntimeAlloc *allocator);
-
-
-	virtual void dispatchAction(AbstractAction *action);
-
-	///Enables or disables dispatching during sleep() (also affects run() function)
-	/** By default, dispatcher starts with dispatching enabled. But dispatching is
-	 * automatically disabled during dispatching, so calling sleep() under dispatching
-	 * doesn't execute nested dispatching. However, you can still enable dispatching if it
-	 * is intended. You can also disable dispatching, if you need to wait for precise time or avoid
-	 * interruption.
-	 *
-	 * @param state new state of dispatching
-	 * @return previous state
-	 */
-	bool enable(bool state);
-private:
-	///runs the thread until finished.
-	/**
-	* The function executes infinite loop of sleep() until canFinish() is signaled. Useful
-	* to start dispatching-only threads
-	*/
-	void run();
-
-	bool impSleep(const Timeout &tm, natural &reason);
-	bool alertable;
-};
+		  @note during onIdle, the internal lock is held, so dispatcher will block any attempt to
+		  dispatch a message. If you need to dispatch messages during the onIdle, you have to temporary
+		  unlock that lock. Example:
+		  @code
+		  Timeout onIdle(natural cnt) {
+			SyncReleased<FastLock> _(this->lock);
+			//... do anything here while the dispatcher accept messages ...
+			return Timeout(...);
+		  }
+		  @encode
+		  */
+		virtual Timeout onIdle(natural cnt);
 
 
-} /* namespace LightSpeed */
+		void finishRun() throw();
+		AbstractAction * getNextAction();
+		void rejectQueue();
+		Pointer<Thread> currentThread;
+		Gate running;
+		bool needstop;
+		typedef AllocPointer<AbstractAction> PAction;
+		typedef Queue<PAction> MQueue;
 
-#endif /* LIGHTSPEED_MT_DISPATCHER_H_ */
+		MQueue queue;
+		natural head;
+		FastLock lock;
+
+		PoolAlloc alloc;
+
+	};
+}

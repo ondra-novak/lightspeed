@@ -33,6 +33,22 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Run Tests Debug|Win32">
+      <Configuration>Run Tests Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Run Tests Debug|x64">
+      <Configuration>Run Tests Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Run Tests Release|Win32">
+      <Configuration>Run Tests Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Run Tests Release|x64">
+      <Configuration>Run Tests Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>lightspeed</ProjectName>
@@ -45,7 +61,15 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Static|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
@@ -53,7 +77,15 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Static|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
@@ -79,13 +111,25 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release Static|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release Static|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug Static|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug Static|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
@@ -124,7 +168,15 @@
     <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|Win32'">
+    <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Static|x64'">
+    <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|x64'">
     <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -132,7 +184,15 @@
     <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|Win32'">
+    <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Static|x64'">
+    <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|x64'">
     <OutDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\tmp\$(ProjectName)-$(Platform)-$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -211,7 +271,39 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Static|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -242,6 +334,28 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|Win32'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Static|x64'">
     <ClCompile>
       <Optimization>Full</Optimization>
@@ -260,8 +374,26 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|x64'">
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\lightspeed\base\actions\abstractDispatcher.h" />
+    <ClInclude Include="src\lightspeed\base\actions\IDispatcher.h" />
     <ClInclude Include="src\lightspeed\base\actions\argument.h" />
     <ClInclude Include="src\lightspeed\base\actions\directExecutor.h" />
     <ClInclude Include="src\lightspeed\base\actions\distributor.h" />
@@ -276,9 +408,7 @@
     <ClInclude Include="src\lightspeed\base\actions\msgQueue.h" />
     <ClInclude Include="src\lightspeed\base\actions\parallelExecutor.h" />
     <ClInclude Include="src\lightspeed\base\actions\promise.h" />
-    <ClInclude Include="src\lightspeed\base\actions\scheduler.h" />
     <ClInclude Include="src\lightspeed\base\actions\schedulerOld.h" />
-    <ClInclude Include="src\lightspeed\base\actions\simpleMsgQueue.h" />
     <ClInclude Include="src\lightspeed\base\align.h" />
     <ClInclude Include="src\lightspeed\base\cloneable.h" />
     <ClInclude Include="src\lightspeed\base\compare.h" />
@@ -330,6 +460,7 @@
     <ClInclude Include="src\lightspeed\base\defaultInit.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\anyExcept.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\badcast.h" />
+    <ClInclude Include="src\lightspeed\base\exceptions\container.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\errorMessageException.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\exception.h" />
     <ClInclude Include="src\lightspeed\base\exceptions\exceptionBuilder.h" />
@@ -366,6 +497,7 @@
     <ClInclude Include="src\lightspeed\base\framework\serviceapp.h" />
     <ClInclude Include="src\lightspeed\base\framework\services.h" />
     <ClInclude Include="src\lightspeed\base\framework\TCPServer.h" />
+    <ClInclude Include="src\lightspeed\base\framework\testapp.h" />
     <ClInclude Include="src\lightspeed\base\iexception.h" />
     <ClInclude Include="src\lightspeed\base\interface.h" />
     <ClInclude Include="src\lightspeed\base\invokable.h" />
@@ -462,7 +594,6 @@
     <ClInclude Include="src\lightspeed\base\streams\random.h" />
     <ClInclude Include="src\lightspeed\base\streams\secureRandom.h" />
     <ClInclude Include="src\lightspeed\base\streams\standardIO.h" />
-    <ClInclude Include="src\lightspeed\base\streams\tcpHandler.h" />
     <ClInclude Include="src\lightspeed\base\streams\textEnum.h" />
     <ClInclude Include="src\lightspeed\base\streams\textNumber.h" />
     <ClInclude Include="src\lightspeed\base\streams\utf.h" />
@@ -516,7 +647,6 @@
     <ClInclude Include="src\lightspeed\mt\atomic.h" />
     <ClInclude Include="src\lightspeed\mt\atomic_type.h" />
     <ClInclude Include="src\lightspeed\mt\dispatcher.h" />
-    <ClInclude Include="src\lightspeed\mt\exceptions\dispatcher.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\fiberException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\threadException.h" />
     <ClInclude Include="src\lightspeed\mt\exceptions\timeoutException.h" />
@@ -580,7 +710,7 @@
     <ClInclude Include="src\lightspeed\utils\xmlparser.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lightspeed\base\actions\abstractDispatcher.cpp" />
+    <ClCompile Include="src\lightspeed\base\actions\IDispatcher.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\distributor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\InfParallelExecutor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\job.cpp" />
@@ -589,7 +719,6 @@
     <ClCompile Include="src\lightspeed\base\actions\parallelExecutor.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\promise.cpp" />
     <ClCompile Include="src\lightspeed\base\actions\schedulerOld.cpp" />
-    <ClCompile Include="src\lightspeed\base\actions\simpleMsgQueue.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\arrayref.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\arrayt.cpp" />
     <ClCompile Include="src\lightspeed\base\containers\avltreenode.cpp" />
@@ -613,6 +742,7 @@
     <ClCompile Include="src\lightspeed\base\framework\serviceapp.cpp" />
     <ClCompile Include="src\lightspeed\base\framework\services.cpp" />
     <ClCompile Include="src\lightspeed\base\framework\TCPServer.cpp" />
+    <ClCompile Include="src\lightspeed\base\framework\testapp.cpp" />
     <ClCompile Include="src\lightspeed\base\iter\generator.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\clusterAlloc.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\dynobject.cpp" />
@@ -627,7 +757,6 @@
     <ClCompile Include="src\lightspeed\base\streams\fileiobuff.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\memfile.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\netio.cpp" />
-    <ClCompile Include="src\lightspeed\base\streams\tcpHandler.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\utf.cpp" />
     <ClCompile Include="src\lightspeed\base\sync\tls.cpp" />
     <ClCompile Include="src\lightspeed\base\sync\tlsalloc.cpp" />
@@ -671,6 +800,7 @@
     <ClCompile Include="src\lightspeed\mt\syncPt.cpp" />
     <ClCompile Include="src\lightspeed\mt\threadHook.cpp" />
     <ClCompile Include="src\lightspeed\mt\threadMinimal.cpp" />
+    <ClCompile Include="src\lightspeed\mt\windows\fiber.cpp" />
     <ClCompile Include="src\lightspeed\mt\windows\process.cpp" />
     <ClCompile Include="src\lightspeed\mt\windows\thread.cpp" />
     <ClCompile Include="src\lightspeed\mt\windows\threadSleeper.cpp" />
@@ -687,10 +817,13 @@
     <ClCompile Include="src\lightspeed\utils\urlencode.cpp" />
     <ClCompile Include="src\lightspeed\utils\windows\FilePath.cpp" />
     <ClCompile Include="src\lightspeed\utils\xmlparser.cpp" />
-    <ClCompile Include="src\tests\PromiseTest.cpp" />
+    <ClCompile Include="src\tests\test_fibers.cpp" />
+    <ClCompile Include="src\tests\test_promises.cpp" />
+    <ClCompile Include="src\tests\runtests.cpp" />
+    <ClCompile Include="src\tests\test_json.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\lightspeed\base\actions\abstractDispatcher.tcc" />
+    <None Include="src\lightspeed\base\actions\IDispatcher.tcc" />
     <None Include="src\lightspeed\base\actions\distrubutor.tcc" />
     <None Include="src\lightspeed\base\actions\promise.tcc" />
     <None Include="src\lightspeed\base\containers\arraySet.tcc" />

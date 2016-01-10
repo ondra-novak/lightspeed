@@ -256,7 +256,6 @@ namespace LightSpeed {
 
         virtual ~Exception() throw();
 
-
     protected:
 
 		///Protected constructor allows to initialize at undefined location

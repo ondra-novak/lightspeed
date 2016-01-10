@@ -58,6 +58,8 @@ public:
 
 	static LIGHTSPEED_EXPORT const char * testCmd;
 
+	static LIGHTSPEED_EXPORT const char * runTestsCmd;
+
 	///keyword uses instead name of instance (as first parameter on the command line)
 	/**
 	 * Keyword is set to value "default". Instance name is generated depend

@@ -12,3 +12,4 @@ $(CONFIG): testfn testbuildin
 	@./testfn vfork HAVE_VFORK >> $@
 	@./testbuildin __atomic_compare_exchange HAVE_DECL___ATOMIC_COMPARE_EXCHANGE >> $@
 	
+

@@ -248,7 +248,7 @@ namespace LightSpeed {
                static_cast<Alloc &>(other));
        }
 
-       AllocPointer(AllocPointer &x, MoveConstruct )
+	   AllocPointer(MoveConstruct, AllocPointer &x)
            :Pointer<T>(x.detach()),
             Alloc(_moveConstruct, *this) {
        }

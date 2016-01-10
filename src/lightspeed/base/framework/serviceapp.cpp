@@ -22,6 +22,7 @@
 #include "../text/textstream.h"
 #include "../streams/standardIO.tcc"
 #include "../../utils/FilePath.tcc"
+#include "testapp.h"
 
 namespace LightSpeed {
 
@@ -33,6 +34,7 @@ namespace LightSpeed {
 		const char *gwaitCmd = "wait";
 		const char *gstatusCmd = "status";
 		const char *gtestCmd = "test";
+		const char *grunTestsCmd = "runtests";
 		const wchar_t *gdefaultInstanceName = L"default";
 
 	}
@@ -44,7 +46,8 @@ namespace LightSpeed {
 	const char * ServiceAppBase::waitCmd=gwaitCmd;
 	const char * ServiceAppBase::statusCmd=gstatusCmd;
 	const char * ServiceAppBase::testCmd=gtestCmd;
-	const wchar_t *ServiceAppBase::defaultInstanceName=gdefaultInstanceName;
+	const char * ServiceAppBase::runTestsCmd = grunTestsCmd;
+	const wchar_t *ServiceAppBase::defaultInstanceName = gdefaultInstanceName;
 
 
 	ServiceApp::ServiceApp(integer priority, natural timeout)
@@ -144,9 +147,22 @@ namespace LightSpeed {
 			}
 			instance->open();
 			instance->waitForTerminate(timeout);
-		} else if (command == ConstStrA(testCmd)) {
-			integer x = validateService(args,serr);
+		}
+		else if (command == ConstStrA(testCmd)) {
+			integer x = validateService(args, serr);
 			return x;
+		} else if (command == ConstStrA(runTestsCmd)) {
+			if (args.empty())
+				return Singleton<TestCollector>::getInstance().runTests(ConstStrA(), serr);
+			else if (args[0] == ConstStrW(L"list")) {
+				SeqTextOutA out(serr);
+				TextOut<SeqTextOutA> print(out);
+				print("%1\n")<<(Singleton<TestCollector>::getInstance().listTests());
+				return 0;
+			}
+			else
+				return Singleton<TestCollector>::getInstance().runTests(args[1], serr);
+		
 		} else {
 			instance->open();
 			return postMessage(command,args, serr);

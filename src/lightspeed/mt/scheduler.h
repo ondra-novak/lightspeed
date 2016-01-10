@@ -1,101 +1,69 @@
-/*
- * scheduler.h
- *
- *  Created on: 16. 9. 2015
- *      Author: ondra
- */
-
-#ifndef LIGHTSPEED_MT_SCHEDULER_H_
-#define LIGHTSPEED_MT_SCHEDULER_H_
+#pragma once
 #include "dispatcher.h"
 #include "../base/containers/sort.h"
-#include "../base/actions/ischeduler.h"
 
 namespace LightSpeed {
 
-
-///Scheduler is dispatcher, that also allows to schedule actions
-/**
- * Scheduler is thread+dispatcher, where other task of the thread is resolve
- * promises scheduled on specified time.
- *
- * To use scheduler, you can call schedule() which returns promise, which becomes
- * resolved, once specified timeout expires. If you want to call
- * a function on that time, you can attach that function to the promise using Promise::then() or Promise::thenCall
- *
- *  Promise can be also rejected when scheduler is exiting without completting scheduled tasks.
- */
-class Scheduler: public DispatcherThread, public IScheduler {
-public:
-	Scheduler();
-	~Scheduler();
-
-	///Schedule a task
+	///Scheduler is object built on Dispatcher, which extends internal message pump by scheduling feature
 	/**
-	 * @param tm timeout specifies, when task should be executed
-	 * @return promise, which is resolved at specified time. You can attach the task to the promise.
+	 * Scheduler works very simple. In specified time, scheduler resolves a promise, which has been
+	   passed to the scheduler with the request. You can attach an observer to the promise, and so you 
+	   are able to define function, what happened when the time comes.
+
+	   Once the event is scheduled, it cannot be canceled, however, you can cancel the promise instead.
+	   Promises are better suitable to solve various canceling issues, for example a race condition, when
+	   program tries to cancel event, which has been already started, but not finished yet. Canceled 
+	   promises are still resolved in time, but without observers, they do nothing. However, program should
+	   not heavily schedule and cancel a lot of messages, because they are still kept in the queue that may
+	   results of really large queue.
+
+	   All scheduled events are executed in the dispatcher's thread. During the execution, the dispatcher
+	   cannot process messages and/or scheduled events. If scheduled time is missed, the scheduler
+	   executes all of them as soon as possible, once the current action returns from the processing.
+
 	 */
-	virtual Promise<void> schedule(Timeout tm);
-
-	///Starts the scheduler.
-	/**
-	 * By default, scheduler is constructed inactive, you have to call this function to assign
-	 * a thread to the scheduler. You should call this function in the thread (so at least through
-	 * Thread::start())
-	 *
-	 */
-	void run();
-
-	///Orders the scheduler to stop
-	/**
-	 * @param async if true, function just places the order and returns immediatelly without
-	 * waiting to completion. You can wait throuh getJoinObject()
-	 */
-	void stop(bool async = false);
-
-
-	///Returns gate object which is opened, when scheduler is not running
-	Gate &getJoinObject();
-
-protected:
-
-	class Event: public ComparableLess<Event> {
+	class Scheduler : public Dispatcher {
 	public:
 
-		Event(Timeout tm, Promise<void>::Result res);
-
-		bool expired(const SysTime &tm) const;
-		const Timeout &getTimeout() const;
-		Promise<void>::Result getPromise() const;
-
+		///Create scheduler
+		Scheduler();
+		///scheduler an event
+		/**
+		  @param tm specifies time when the event will be scheduled. The Timeout object is used, so
+		  you can plan the time relatively or absolute. The scheduler will not accept infinite timeout.
+		  Using zero timeout causes, that promise will be resolved instantly or very soon, however note
+		  that scheduler has lower priority then dispatcher (schedulers perform dispatching of all
+		  dispatched messages before scheduled messages)
+		  @param promise promise to resolve
+		  @exception InvalidParamException timeout is set to infinity.
+		*/		  		  
+		void schedule(const Timeout &tm, const Promise<void> &promise);
 
 	protected:
-		Timeout tm;
-		Optional<Promise<void>::Result> res;
 
-		friend class ComparableLess<Event>;
+		typedef Promise<void> Promise;
 
-		bool lessThan(const Event &ev) const;
+		struct QueueItem {
+			Timeout tm;
+			Promise promise;
+			QueueItem(Timeout tm, Promise promise) :tm(tm), promise(promise) {}
+		};
+
+		struct CmpQueue {
+			bool operator()(const QueueItem &a, const QueueItem &b) const;
+		};
+
+		AutoArray<QueueItem> pqueue;
+		HeapSort<AutoArray<QueueItem>, CmpQueue> pqheap;
+
+
+		Timeout onIdle(natural cnt);
+
+
+
+
+
 	};
 
-	void addEvent(const Event &ev);
-	Timeout getNextWait() const;
-	bool fireExpired();
 
-	typedef AutoArray<Event> EventMap;
-	typedef HeapSort<EventMap> EventHeap;
-
-	EventMap eventMap;
-	EventHeap eventHeap;
-	bool canFinish;
-	Gate running;
-
-	void cancelAllEvents();
-
-private:
-	Scheduler(const Scheduler &other);
-};
-
-} /* namespace LightSpeed */
-
-#endif /* LIGHTSPEED_MT_SCHEDULER_H_ */
+}

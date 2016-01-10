@@ -42,6 +42,8 @@ Exception::Exception(const Exception & other)
 Exception::~Exception() throw() {
 	exceptionDestroyed(this);
 }
+
+
 const char *Exception::what() const throw ()
 {
 	if (whatMsg.getSize() == 0) {
@@ -162,8 +164,10 @@ String Exception::getMessageWithReason() const
 {
 	ExceptionMsgImpl<exceptionSmallBuffer> msg;
 	message(msg);
+	String t;
 	if (reason != nil) {
-		msg("%1\n%2") << str_because << reason->getMessageWithReason();
+		t = reason->getMessageWithReason();
+		msg("%1\n%2") << str_because << t;
 	}
 
 	return msg.getString();
@@ -197,8 +201,6 @@ bool Exception::setLocation(const ProgramLocation &loc) {
 }
 
 void Exception::rethrow(const ProgramLocation &loc) {
-	if (std::uncaught_exception()) 
-		return;
 
 	try {
 		throw;

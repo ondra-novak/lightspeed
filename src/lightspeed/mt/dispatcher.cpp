@@ -1,146 +1,118 @@
-/*
- * dispatchThread.cpp
- *
- *  Created on: 15. 9. 2015
- *      Author: ondra
- */
-
 #include "dispatcher.h"
-#include "exceptions/dispatcher.h"
-#include "../base/exceptions/canceledException.h"
-#include "threadMinimal.h"
-#include "../base/sync/threadVar.h"
-#include "../base/actions/abstractDispatcher.tcc"
-
-
-
+#include "../base/actions/idispatcher.tcc"
+#include "../base/containers/queue.tcc"
 
 namespace LightSpeed {
 
 
 
-Dispatcher::Dispatcher():queue(0),allocator(&StdAlloc::getInstance()),observer(getCurThreadSleepingObj()) {
-	// TODO Auto-generated constructor stub
+	Dispatcher::Dispatcher() :running(Gate::stateOpen)
+	{
 
-}
-
-Dispatcher::Dispatcher(IRuntimeAlloc* allocator):queue(0),allocator(allocator),observer(getCurThreadSleepingObj()) {
-}
-
-Dispatcher::Dispatcher(ISleepingObject* observer):queue(0),allocator(&StdAlloc::getInstance()),observer(observer) {
-}
-
-Dispatcher::Dispatcher(ISleepingObject* observer,
-		IRuntimeAlloc* allocator):queue(0),allocator(allocator),observer(observer) {
-}
-
-void Dispatcher::cancelQueue() {
-	cancelAllPromises();
-	while (queue) {
-		AbstractAction *x = queue;
-		queue = queue->next;
-		x->reject(CanceledException(THISLOCATION));
-		delete x;
 	}
-}
 
-Dispatcher::~Dispatcher() {
-	cancelQueue();
-}
-
-void Dispatcher::dispatchAction(AbstractAction* action) {
-	AbstractAction *q = queue;
-	do {
-		action->next = q;
-		q = lockCompareExchangePtr(&queue,action->next,action);
-	} while (q != action->next);
-	observer->wakeUp(0);
-
-}
-
-bool Dispatcher::implSleep(const Timeout& tm, natural& reason) {
-	bool x = Thread::sleep(tm,reason);
-	if (!x) executeQueue();
-	return x;
-}
-
-void Dispatcher::executeQueue() {
-	AbstractAction *q = 0;
-	q = lockExchangePtr(&queue,q);
-	if (q) {
-		AbstractAction *rv = 0;
-		while (q) {
-			AbstractAction *z = q;
-			q = q->next;
-			z->next = rv;
-			rv = z;
-		}
-
-		while (rv) {
-			AbstractAction *z = rv;
-			rv = rv->next;
-			z->run();
-			delete z;
-		}
+	Dispatcher::~Dispatcher()
+	{
+		join();
 	}
-}
 
-bool Dispatcher::sleep(const Timeout& tm, natural& reason) {
-	return implSleep(tm,reason);
-}
+	void Dispatcher::dispatch(AbstractAction *action)
+	{
+		Synchronized<FastLock> _(lock);
+		bool firstMsg = queue.empty();
+		queue.push(Constructor1<PAction, AbstractAction *>(action));
+		if (firstMsg) onNewMessage();
+	}
 
-bool Dispatcher::sleep(const Timeout& tm) {
-	natural reason;
-	return implSleep(tm,reason);
-}
+	IRuntimeAlloc & Dispatcher::getActionAllocator()
+	{
+		return alloc;
+	}
 
-IRuntimeAlloc& Dispatcher::getActionAllocator() {
-	return *allocator;
-}
+	void Dispatcher::promiseRegistered(PPromiseControl )
+	{
+		
+	}
 
+	void Dispatcher::promiseResolved(PPromiseControl )
+	{
+		
+	}
 
-DispatcherThread::DispatcherThread():Dispatcher(this),alertable(true) {
-}
-
-DispatcherThread::DispatcherThread(IRuntimeAlloc* allocator):Dispatcher(this,allocator),alertable(true) {
-}
-
-void DispatcherThread::dispatchAction(AbstractAction *action)
-{
-	if (!isRunning()) {
+	void Dispatcher::run()
+	{
+		Synchronized<FastLock> _(lock);
+		if (!running.isOpened()) throw ThreadBusyException(THISLOCATION);
+		currentThread = getCurrentThread();
+		running.close();
+		needstop = false;
 		try {
-			start(ThreadFunction::create(this, &DispatcherThread::run));
+			natural idleCount = 0;
+			while (!needstop) {
+				AbstractAction *aa = getNextAction();
+				SyncReleased<FastLock> _(lock);
+				if (aa == 0) {					
+					Thread::sleep(onIdle(idleCount));
+					idleCount++;
+					
+				}
+				else {
+					idleCount = 0;
+					aa->run();
+					delete aa;
+				}
+			}
+			finishRun();
 		}
-		catch (ThreadBusyException &) {
-
+		catch (...) {
+			finishRun();
+			throw;
 		}
 	}
-	Dispatcher::dispatchAction(action);
-}
 
-void DispatcherThread::run() {
-	while (!this->canFinish()) {
-		natural x;
-		this->impSleep(nil,x);
+	void Dispatcher::quit()
+	{
+		needstop = true;
+		onNewMessage();
 	}
-}
 
-bool DispatcherThread::enable(bool state) {
-	bool prev = alertable;
-	alertable = state;
-	return prev;
-}
-
-bool DispatcherThread::impSleep(const Timeout& tm, natural& reason) {
-	if (alertable) {
-		alertable = false;
-		bool x = Thread::impSleep(tm,reason);
-		if (!x) executeQueue();
-		alertable = true;
-		return x;
-	} else {
-		return Thread::impSleep(tm,reason);
+	void Dispatcher::join()
+	{
+		running.wait(nil);
 	}
-}
 
-} /* namespace LightSpeed */
+	void Dispatcher::onNewMessage() throw()
+	{
+		if (currentThread) currentThread->wakeUp(0);
+	}
+
+	LightSpeed::Timeout Dispatcher::onIdle(natural)
+	{
+		return nil;
+	}
+
+	void Dispatcher::finishRun() throw()
+	{
+		rejectQueue();
+		running.open();
+		currentThread = nil;
+
+	}
+
+	IDispatcher::AbstractAction * Dispatcher::getNextAction()
+	{
+		if (queue.empty()) return 0;
+		AllocPointer<AbstractAction> &aa = queue.top();
+		return aa.detach();
+	}
+
+	void Dispatcher::rejectQueue()
+	{
+		AllocPointer<AbstractAction> aa(getNextAction());
+		while (aa != nil) {
+			aa->reject();
+			aa = getNextAction();
+		}
+	}
+
+}
