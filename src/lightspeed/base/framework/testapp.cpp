@@ -43,7 +43,8 @@ namespace LightSpeed {
 
 		try {
 			SeqFileOutput out(&memFile);
-			testMain(out);
+			PrintTextA txt(out);
+			testMain(txt);
 			StringA produced = getProducedOutput(memFile);
 			if (produced != expectedOutput) throw FailedTest(THISLOCATION, expectedOutput, produced);
 
@@ -96,7 +97,7 @@ namespace LightSpeed {
 			}
 
 		}
-		return 0;
+		return retval;
 	}
 
 	StringA TestCollector::listTests() const {
@@ -124,7 +125,8 @@ namespace LightSpeed {
 		SeqTextOutA textOut(bufout);
 		TextOut<SeqTextOutA> print(textOut);
 
-		print("Running: %1 - ") << x->getTestName();
+		ConstStrA testName(x->getTestName());
+		print("Running: %1 %2 ") << testName << ConstStrA("..............................................").crop(0, testName.length());
 		bufout.flush();
 
 		try {
@@ -143,13 +145,12 @@ namespace LightSpeed {
 
 	}
 
-	static void testFn(SeqFileOutput out) {
-		TextOut<SeqTextOutA> print(out);
+	static void testFn(PrintTextA &print) {
 		print("OK");
 	}
 
 
-	static TestApp test("lightspeed.testSystem", "OK", testFn);
+	static TestApp test("testSystem", "OK", testFn);
 
 	TestApp::FailedTest::FailedTest(const ProgramLocation &loc, StringA expectedOutput, StringA producedOutput)
 		:Exception(loc), expectedOutput(expectedOutput), producedOutput(producedOutput)

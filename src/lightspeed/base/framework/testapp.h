@@ -1,6 +1,7 @@
 #pragma once
 #include "../containers/constStr.h"
 #include "../streams/fileio.h"
+#include "../text/textstream.h"
 
 namespace LightSpeed {
 #ifdef _MSC_VER
@@ -11,7 +12,7 @@ namespace LightSpeed {
 class TestApp {
 public:
 
-	typedef void(*TestMain)(SeqFileOutput testOutput);
+	typedef void(*TestMain)(PrintTextA &testOutput);
 
 	TestApp(const char *testName, const char *expectedOutput, TestMain testMain);
 
@@ -71,6 +72,6 @@ protected:
 
 };
 
-
+typedef TestApp defineTest;
 
 }
