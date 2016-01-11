@@ -49,7 +49,7 @@ PointerCache::~PointerCache()
 
 	//first check whether this is necessary for prevent infinite loop
 	bool needrun = false;
-	for (int i = 0; i < hashTableSize && !needrun; i++) {
+	for (natural i = 0; i < hashTableSize && !needrun; i++) {
 		//found pointer, we will run cleanup
 		if (pointers[i]) needrun = true;
 	}

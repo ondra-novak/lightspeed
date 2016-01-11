@@ -9,7 +9,6 @@ OBJS :=
 clean_list :=
 include $(shell find $(SOURCES) -name .sources.mk)
 
-
 libdeps%.mk:
 	flock $(@D) -c "$(MAKE) -C $(@D) deps"
 

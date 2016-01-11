@@ -12,6 +12,7 @@
 #include "../../base/memory/cloneable.h"
 #include "../exceptions/stdexception.h"
 #include "../exceptions/canceledException.h"
+#include "promise.tcc"
 namespace LightSpeed {
 
 
@@ -151,6 +152,10 @@ namespace LightSpeed {
 	}
 
 
+	template<typename T>
+	T IDispatcher::throwFn() {
+		throw;
+	}
 }
 
 

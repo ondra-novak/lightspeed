@@ -125,8 +125,9 @@ namespace LightSpeed {
 		SeqTextOutA textOut(bufout);
 		TextOut<SeqTextOutA> print(textOut);
 
+
 		ConstStrA testName(x->getTestName());
-		print("Running: %1 %2 ") << testName << ConstStrA("..............................................").crop(0, testName.length());
+		print("%1 %2 ") << testName << ConstStrA("..............................................").crop(0, testName.length());
 		bufout.flush();
 
 		try {
