@@ -159,7 +159,7 @@ namespace LightSpeed {
 		if (ctx == 0) return;
 		//signal fiber to stop
 		ctx->stopSignal = true;
-		//wake fiber;
+		//wake fiber - stop exception will be thrown in context of fiber
 		wakeUp();
 
 	}
