@@ -2,6 +2,7 @@
 #include "../base/containers/sort.tcc"
 #include "scheduler.h"
 #include "../base/containers/autoArray.tcc"
+#include "../base/actions/promise.tcc"
 
 namespace LightSpeed {
 
@@ -20,7 +21,7 @@ namespace LightSpeed {
 		onNewMessage();
 	}
 
-	LightSpeed::Timeout Scheduler::onIdle(natural cnt)
+	LightSpeed::Timeout Scheduler::onIdle(natural)
 	{
 		if (pqheap.empty()) return nil;
 

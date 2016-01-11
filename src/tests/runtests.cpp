@@ -1,6 +1,6 @@
 #include "../lightspeed/base/framework/app.h"
 #include "../lightspeed/base/framework/testapp.h"
-#include "../lightspeed/base/streams/standardIO.h"
+#include "../lightspeed/base/streams/standardIO.tcc"
 namespace LightSpeedTest {
 
 	using namespace LightSpeed;

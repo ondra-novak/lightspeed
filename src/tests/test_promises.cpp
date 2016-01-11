@@ -1,4 +1,5 @@
 #include "../lightspeed/base/text/textstream.tcc"
+#include "../lightspeed/base/text/toString.tcc"
 #include "../lightspeed/base/framework/testapp.h"
 #include "../lightspeed/base/actions/promise.tcc"
 #include <utility>
@@ -17,7 +18,7 @@ class TestObserver : public Future<void>::IObserver {
 public:
 	TestObserver(PrintTextA &prn, int number)
 		:prn(prn), number(number) {}
-	virtual void resolve(const PException &e) throw() 	{
+	virtual void resolve(const PException &) throw() 	{
 		prn("%1") << -(integer)number;
 	}
 	virtual void resolve() throw() {
@@ -100,7 +101,7 @@ static void testThenPromise(PrintTextA &print) {
 }
 
 static PException testReturnException(int value) {
-	return new ErrorMessageException(THISLOCATION, ToString<int>(value));
+	return new ErrorMessageException(THISLOCATION, ToString<integer>(value));
 }
 
 static int testDoAlternativeResult(const PException &e) {
