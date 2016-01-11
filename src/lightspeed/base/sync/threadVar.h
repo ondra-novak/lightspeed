@@ -41,11 +41,23 @@ namespace LightSpeed {
         }
 
         void unset() {
-            if (deleteFunct) {
-				(*deleteFunct)(varPtr);
+        	//we have to first unset the item, then delete it
+        	//that because there can be some logic that need to reassign item during destruction
+        	//and we need also handle situation, when destructor throws an exception
+
+        	//store pointer first
+            void *v = varPtr;
+            //store delete function
+            DeleteFunction d = deleteFunct;
+            //set pointer to 0
+            varPtr = 0;
+            //reset delete function
+            deleteFunct = 0;
+
+            //now, if delete function is defined, delete the object
+            if (d) {
+				(*d)(v);
             }
-            varPtr =0;
-			deleteFunct = 0;
         }
 
         void *get() const {
@@ -86,6 +98,29 @@ namespace LightSpeed {
 
         TLSTable() {}
         TLSTable(const Allocator &alloc):dynamicTable(alloc) {}
+
+        void clear() {
+        	/* HACK: while the TLS table is destroyed, there can
+        	 * be destructor, which sets new  TLS variables. Before
+        	 * the destructor complete, it must ensure, whether
+        	 * all entries has been release. If not, operation is
+        	 * repeated.
+        	 *
+        	 * The TLS table is still available during destruction, so
+        	 * this can easy happen.
+        	 */
+        	bool rep;
+        	do {
+        		rep = false;
+        		for (natural x = 0, l = dynamicTable.length(); x <l; l++) {
+        			if (dynamicTable[x].isInited()) {
+        				dynamicTable(x).unset();
+        				rep = true;
+        			}
+        		}
+        	} while (rep);
+
+        }
 
         ///gets record at the index
         /**
@@ -365,7 +400,15 @@ namespace LightSpeed {
          */
         T &init(ITLSTable &table)  {
         	T *x = new T(val);
-         	ThreadVar<T>::set(table, x, &deleteFunction<T>);
+        	try {
+        		//function can throw exception
+        		ThreadVar<T>::set(table, x, &deleteFunction<T>);
+        	} catch (...) {
+        		//so delete created object
+        		delete x;
+        		//rethrow
+        		throw;
+        	}
          	return *x;
         }
 
@@ -408,7 +451,12 @@ namespace LightSpeed {
         */
         T &init(ITLSTable &table)  {
         	T *x = new T;
-         	ThreadVar<T>::set(table, x, &deleteFunction<T>);
+        	try {
+        		ThreadVar<T>::set(table, x, &deleteFunction<T>);
+        	} catch (...) {
+        		delete x;
+        		throw;
+        	}
          	return *x;
          }
   };

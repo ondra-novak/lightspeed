@@ -41,6 +41,9 @@ public:
     virtual void unsetVar(natural index) = 0;
     virtual ~ITLSTable() {}
 
+    ///Clear the whole TLS table (call unset on all variables)
+    virtual void clear() = 0;
+
 
     typedef ITLSTable &(*fn_GetTLS)();
 

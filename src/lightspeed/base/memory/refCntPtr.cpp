@@ -4,6 +4,8 @@
 namespace LightSpeed {
 
 
+
+
 void RefCntObj::addRefMT() const {
 	atomic *i = reinterpret_cast<atomic *>(&counter);
 	lockInc(*i);

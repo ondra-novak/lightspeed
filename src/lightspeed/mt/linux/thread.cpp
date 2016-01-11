@@ -92,6 +92,9 @@ public:
 			writeReleasePtr<ThreadContext>(&owner->threadContext,0);
 			owner->getJoinObject().open();
 		}
+		//clear TLS - it is better to do this now, because destructor cannot throw exceptions
+		tlstable->clear();
+
 	}
 protected:
 	ThreadContext(const ThreadContext &other);
