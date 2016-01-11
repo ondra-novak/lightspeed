@@ -4,6 +4,7 @@
 #include "../containers/constStr.h"
 #include "../streams/standardIO.tcc"
 #include "../exceptions/errorMessageException.h"
+#include "../containers/stack.tcc"
 
 
 namespace LightSpeed {
@@ -74,10 +75,11 @@ namespace LightSpeed {
 	}
 	natural TestCollector::runTests(ConstStrA testList, SeqFileOutput console) {		
 		natural retval = 0;
+		Stack<TestApp *> tests;
 		if (testList.empty() || testList == "all") {
 			TestApp *x = firstTest;
 			while (x != 0) {
-				if (!runSingleTest(x, console)) retval = 1;
+				tests.push(x);
 				x = x->previousTest;
 			}
 		}
@@ -90,13 +92,19 @@ namespace LightSpeed {
 					ConstStrA curTest = testIter.getNext();
 					curTest = curTest.trim(' ');
 					if (curTest == name || (curTest.tail(1) == ConstStrA('*') && curTest.crop(0,1) == name.head(curTest.length()-1))) {
-						if (!runSingleTest(x, console)) retval = 1;
+						tests.push(x);
 					}
 				}
 				x = x->previousTest;
 			}
 
 		}
+		while (!tests.empty()) {
+			TestApp *x = tests.top();
+			if (!runSingleTest(x, console)) retval = 1;
+			tests.pop();
+		}
+
 		return retval;
 	}
 

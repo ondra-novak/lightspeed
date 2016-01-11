@@ -1,4 +1,8 @@
-ifneq "$(MAKECMDGOALS)" "runtests"
+ifeq "$(MAKECMDGOALS)" "runtests"
+COMPILE_TESTS=1
+endif
+
+ifndef COMPILE_TESTS
 LIBNAME=lightspeed
 BUILDTYPE=lib
 SOURCES=src/lightspeed
@@ -25,6 +29,8 @@ $(CONFIG): testfn testbuildin
 	@./testbuildin __atomic_compare_exchange HAVE_DECL___ATOMIC_COMPARE_EXCHANGE >> $@
 	
 
-runtests: $(APPNAME) tmp/lightspeed_test
+compiletests: $(APPNAME)
+
+runtests: $(APPNAME) 
 	tmp/lightspeed_test
 	

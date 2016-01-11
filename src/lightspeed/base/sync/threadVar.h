@@ -112,7 +112,7 @@ namespace LightSpeed {
         	bool rep;
         	do {
         		rep = false;
-        		for (natural x = 0, l = dynamicTable.length(); x <l; l++) {
+        		for (natural x = 0, l = dynamicTable.length(); x <l; x++) {
         			if (dynamicTable[x].isInited()) {
         				dynamicTable(x).unset();
         				rep = true;

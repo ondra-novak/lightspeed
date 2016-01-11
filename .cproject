@@ -24,7 +24,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.lib.debug.454746281" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.lib.debug">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.lib.debug.168866323" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.lib.debug"/>
-							<builder autoBuildTarget="debug" buildPath="${workspace_loc:/lightspeed}" enableAutoBuild="true" id="cdt.managedbuild.target.gnu.builder.lib.debug.1824202506" incrementalBuildTarget="debug" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" stopOnErr="true" superClass="cdt.managedbuild.target.gnu.builder.lib.debug">
+							<builder arguments="COMPILE_TESTS=1" autoBuildTarget="debug" buildPath="${workspace_loc:/lightspeed}" command="make" enableAutoBuild="true" id="cdt.managedbuild.target.gnu.builder.lib.debug.1824202506" incrementalBuildTarget="debug" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" stopOnErr="true" superClass="cdt.managedbuild.target.gnu.builder.lib.debug">
 								<outputEntries>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="Debug"/>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="Release"/>

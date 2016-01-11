@@ -9,21 +9,25 @@ OBJS :=
 clean_list :=
 include $(shell find $(SOURCES) -name .sources.mk)
 
+
 libdeps%.mk:
 	flock $(@D) -c "$(MAKE) -C $(@D) deps"
 
 ifeq "$(MAKECMDGOALS)" "debug"
+FORCE_DEBUG=1
+else
+FORCE_DEBUG=0
+endif 
+
+ifeq "$(FORCE_DEBUG)" "1"
 CXXFLAGS += -O0 -g3 -fPIC -Wall -Wextra -DDEBUG -D_DEBUG $(INCLUDES)
 CFGNAME := tmp/cfg.debug
--include $(CFGNAME)	
 else 
 CXXFLAGS += -O3 -g3 -fPIC -Wall -Wextra -DNDEBUG $(INCLUDES)
 CFGNAME := tmp/cfg.release
-ifeq "$(MAKECMDGOALS)" "all"
--include $(CFGNAME)	
-endif
 endif
 
+-include $(CFGNAME)
 
 ifneq "$(MAKECMDGOALS)" "clean"
 NEEDLIBSDEPS=$(addsuffix /libdeps.mk,$(NEEDLIBS))

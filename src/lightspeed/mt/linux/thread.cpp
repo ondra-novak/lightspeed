@@ -83,17 +83,40 @@ public:
 			//report exception to the application
 			app->onThreadException(e);
 		}
-		finishThread();
+		//finishes thread when exception thrown
+		class Finisher {
+		public:
+			Finisher(ThreadContext *ctx):ctx(ctx) {
+
+			}
+			void run() {
+				//perform finish all
+				//if exception thrown, when continue in destructor
+				ctx->finishThread();
+			}
+			~Finisher(){
+				//ensure everithing is finished
+				ctx->finishThread();
+			}
+		ThreadContext *ctx;
+		};
+		try {
+			Finisher(this).run();
+		} catch (...) {
+			//ignore exceptions
+		}
 	}
 	void finishThread() {
+		//clear TLS - it is better to do this now, because destructor cannot throw exceptions
+		//note - it still can throw an exception - this will be caught by outside
+		//note - thread is still running yet
+		tlstable->clear();
 		//open gate, when thread finished
 		if (owner) {
 			//reset context pointer - it is no longer available
 			writeReleasePtr<ThreadContext>(&owner->threadContext,0);
 			owner->getJoinObject().open();
 		}
-		//clear TLS - it is better to do this now, because destructor cannot throw exceptions
-		tlstable->clear();
 
 	}
 protected:
