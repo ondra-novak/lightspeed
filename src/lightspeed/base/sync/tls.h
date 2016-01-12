@@ -11,75 +11,99 @@
 
 #include "../types.h"
 #include "../memory/factory.h"
+#include "../../mt/fastlock.h"
+#include "../containers/queue.h"
+#include "../containers/autoArray.h"
 namespace LightSpeed {
 
+///writting there brand new TLS table implementation
 
-
-///Interface to access Thread Local Storage variable table
-/** Every thread has own table. You can retrie instance of ITLSTable
- * for the current thread by calling ITLSTable::getInstance
- */
-class ITLSTable {
+class FastTLSAlloc {
 public:
+	FastTLSAlloc() :counter(0) {}
 
-	typedef void (*DeleteFunction)(void *ptr);
-
-	///Retrieves pointer to variable at given index
-	/**
-	 * @param index index into TLS table. Index can be out of range
-	 * @return pointer to registered variable, 0 if no variable is registered
-	 */
-    virtual void *getVar(natural index) const = 0;
-    ///Sets new variable to the index
-    /**
-     * @param index index into TLS table.
-     * @param value new pointer to be registered
-     * @param delFn pointer to a function responsible to deleting instance. If NULL,
-     * no action is taken.
-     */
-    virtual void setVar(natural index, void *value, DeleteFunction delFn = 0) = 0;
-    virtual void unsetVar(natural index) = 0;
-    virtual ~ITLSTable() {}
-
-    ///Clear the whole TLS table (call unset on all variables)
-    virtual void clear() = 0;
+	natural allocIndex();
+	void freeIndex(natural index);
+	natural getCounter() const { return counter; }
 
 
-    typedef ITLSTable &(*fn_GetTLS)();
+	static FastTLSAlloc &getInstance();
 
-	///Retrieves instance of TLS in current thread
-    static ITLSTable &getInstance();
-
-	static void setTLSFunction(fn_GetTLS fn);
-
-	static fn_GetTLS getTLSFunction();
-
+protected:
+	FastLock lock;
+	natural counter;
+	Queue<natural> freeList;
 };
 
 
 
-class ITLSAllocator {
+
+class FastTLSTable {
 public:
-    virtual natural allocIndex() = 0;
-    virtual void freeIndex(natural index) = 0;
-    virtual ~ITLSAllocator() {}
 
-    typedef ITLSAllocator &(*fn_GetTLSAllocator)();
+	FastTLSTable() {}
+	typedef void(*Destructor)(void *ptr);
 
-	static ITLSAllocator &getInstance();
+	void *getVar(natural index) const {
+		if (index >= table.length()) return 0;
+		return table.data()[index].ptr;
+	}
 
-	static void setTLSFunction(fn_GetTLSAllocator fn);
+	void setVar(natural index, void *value, Destructor dtor) {
+		if (index >= table.length()) {
+			table.resize(index + 1);
+		}
+		table.data()[index].set(value, dtor);
+	}
 
-	static fn_GetTLSAllocator getTLSFunction();
+	void unsetVar(natural index) {
+		if (index >= table.length()) return;
+		table.data()[index].set(0, 0);
+	}
+	void clear();
 
 
-    ///Retrieves id of highest index
-    /** Needed when ITLSAllocator table is preallocated */
-    virtual natural getMaxIndex() const = 0;
+	static FastTLSTable &getInstance();
+
+	FastTLSTable &operator=(FastTLSTable &other) {
+		for (natural i = 0; i < other.table.length(); i++) {
+			setVar(i, other.table[i].ptr, other.table[i].dtor);
+			other.table(i).dtor = 0;
+		}
+		return *this;
+	}
+
+
+	~FastTLSTable() { clear(); }
+private:
+	FastTLSTable(const FastTLSTable &);
+
+protected:
+	struct TLSItem {
+		void *ptr;
+		Destructor dtor;
+
+		TLSItem() :ptr(0), dtor(0) {}
+		void set(void *newptr, Destructor newdtor) {
+			void *oldPtr = ptr;
+			Destructor oldDtor = dtor;
+			ptr = newptr;
+			dtor = newdtor;
+			if (oldDtor) oldDtor(ptr);
+		}
+
+		bool used() const { return ptr != 0; }		
+	};
+
+	AutoArray<TLSItem> table;
 };
 
-ITLSTable &_stGetTLS();
-ITLSAllocator &_stGetTLSAllocator();
+
+typedef FastTLSTable TLSTable;
+//declared for backward compatibility
+typedef FastTLSTable ITLSTable;
+typedef FastTLSAlloc TLSAlloc;
+
 
 template<typename T>
 void deleteFunction(void *var) {

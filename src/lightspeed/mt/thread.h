@@ -289,10 +289,10 @@ namespace LightSpeed {
 		bool isFinishing() const throw();
 
 		///retrieves reference to TLS table
-		ITLSTable &getTls();
+		TLSTable &getTls() { return tls; }
 
 		///retrieves reference to TLS table
-		const ITLSTable &getTls() const;
+		const TLSTable &getTls() const { return tls; }
 
 		///Retrieves reference to Gate object
 		/** Gate object becomes signaled when thread finishes */
@@ -342,6 +342,8 @@ namespace LightSpeed {
 
 		///thread's id
 		ThreadId id;
+
+		TLSTable tls;
 
 		Thread(const Thread &other);
 		Thread &operator=(const Thread &other);

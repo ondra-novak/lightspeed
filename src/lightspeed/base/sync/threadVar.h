@@ -12,171 +12,10 @@
 #include "../sync/synchronize.h"
 #include "../iter/sortFilter.h"
 #include "tls.h"
-#include "tlsalloc.h"
 
 namespace LightSpeed {
 
-
-
-    ///Represents one record in the TLS table
-    /**Please don't use this class directly, if you don't know, what you are doing. 
-    This is part of internal structures. TLSRecord is one record in the TLS table. It
-    contains pointer to thread variable and pointer to function, which is called, when
-    variable have to be destroyed
-    */
-    class TLSRecord {
-    public:
-
-    	typedef ITLSTable::DeleteFunction DeleteFunction;
-
-        TLSRecord():varPtr(0),deleteFunct(0) {}
-        bool isInited() const {
-            return deleteFunct != 0 || varPtr != 0;
-        }
-
-        void set(void *varPtr, DeleteFunction del) {
-            unset();
-            this->varPtr = varPtr;
-            this->deleteFunct = del;
-        }
-
-        void unset() {
-        	//we have to first unset the item, then delete it
-        	//that because there can be some logic that need to reassign item during destruction
-        	//and we need also handle situation, when destructor throws an exception
-
-        	//store pointer first
-            void *v = varPtr;
-            //store delete function
-            DeleteFunction d = deleteFunct;
-            //set pointer to 0
-            varPtr = 0;
-            //reset delete function
-            deleteFunct = 0;
-
-            //now, if delete function is defined, delete the object
-            if (d) {
-				(*d)(v);
-            }
-        }
-
-        void *get() const {
-            return varPtr;
-        }
-        
-        ~TLSRecord() {
-            unset();
-        }
-
-        DeleteFunction getDestructor() const {
-        	return deleteFunct;
-        }
-
-    protected:
-
-        mutable void *varPtr;
-        DeleteFunction deleteFunct;
-    };
-
-    template<>
-    class MoveObject<TLSRecord>: public MoveObject_Binary {};
-
-
-
-    ///Implements TLSTable in the thread context
-    /**
-    Note, class is NOT thread safe. But objects created using this class will not be
-        shared between the thread, so in standard usage, no synchronization is needed.
-        Only when you allows thread access the TLS of another thread
-    */
-    template<typename Allocator = StdAlloc >
-    class TLSTable: public ITLSTable {
-        typedef AutoArray<TLSRecord,Allocator> DynTable;
-    public:
-
-        typedef ITLSTable::DeleteFunction DeleteFunction;
-
-        TLSTable() {}
-        TLSTable(const Allocator &alloc):dynamicTable(alloc) {}
-
-        void clear() {
-        	/* HACK: while the TLS table is destroyed, there can
-        	 * be destructor, which sets new  TLS variables. Before
-        	 * the destructor complete, it must ensure, whether
-        	 * all entries has been release. If not, operation is
-        	 * repeated.
-        	 *
-        	 * The TLS table is still available during destruction, so
-        	 * this can easy happen.
-        	 */
-        	bool rep;
-        	do {
-        		rep = false;
-        		for (natural x = 0, l = dynamicTable.length(); x <l; x++) {
-        			if (dynamicTable[x].isInited()) {
-        				dynamicTable(x).unset();
-        				rep = true;
-        			}
-        		}
-        	} while (rep);
-
-        }
-
-        ///gets record at the index
-        /**
-        @param index index which's record should be get
-        @return Function returns pointer associated with the record. If variable
-            has not been initialized yet, function returns 0;
-        */
-        void *getVar(natural index) const {
-            if (index < dynamicTable.length()) return dynamicTable[index].get();
-            else return 0;
-       }
-
-        ////sets the record at the index
-        /**
-        @param index index to set. Note that index have to be allocated by
-            TLSAllocator. Table has structure as linear array which contains
-            indexes from zero to max. If you set TLS index for example number '100' 
-            with value, function will also create indexes 0...99 in unitialized state.
-         */
-        void setVar(natural index, void *value, DeleteFunction delFn) {
-            //do nothing, if you unset the variable outside of range
-            if (value == 0 && delFn == 0 && index >= dynamicTable.length())
-                return;
-            //allocate table, if this is necesery
-            if (dynamicTable.length() <= index)
-                dynamicTable.resize(index+1);
-            //set the record
-             dynamicTable(index).set(value,delFn);
-        }
-
-
-        void unsetVar(natural index) {
-            //do nothing, if you unset the variable outside of range
-            if (index >= dynamicTable.length()) return;
-            dynamicTable(index).unset();
-
-        }
-
-        const Allocator &getAllocator() const {return dynamicTable.getAllocator();}
-
-        virtual void moveTo(ITLSTable &newTable) {
-
-        	for (natural i = 0; i < dynamicTable.length(); i++) {
-				const TLSRecord &rc = dynamicTable[i];
-				newTable.setVar(i,rc.get(),rc.getDestructor());
-        	}
-        	dynamicTable.clear();
-        }
-
-    protected:
-
-        mutable DynTable dynamicTable;
-
-    };
-
-
+	
 
     ///Declaration of thread variable
     /** ThreadVar is actually pointer to a value. ThreadVar can contain different pointer
@@ -199,9 +38,9 @@ namespace LightSpeed {
     template<class T>
     class ThreadVar {
     public:   
-    	typedef ITLSTable::DeleteFunction DeleteFunction;
+    	typedef TLSTable::Destructor DeleteFunction;
         ///Construction of ThreadVar, allocates the TLS index       
-        ThreadVar():index(ITLSAllocator::getInstance().allocIndex()) {};
+        ThreadVar():index(TLSAlloc::getInstance().allocIndex()) {};
 
         ///Destruction of ThreadVar, releases the TLS index
         /**
@@ -209,7 +48,7 @@ namespace LightSpeed {
         must be remove manually or they will be removed with deleting TLSTables
         */
         ~ThreadVar() {
-        	ITLSAllocator::getInstance().freeIndex(index);
+        	TLSAlloc::getInstance().freeIndex(index);
         }
 
 
@@ -219,7 +58,7 @@ namespace LightSpeed {
          * @param table TLS table that contains data
          * @return pointer to data or NULL, if not set
          */
-        T *operator[](const ITLSTable &table) const {
+        T *operator[](const TLSTable &table) const {
             return reinterpret_cast<T *>(table.getVar(index));
         }
 
@@ -233,7 +72,7 @@ namespace LightSpeed {
          * @param ptr pointer to store
          */
 
-        void set(ITLSTable &table, T *ptr ) {
+        void set(TLSTable &table, T *ptr ) {
         	unset(table);
             table.setVar(index,ptr,0);
         }
@@ -247,14 +86,14 @@ namespace LightSpeed {
          *
          * @note before set is called unset() to remove old variable.
          */
-        void set(ITLSTable &table, T *ptr, DeleteFunction delFn) {
+        void set(TLSTable &table, T *ptr, DeleteFunction delFn) {
         	unset(table);
         	table.setVar(index,ptr,delFn);
         }
 
 
         ///Unsets value from the ThreadVar
-        void unset(ITLSTable &table) {
+        void unset(TLSTable &table) {
         	table.unsetVar(this->index);
         }
 
@@ -269,7 +108,7 @@ namespace LightSpeed {
          * the variable or the thread is destroyed, delete is used to
          * destroy the value automatically
          */
-        T * setValue(ITLSTable &table, const T &val) {
+        T * setValue(TLSTable &table, const T &val) {
         	T * ret = new T(val);
         	set(table,ret, &deleteFunction<T>);
         	return ret;
@@ -302,7 +141,7 @@ namespace LightSpeed {
     	 * @note this function can be used to modify value
     	 *
     	 */
-        T &operator[](ITLSTable &table) {
+        T &operator[](TLSTable &table) {
         	T *p = ThreadVar<T>::operator[](table);
         	if (p == 0) {
         		return static_cast<Impl *>(this)->init(table);
@@ -324,7 +163,7 @@ namespace LightSpeed {
     	 * @note this is const function, returned value is const and cannot be modified.
     	 *
     	 */
-        const T &operator[](ITLSTable &table) const {
+        const T &operator[](TLSTable &table) const {
         	T *p = ThreadVar<T>::operator[](table);
         	if (p == 0) {
         		return static_cast<Impl *>(const_cast<ThreadVarInitBase *>(this))->init(table);
@@ -343,7 +182,7 @@ namespace LightSpeed {
          * @note accessing the variable without picking return value performs the same
          * action.
          */
-        void initOnce(ITLSTable &table)  {
+        void initOnce(TLSTable &table)  {
         	this->operator[](table);
         }
 
@@ -398,7 +237,7 @@ namespace LightSpeed {
          * @see initOnce
          *
          */
-        T &init(ITLSTable &table)  {
+        T &init(TLSTable &table)  {
         	T *x = new T(val);
         	try {
         		//function can throw exception
@@ -449,7 +288,7 @@ namespace LightSpeed {
         * @see initOnce
         *
         */
-        T &init(ITLSTable &table)  {
+        T &init(TLSTable &table)  {
         	T *x = new T;
         	try {
         		ThreadVar<T>::set(table, x, &deleteFunction<T>);

@@ -149,8 +149,9 @@ namespace LightSpeed {
 		if (empty()) throw ContainerIsEmptyException(THISLOCATION);
 		natural memSz = memBlock.getSize();
 		T &itm = memBlock.getBase()[tail];
-		tail = (tail + 1) % memSz;
+		tail = (tail + 1);
 		if (head == tail) head = tail = 0; //<set empty (both zero)
+		else tail = tail % memSz;
 		itm.~T();
 	}
 

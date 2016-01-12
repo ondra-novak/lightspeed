@@ -17,7 +17,7 @@ namespace LightSpeed {
 ///Faster and still multithread safe implementation of reference-counted objects
 class FastMTRefCntObj {
 public:
-	FastMTRefCntObj();
+	FastMTRefCntObj() :refCounter(0) {}
 
 
 	///increases reference
@@ -143,10 +143,10 @@ inline FastMTRefCntObj::PointerCache::~PointerCache()
 			//set temporary cache to tls index
 			//at this point, index should be already empty
 			//this prevents to recreation table during mass destruction
-			ITLSTable &tls;
+			TLSTable &tls;
 			AllocPointer<PointerCache> tmp;
 			Deleter(PointerCache *owner):owner(owner),pos(0)
-				,tls(ITLSTable::getInstance())
+				,tls(TLSTable::getInstance())
 				,tmp(new PointerCache){
 
 				cachePtr.ThreadVar::set(tls,tmp.get());
@@ -196,9 +196,10 @@ inline void FastMTRefCntObj::PointerCache::flushAll() {
 
 inline natural FastMTRefCntObj::PointerCache::hashPointer(const FastMTRefCntObj* ptr) {
 	natural v = (natural)ptr;
-	v = v ^ (v >> 32);
-	v = v ^ (v >> 16);
-	v = v ^ (v >> 8);
+	const natural maskShift = sizeof(v) * 8 - 1; 
+	if (sizeof(v) >= 8) v = v ^ (v >> (32 & maskShift));
+	if (sizeof(v) >= 4) v = v ^ (v >> (16 & maskShift));
+	if (sizeof(v) >= 2) v = v ^ (v >> (8 & maskShift));
 	v = v ^ (v >> 4);
 	return v & 0xF;
 
@@ -217,9 +218,6 @@ inline integer FastMTRefCntObj::PointerCache::findItem(const FastMTRefCntObj *pt
 }
 
 
-inline FastMTRefCntObj::FastMTRefCntObj::FastMTRefCntObj():refCounter(0) {
-
-}
 
 inline void FastMTRefCntObj::PointerCache::flushCacheItem(natural pos) {
 	//read pointer
@@ -233,9 +231,9 @@ inline void FastMTRefCntObj::PointerCache::flushCacheItem(natural pos) {
 }
 
 
-inline void FastMTRefCntObj::FastMTRefCntObj::addRef() const {
+inline void FastMTRefCntObj::addRef() const {
 	//find pointer cache
-	PointerCache &cache = cachePtr[ITLSTable::getInstance()];
+	PointerCache &cache = cachePtr[TLSTable::getInstance()];
 	//find pointer in cache
 	integer r = cache.findItem(this);
 	//if not found (r ~ <-hashTableSIze,-1>
@@ -256,8 +254,8 @@ inline void FastMTRefCntObj::FastMTRefCntObj::addRef() const {
 }
 
 
-inline void FastMTRefCntObj::FastMTRefCntObj::releaseRef() const {
-	PointerCache &cache = cachePtr[ITLSTable::getInstance()];
+inline void FastMTRefCntObj::releaseRef() const {
+	PointerCache &cache = cachePtr[TLSTable::getInstance()];
 	integer r = cache.findItem(this);
 	if (r < 0) {
 
@@ -283,8 +281,8 @@ inline void FastMTRefCntObj::FastMTRefCntObj::releaseRef() const {
 	}
 }
 
-inline void FastMTRefCntObj::FastMTRefCntObj::commitRef() const {
-	PointerCache &cache = cachePtr[ITLSTable::getInstance()];
+inline void FastMTRefCntObj::commitRef() const {
+	PointerCache &cache = cachePtr[TLSTable::getInstance()];
 	integer r = cache.findItem(this);
 	if (r >= 0) {
 		cache.flushCacheItem(r);

@@ -121,7 +121,7 @@ namespace LightSpeed {
 		//check whether fiber is already running
 		if (ctx) throw FiberErrorException(THISLOCATION, ERROR_ALREADY_EXISTS);
 		// receive current fiber
-		ITLSTable &tbl = ITLSTable::getInstance();
+		TLSTable &tbl = TLSTable::getInstance();
 		Fiber *volatile fb = currentFiber[tbl];
 		//there should be always fiber, even master fiber. 
 		//If no fiber found, make current thread as master fiber
@@ -187,7 +187,7 @@ namespace LightSpeed {
 
 		SwitchToFiber(to->ctx->fiberID);
 
-		ITLSTable &tbl = ITLSTable::getInstance();
+		TLSTable &tbl = TLSTable::getInstance();
 		//receive previous fiber
 		//NOTE last != from. In case that from->to->other->from => last=other		
 		Fiber *last = currentFiber[tbl];
@@ -230,7 +230,7 @@ namespace LightSpeed {
 
 	Fiber & Fiber::current()
 	{
-		ITLSTable &tbl = ITLSTable::getInstance();
+		TLSTable &tbl = ITLSTable::getInstance();
 		Fiber *cur = currentFiber[tbl];
 		if (cur) return *cur;
 		else throw NoCurrentFiberException(THISLOCATION);

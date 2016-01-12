@@ -9,7 +9,7 @@ ThreadVar<ProgressMonitor> globalProgressMonitor;
 
 	void Progress::attachToMonitor()
 	{		
-		ProgressMonitor *mon = globalProgressMonitor[ITLSTable::getInstance()];
+		ProgressMonitor *mon = globalProgressMonitor[TLSTable::getInstance()];
 		if (mon) {
 			mon->lock();
 			this->callback = !mon->asyncEnabled();
@@ -47,12 +47,12 @@ ThreadVar<ProgressMonitor> globalProgressMonitor;
 
 	ProgressMonitor::ProgressMonitor()
 	{
-		globalProgressMonitor.set(ITLSTable::getInstance(),this);
+		globalProgressMonitor.set(TLSTable::getInstance(),this);
 	}
 
 	ProgressMonitor::~ProgressMonitor()
 	{
-		globalProgressMonitor.unset(ITLSTable::getInstance());
+		globalProgressMonitor.unset(TLSTable::getInstance());
 	}
 
 	float ProgressMonitor::getPos( natural level /*= 0*/ ) const

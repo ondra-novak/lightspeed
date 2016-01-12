@@ -522,6 +522,7 @@
     <ClInclude Include="src\lightspeed\base\memory\comptr.h" />
     <ClInclude Include="src\lightspeed\base\memory\dynobject.h" />
     <ClInclude Include="src\lightspeed\base\memory\factory.h" />
+    <ClInclude Include="src\lightspeed\base\memory\fastMtRefCnt.h" />
     <ClInclude Include="src\lightspeed\base\memory\inBlockAlloc.h" />
     <ClInclude Include="src\lightspeed\base\memory\nodeAlloc.h" />
     <ClInclude Include="src\lightspeed\base\memory\ownedPointer.h" />
@@ -606,7 +607,6 @@
     <ClInclude Include="src\lightspeed\base\sync\syncobj.h" />
     <ClInclude Include="src\lightspeed\base\sync\threadVar.h" />
     <ClInclude Include="src\lightspeed\base\sync\tls.h" />
-    <ClInclude Include="src\lightspeed\base\sync\tlsalloc.h" />
     <ClInclude Include="src\lightspeed\base\sync\trysynchronized.h" />
     <ClInclude Include="src\lightspeed\base\tags.h" />
     <ClInclude Include="src\lightspeed\base\text\newline.h" />
@@ -746,6 +746,7 @@
     <ClCompile Include="src\lightspeed\base\iter\generator.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\clusterAlloc.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\dynobject.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\fastMtRefCnt.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\nodeAlloc.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\refCntPtr.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\singleton.cpp" />
@@ -759,7 +760,6 @@
     <ClCompile Include="src\lightspeed\base\streams\netio.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\utf.cpp" />
     <ClCompile Include="src\lightspeed\base\sync\tls.cpp" />
-    <ClCompile Include="src\lightspeed\base\sync\tlsalloc.cpp" />
     <ClCompile Include="src\lightspeed\base\text\textFormat.cpp" />
     <ClCompile Include="src\lightspeed\base\text\textIn.cpp" />
     <ClCompile Include="src\lightspeed\base\text\textInBuffer.cpp" />
@@ -817,6 +817,7 @@
     <ClCompile Include="src\lightspeed\utils\urlencode.cpp" />
     <ClCompile Include="src\lightspeed\utils\windows\FilePath.cpp" />
     <ClCompile Include="src\lightspeed\utils\xmlparser.cpp" />
+    <ClCompile Include="src\tests\test_fastmtrefcnt.cpp" />
     <ClCompile Include="src\tests\test_fibers.cpp" />
     <ClCompile Include="src\tests\test_promises.cpp" />
     <ClCompile Include="src\tests\runtests.cpp" />

@@ -33,7 +33,7 @@ void AbstractLogProvider::logOutput(ConstStrA ident, LogType type,
 
 		checkLogRotate();
 
-		ITLSTable &tls = ITLSTable::getInstance();
+		TLSTable &tls = TLSTable::getInstance();
 		Buffer &curbuf = buffer[tls];
 
 		char symbs[] = {'F','E','W','N','P','I','D','?'};

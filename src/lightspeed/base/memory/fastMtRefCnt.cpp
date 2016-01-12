@@ -16,7 +16,7 @@ atomicValue FastMTRefCntObj::lockAdd(atomic &v, atomicValue val) {
 }
 
 void FastMTRefCntObj::commitAllRefs() {
-	PointerCache &cache = cachePtr[ITLSTable::getInstance()];
+	PointerCache &cache = cachePtr[TLSTable::getInstance()];
 	cache.flushAll();
 }
 

@@ -7,53 +7,75 @@
 
 #include "tls.h"
 #include "threadVar.h"
-#include "../memory/singleton.h"
-#include "nulllock.h"
-#include "../iter/sortFilter.tcc"
-#include "../../mt/spinlock.h"
-#include "tlsalloc.h"
+#include "..\containers\queue.tcc"
+#include "..\..\mt\thread.h"
 
 namespace LightSpeed {
 
-	ITLSTable &_stGetTLS() {
-		return Singleton<TLSTable<> >::getInstance();
-	}
-
-	ITLSAllocator &_stGetTLSAllocator() {
-		return Singleton<TLSAllocator >::getInstance();
-	}
-
-	static ITLSTable::fn_GetTLS ITLSTable_getInstance = &_stGetTLS;
-	static ITLSAllocator::fn_GetTLSAllocator ITLSAllocator_getInstance = &_stGetTLSAllocator;
-
-
-	ITLSAllocator & ITLSAllocator::getInstance()
+	natural FastTLSAlloc::allocIndex()
 	{
-		return ITLSAllocator_getInstance();
+		Synchronized<FastLock> _(lock);
+		if (freeList.empty()) {
+			return counter++;
+		}
+		else {
+			natural out = freeList.top();
+			freeList.pop();
+			return out;
+		}
 	}
 
-	void ITLSAllocator::setTLSFunction( fn_GetTLSAllocator fn )
+	void FastTLSAlloc::freeIndex(natural index)
 	{
-		ITLSAllocator_getInstance = fn;
+		Synchronized<FastLock> _(lock);
+		freeList.push(index);
+
 	}
 
-	ITLSAllocator::fn_GetTLSAllocator ITLSAllocator::getTLSFunction()
+	FastTLSAlloc & FastTLSAlloc::getInstance()
 	{
-		return ITLSAllocator_getInstance;
+		return Singleton<FastTLSAlloc>::getInstance();
 	}
 
-	ITLSTable & ITLSTable::getInstance()
+	void FastTLSTable::clear()
 	{
-		return ITLSTable_getInstance();
+		class Deleter {
+		public:
+			TLSItem *data;
+			natural count;
+			Deleter(TLSItem *data, natural count) :data(data), count(count) {}
+			bool run() {
+				bool found = false;
+				while (count > 0) {
+					count--;
+					if (data[count].ptr && data[count].dtor) {
+						data[count].dtor(data[count].ptr);
+						found = true;
+					}
+					data[count].ptr = 0;
+				}
+				return found;
+			}
+			~Deleter() {
+				run();
+			}
+		};
+		bool rep;
+		do {
+			rep = Deleter(table.data(), table.length()).run();
+		} while (rep);
 	}
 
-	void ITLSTable::setTLSFunction( fn_GetTLS fn )
+	FastTLSTable & FastTLSTable::getInstance()
 	{
-		ITLSTable_getInstance = fn;
+		Thread *x = Thread::currentPtr();
+		if (x == 0) {
+			static TLSTable global;
+			return global;
+		}
+		else {
+			return x->getTls();
+		}
 	}
 
-	ITLSTable::fn_GetTLS ITLSTable::getTLSFunction()
-	{
-		return ITLSTable_getInstance;
-	}
 }
