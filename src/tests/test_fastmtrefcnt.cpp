@@ -8,6 +8,7 @@
 #include "../lightspeed/base/framework/testapp.h"
 #include "../lightspeed/base/memory/fastMtRefCnt.h"
 #include "../lightspeed/mt/thread.h"
+#include "../lightspeed/base/text/textstream.tcc"
 
 namespace LightSpeedTest {
 
