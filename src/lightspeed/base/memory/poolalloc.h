@@ -60,13 +60,13 @@ namespace LightSpeed {
 		}
 		virtual void dealloc(void *ptr, natural )  {
 
-			if (destroyed != 0) {
-				operator delete(ptr);
-			}
 			//convert pointer to block
 			Block *k = static_cast<Block *>(reinterpret_cast<BlockBase *>(ptr)-1);
 
-			blockList.push(k);
+			if (destroyed != 0) {
+				operator delete(k);
+			} else
+				blockList.push(k);
 		}
 
 

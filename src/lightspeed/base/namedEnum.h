@@ -52,9 +52,9 @@ public:
 	template<int n>
 	NamedEnum(Def (&arr)[n]);
 
-	Enum operator[](ConstStrA name);
-	ConstStrA operator[](Enum enm);
-	bool find(ConstStrA name, Enum &result);
+	Enum operator[](ConstStrA name) const;
+	ConstStrA operator[](Enum enm) const;
+	bool find(ConstStrA name, Enum &result) const;
 
 	const natural count;
 	const NamedEnumDef<Enum> * const items;
@@ -138,14 +138,14 @@ inline NamedEnum<Enum>::NamedEnum(Def (&arr)[n]):count(n),items(arr)
 }
 
 template<typename Enum>
-inline Enum LightSpeed::NamedEnum<Enum>::operator [](ConstStrA name) {
+inline Enum LightSpeed::NamedEnum<Enum>::operator [](ConstStrA name) const {
 	Enum r;
 	if (find(name, r)) return r;
 	else throw UnknownEnumName(THISLOCATION,name,this);
 }
 
 template<typename Enum>
-inline bool LightSpeed::NamedEnum<Enum>::find(ConstStrA name, Enum &res) {
+inline bool LightSpeed::NamedEnum<Enum>::find(ConstStrA name, Enum &res) const {
 	natural h = 0;
 	natural t = count;
 	while (h < t) {
@@ -164,7 +164,7 @@ inline bool LightSpeed::NamedEnum<Enum>::find(ConstStrA name, Enum &res) {
 
 
 template<typename Enum>
-inline ConstStrA NamedEnum<Enum>::operator [](Enum enm) {
+inline ConstStrA NamedEnum<Enum>::operator [](Enum enm) const {
 	natural h = 0;
 	natural t = count;
 	while (h < t) {

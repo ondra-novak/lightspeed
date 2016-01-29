@@ -202,7 +202,7 @@ public:
 	/** 
 	 @note Function doesn't create internal value. It will be create later as needed.
 	 */
-	Future() {}
+	Future();
 	///Construct future object
 	/** Function uses allocator to allocate internal structure
 	*/

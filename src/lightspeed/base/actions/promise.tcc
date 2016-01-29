@@ -739,6 +739,11 @@ Future<T>::Future(IRuntimeAlloc &alloc) {
 }
 
 template<typename T>
+Future<T>::Future() {
+
+}
+
+template<typename T>
 Promise<T>::Promise(const Future<T> &future) :ptr(future.getValuePtr())
 {
 	ptr->addResultRef();
