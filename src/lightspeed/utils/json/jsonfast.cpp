@@ -340,6 +340,22 @@ PNode fromStream(SeqFileInput& input) {
 	return parseFast(txt);
 }
 
+INode *FObject_t::replace(ConstStrA name, Value newValue, Value *prevValue ) {
+	bool found;
+	FFieldMap_t::Iterator iter = fields.seek(name,&found);
+	Value prev;
+	if (!found) {
+		add(name,newValue);
+	} else {
+		const FFieldMap_t::Entity &e = iter.peek();
+		prev = e.value;
+		e.value = newValue;
+	}
+	if (prevValue) *prevValue = prev;
+	return this;
+}
+INode * FObject_t::clear() {fields.clear();return this;}
+
 
 }
 

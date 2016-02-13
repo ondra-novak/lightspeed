@@ -56,29 +56,29 @@ namespace LightSpeed {
 
 		///Smart pointer to node
 		/**Automatically tracks reference counts for every node in tree allowing free unused nodes as required */
-//		typedef ::LightSpeed::RefCntPtr<INode> PNode;
-		class PNode: public ::LightSpeed::RefCntPtr<INode> {
+//		typedef ::LightSpeed::RefCntPtr<INode> Value;
+		class Value: public ::LightSpeed::RefCntPtr<INode> {
 		public:
 			typedef ::LightSpeed::RefCntPtr<INode> Super;
 
-			PNode() {}
-			PNode(const Super &x):Super(x) {}
-			PNode(NullType x):Super(x) {}
-	        PNode(INode *p):Super(p) {}
+			Value() {}
+			Value(const Super &x):Super(x) {}
+			Value(NullType x):Super(x) {}
+	        Value(INode *p):Super(p) {}
 
-			PNode &operator=(const PNode &other) {
+			Value &operator=(const Value &other) {
 				Super::operator=(other);return *this;
 			}
 
-			PNode operator[](ConstStrA name) const;
-			PNode operator[](const char *name) const;
-			PNode operator[](int i) const;
-			PNode operator[](natural i) const;
+			Value operator[](ConstStrA name) const;
+			Value operator[](const char *name) const;
+			Value operator[](int i) const;
+			Value operator[](natural i) const;
 
 
 		};
 
-		typedef PNode Value;
+		typedef Value PNode;
 
 		//Smart pointer to factory
 		/**Automatically tracks reference counts for factories allowing free unused factories as required */
@@ -101,9 +101,9 @@ namespace LightSpeed {
 			///Syntax helper
 			/** factory(x) -> factory->newValue(x) */
 			template<typename T>
-			PNode operator()(const T &val);
-			PNode array();
-			PNode object();
+			Value operator()(const T &val);
+			Value array();
+			Value object();
 
 		};
 
@@ -394,7 +394,7 @@ namespace LightSpeed {
 			 * 
 			 * @note method is useful for arrays only
 			 */
-			virtual INode *add(PNode newNode) = 0;
+			virtual INode *add(Value newNode) = 0;
 			///Adds new node into JSON container
 			/**
 			 * @param name name of node. For class only, ignored for arrays
@@ -402,7 +402,7 @@ namespace LightSpeed {
 			 * added nodes. If nil used, adds NULL node
 			 * @return reference to self enabling chain add
 			 */
-			virtual INode *add(ConstStrA name, PNode newNode) = 0;
+			virtual INode *add(ConstStrA name, Value newNode) = 0;
 
 			///Adds new node directly from iterator result
 			INode *add(const KeyValue &kv) {
@@ -410,7 +410,28 @@ namespace LightSpeed {
 				else return add(kv.getStringKey(),kv.node);
 			}
 
-			INode *replace(ConstStrA name, PNode newNode) {return erase(name)->add(name,newNode);}
+			///Replaces value
+			/**
+			 * @param name key of which value replace
+			 * @param newValue new value that replaces old one
+			 * @param prevValue if not NULL, it will receive previous value
+			 * @return pointer to this
+			 *
+			 * @note function does nothing if used on non-object value
+			 */
+
+			virtual INode *replace(ConstStrA name, Value newValue, Value *prevValue = 0) = 0;
+
+			///Replaces value
+			/**
+			 * @param index index of the value to replace
+			 * @param newValue new value that replaces old one
+			 * @param prevValue if not NULL, it will receive previous value
+			 * @return pointer to this
+			 *
+			 * @note function does nothing if used on non-array value
+			 */
+			virtual INode *replace(natural index, Value newValue, Value *prevValue = 0) = 0;
 
 			///Copies array or object to the current array or object
 			/** function cannot copy value for other node types. It just iterates though values and
@@ -418,13 +439,13 @@ namespace LightSpeed {
 			 *
 			 * @param from source object
 			 */
-			INode *copy(PNode from) {
+			INode *copy(Value from) {
 				for (JSON::Iterator iter = from->getFwIter(); iter.hasItems();) add(iter.getNext());
 				return this;
 			}
 
 			///Returns true, when node is non-empty container
-			virtual bool empty() const {return false;}
+			virtual bool empty() const = 0;
 			///erases item from object
 			/**
 			 * @param name name of field
@@ -438,6 +459,12 @@ namespace LightSpeed {
 			 */
 
 			virtual INode* erase(natural index) = 0;
+
+			///Erases all items in the container
+			/** Function does nothing if value is not container
+			 *
+			 * */
+			virtual INode *clear() = 0;
 
 			///Retrieves iterator for container nodes
 			virtual Iterator getFwIter() const = 0;
@@ -512,56 +539,62 @@ namespace LightSpeed {
 
 
 			///Create object (obsolete)
-			virtual PNode newClass() = 0;
+			virtual Value newClass() = 0;
 			///Creates JSON object
-			virtual PNode newObject() = 0;
+			virtual Value newObject() = 0;
 			///Creates JSON array
-			virtual PNode newArray() = 0;
+			virtual Value newArray() = 0;
 			///Creates JSON number using unsigned value
-			virtual PNode newValue(natural v) = 0;
+			virtual Value newValue(natural v) = 0;
 			///Creates JSON number using signed value
-			virtual PNode newValue(integer v) = 0;
+			virtual Value newValue(integer v) = 0;
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
 			///Creates JSON number using unsigned value
-			virtual PNode newValue(lnatural v) = 0;
+			virtual Value newValue(lnatural v) = 0;
 			///Creates JSON number using signed value
-			virtual PNode newValue(linteger v) = 0;
+			virtual Value newValue(linteger v) = 0;
 #endif
 			///Creates JSON number using double-float value
-			virtual PNode newValue(double v) = 0;
+			virtual Value newValue(double v) = 0;
 			///Creates JSON bool and stores value
-			virtual PNode newValue(bool v) = 0;
+			virtual Value newValue(bool v) = 0;
 			///Creates JSON string
-			virtual PNode newValue(ConstStrW v) = 0;
+			virtual Value newValue(ConstStrW v) = 0;
 			///Creates JSON string
-			virtual PNode newValue(ConstStrA v) = 0;
+			virtual Value newValue(ConstStrA v) = 0;
 			///Retrieves allocator used to allocate nodes
 			virtual IRuntimeAlloc *getAllocator() const = 0;
 
-			///Reflection - to keep templates to work
-			PNode newValue(PNode v) {return v;}
+			///to keep templates to work
+			Value newValue(Value v) {return v;}
 			
+			Value newValue(NullType) {return newNullNode();}
+
+#if __cplusplus >= 201103L
+			Value newValue(nullptr x) {return newNullNode();}
+#endif
+
 			///Serialize custom value (undefined upper)
 			template<typename T>
-			PNode newCustomValue(const T &x) {
+			Value newCustomValue(const T &x) {
 				TypeToNodeDefinition<T> def(this);
 				return def(x);
 			}
 
 			template<typename T>
-			PNode newValue(const T &val);
+			Value newValue(const T &val);
 
 
 			///Creates new NULL node
 			/**
 			 * @note factory can use one NULL node for all required NULLs
 			 */
-			virtual PNode newNullNode() = 0;
+			virtual Value newNullNode() = 0;
 			///Creates new DELETE node
 			/**
 			 * @note factory can use one NULL node for all required DELETEs
 			 */
-			virtual PNode newDeleteNode() = 0;
+			virtual Value newDeleteNode() = 0;
 			///Merges two JSON trees
 			/** Function merges only objects not arrays. Fields which contains DELETE-node
 			 * will be removed. New fields in change-tree with names matching fields in base-tree will
@@ -570,7 +603,7 @@ namespace LightSpeed {
 			 * @param change change tree (changes)
 			 * @return result of merge
 			 */
-			virtual PNode merge(const INode &base, const INode &change) = 0;
+			virtual Value merge(const INode &base, const INode &change) = 0;
 			///Create copy of the factory
 			virtual IFactory *clone() = 0;
 
@@ -603,7 +636,7 @@ namespace LightSpeed {
 			 *
 			 * @see parseFast
 			 */
-			virtual PNode fromString(ConstStrA text) = 0;
+			virtual Value fromString(ConstStrA text) = 0;
 
 			///Creates JSON tree from byte stream
 			/**
@@ -618,14 +651,14 @@ namespace LightSpeed {
 			 *
 			 * @see parseFast
 			 */
-			PNode fromStream( SeqFileInput &stream );
+			Value fromStream( SeqFileInput &stream );
 
 			template<typename T>
-			PNode operator()(const T &v) {return newValue(v);}
+			Value operator()(const T &v) {return newValue(v);}
 
 			///Creates JSON string
-			PNode array() {return newArray();}
-			PNode object() {return newObject();}
+			Value array() {return newArray();}
+			Value object() {return newObject();}
 
 			virtual ~IFactory()  {}
 
@@ -662,7 +695,7 @@ namespace LightSpeed {
 		PFactory createFast();
 		///Retrieves global null node (without allocation)
 		/** Factories uses this function, so you don't need it it call explicitly */
-		PNode getNullNode();
+		Value getNullNode();
 			
 
 		///Custom node interface
@@ -688,7 +721,7 @@ namespace LightSpeed {
 
 
 		template<typename T>
-		PNode PFactory::operator()( const T &val )
+		Value PFactory::operator()( const T &val )
 		{
 			return (*this)->operator ()(val);
 		}
@@ -700,15 +733,15 @@ namespace LightSpeed {
 		template<typename A,typename B>
 		struct ConvHelper {
 			template<typename X>
-			static PNode conv(const X &x, IFactory &f) {
+			static Value conv(const X &x, IFactory &f) {
 				return conv(x,f,typename MIsConvertible<X,A>::MValue());
 			}
 			template<typename X>
-			static PNode conv(const X &x, IFactory &f, MTrue) {
+			static Value conv(const X &x, IFactory &f, MTrue) {
 				return f.newValue(A(x));
 			}
 			template<typename X>
-			static PNode conv(const X &x, IFactory &f, MFalse) {
+			static Value conv(const X &x, IFactory &f, MFalse) {
 				return B::conv(x,f);
 			}
 		};
@@ -716,21 +749,21 @@ namespace LightSpeed {
 		template<typename A>
 		struct ConvHelper<A,Empty> {
 			template<typename X>
-			static PNode conv(const X &x, IFactory &f) {
+			static Value conv(const X &x, IFactory &f) {
 				return conv(x,f,typename MIsConvertible<X,A>::MValue());
 			}
 			template<typename X>
-			static PNode conv(const X &x, IFactory &f, MTrue) {
+			static Value conv(const X &x, IFactory &f, MTrue) {
 				return f.newValue(A(x));
 			}
 			template<typename X>
-			static PNode conv(const X &x, IFactory &f, MFalse) {
+			static Value conv(const X &x, IFactory &f, MFalse) {
 				return f.newCustomValue(x);
 			}
 		};
 
 		template<typename T>
-		PNode IFactory::newValue(const T &val) {
+		Value IFactory::newValue(const T &val) {
 			typedef ConvHelper<integer,
 					ConvHelper<natural,
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
@@ -751,6 +784,7 @@ namespace LightSpeed {
 		}
 
 	};
+
 
 
 

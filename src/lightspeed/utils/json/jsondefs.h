@@ -24,13 +24,6 @@ String decodeString( ConstStrW jsontext );
 PNode getNullNode();
 PNode getDeleteNode();
 
-typedef TextIn<Utf8ToWideReader<ConstStrA::Iterator>, SmallAlloc<256> > JSONStream_t;
-
-typedef TextIn<Utf8ToWideReader<ConstStrA::Iterator>, SmallAlloc<256> > JSONStream_t;
-
-template<typename JSONStream_t>
-PNode JSON_parseNode( JSONStream_t &parser, PFactory factory );
-
 class NumKey: public IKey {
 public:
 	NumKey() {}
@@ -57,16 +50,29 @@ public:
 	INode & operator[]( ConstStrA v ) const;
 	INode & operator[]( natural index ) const;
 
+	virtual INode *replace(ConstStrA , Value , Value *prevValue = 0) {
+		if (prevValue) *prevValue = null;
+		return this;
+	}
+	virtual INode *replace(natural , Value , Value *prevValue = 0) {
+		if (prevValue) *prevValue = null;
+		return this;
+	};
+	virtual INode *clear() {return this;}
+	virtual bool empty() const {return false;}
+
+
+
 	bool isUtf8() const {return false;}
 
 
 };
 
-class LeafNode_t: public AbstractNode_t {
+class LeafNode: public AbstractNode_t {
 public:
 	virtual INode *getVariable(ConstStrA) const {return 0;}
 	virtual natural getEntryCount() const {return 0;}
-	virtual INode *getEntry(natural idx) const {return idx>0?0:const_cast<LeafNode_t *>(this);}
+	virtual INode *getEntry(natural idx) const {return idx>0?0:const_cast<LeafNode *>(this);}
 	virtual bool enumEntries(const IEntryEnum &fn) const {
 		return fn(*this,NumKey(0));
 	}
@@ -88,9 +94,9 @@ public:
 	virtual Iterator getFwIter() const {return Iterator();}
 };
 
-class Object_t;
+class Object;
 
-class FactoryCommon_t: public IFactory, public IFactoryToStringProperty {
+class FactoryCommon: public IFactory, public IFactoryToStringProperty {
 public:
 	virtual PNode newNullNode() {return getNullNode();}
 	virtual PNode newDeleteNode() {return getDeleteNode();}
@@ -105,16 +111,16 @@ public:
 	virtual void toStream(const INode &nd, SeqFileOutput &stream);
 	virtual void enableUTFEscaping(bool enable) {escapeUTF = enable;}
 
-	LightSpeed::JSON::PNode mergeClasses( const Object_t * clschange, const Object_t * clsbase );
+	LightSpeed::JSON::PNode mergeClasses( const Object * clschange, const Object * clsbase );
 
 	bool escapeUTF;
 
-	FactoryCommon_t():escapeUTF(false) {}
+	FactoryCommon():escapeUTF(false) {}
 };
 
-class Factory_t: public FactoryCommon_t {
+class Factory: public FactoryCommon {
 public:
-	using FactoryCommon_t::newValue;
+	using FactoryCommon::newValue;
 	virtual PNode newObject() {return newClass();}
 	virtual PNode newClass();
 	virtual PNode newArray();
@@ -148,7 +154,7 @@ public:
 
 	virtual PNode fromString(ConstStrA text);
 	virtual IRuntimeAlloc *getAllocator() const {return &StdAlloc::getInstance();}
-	virtual IFactory *clone() {return new Factory_t;}
+	virtual IFactory *clone() {return new Factory;}
 };
 
 

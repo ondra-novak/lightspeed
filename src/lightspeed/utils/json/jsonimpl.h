@@ -18,7 +18,7 @@ namespace LightSpeed {
 namespace JSON {
 
 typedef Map<StrParamA,PNode> FieldMap_t;
-class Object_t: public AbstractNode_t {
+class Object: public AbstractNode_t {
 public:
 	virtual NodeType getType() const {return ndObject;}
 	virtual ConstStrW getString() const {return ConstStrW();}
@@ -47,6 +47,9 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	virtual Iterator getFwIter() const;
+	virtual INode *replace(ConstStrA name, Value newValue, Value *prevValue = 0);
+	virtual INode *clear();
+
 
 protected:
 	FieldMap_t fields;
@@ -54,7 +57,7 @@ protected:
 
 
 typedef AutoArray<PNode> FieldList_t;
-class Array_t: public AbstractNode_t {
+class Array: public AbstractNode_t {
 public:
 	virtual NodeType getType() const {return ndArray;}
 	virtual ConstStrW getString() const {return list.empty()?ConstStrW():list[0]->getString();}
@@ -82,15 +85,18 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	virtual Iterator getFwIter() const;
+	virtual INode *replace(natural name, Value newValue, Value *prevValue = 0);
+	virtual INode * clear();
+
 
 protected:
 	FieldList_t list;
 };
 
-class TextField_t: public LeafNode_t {
+class TextField: public LeafNode {
 public:
-	TextField_t(String x):x(x),utf(0) {}
-	~TextField_t();
+	TextField(String x):x(x),utf(0) {}
+	~TextField();
 
 	virtual NodeType getType() const {return ndString;}
 	virtual ConstStrW getString() const {return x;}
@@ -108,19 +114,19 @@ public:
 	mutable StringA *utf;
 };
 
-class AbstractTextFieldA_t : public LeafNode_t {
+class AbstractTextFieldA : public LeafNode {
 public:
 
-	AbstractTextFieldA_t() :unicode(0) {}
-	~AbstractTextFieldA_t();
+	AbstractTextFieldA() :unicode(0) {}
+	~AbstractTextFieldA();
 	virtual ConstStrW getString() const;
 
 	mutable String *unicode;
 };
 
-class TextFieldA_t: public AbstractTextFieldA_t {
+class TextFieldA: public AbstractTextFieldA {
 public:
-	TextFieldA_t(StringA x):x(x) {}
+	TextFieldA(StringA x):x(x) {}
 	
 
 	virtual NodeType getType() const {return ndString;}
@@ -139,9 +145,9 @@ public:
 };
 
 
-class IntField_t : public AbstractTextFieldA_t {
+class IntField : public AbstractTextFieldA {
 public:
-	IntField_t(integer x):x(x) {}
+	IntField(integer x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
 	virtual ConstStrA getStringUtf8() const;
 	virtual integer getInt() const {return x;}
@@ -156,9 +162,9 @@ public:
 	mutable StringA strx;
 };
 
-class IntField64_t : public AbstractTextFieldA_t {
+class IntField64 : public AbstractTextFieldA {
 public:
-	IntField64_t(linteger x):x(x) {}
+	IntField64(linteger x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
 	virtual ConstStrA getStringUtf8() const;
 	virtual integer getInt() const {return (integer)x;}
@@ -173,9 +179,9 @@ public:
 	mutable StringA strx;
 };
 
-class FloatField_t : public AbstractTextFieldA_t {
+class FloatField : public AbstractTextFieldA {
 public:
-	FloatField_t(double x):x(x) {}
+	FloatField(double x):x(x) {}
 	virtual NodeType getType() const {return ndFloat;}
 	virtual ConstStrA getStringUtf8() const;
 	virtual integer getInt() const {return (integer)x;}
@@ -191,7 +197,7 @@ public:
 	mutable StringA strx;
 };
 
-class Null_t: public LeafNode_t {
+class Null: public LeafNode {
 public:
 	virtual NodeType getType() const {return ndNull;}
 	virtual integer getInt() const {return integerNull;}
@@ -205,7 +211,7 @@ public:
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 };
-class Delete_t: public LeafNode_t {
+class Delete: public LeafNode {
 public:
 	virtual NodeType getType() const {return ndDelete;}
 	virtual ConstStrW getString() const {throw accessError(THISLOCATION);}
@@ -225,9 +231,9 @@ public:
 
 
 
-class Bool_t: public LeafNode_t {
+class Bool: public LeafNode {
 public:
-	Bool_t(bool b):b(b) {}
+	Bool(bool b):b(b) {}
 
 	virtual NodeType getType() const {return ndBool;}
 	virtual ConstStrA getStringUtf8() const {return b?"true":"false";}
@@ -246,38 +252,38 @@ public:
 
 
 template<typename T>
-class DynNode_t: public T, public DynObject {
+class DynNode: public T, public DynObject {
 public:
-	DynNode_t() {}
+	DynNode() {}
 
 	template<typename X>
-	DynNode_t(const X &x):T(x) {}
+	DynNode(const X &x):T(x) {}
 };
 
-template<template<typename> class T = DynNode_t>
-class FactoryAlloc_t: public Factory_t {
+template<template<typename> class T = DynNode>
+class FactoryAlloc: public Factory {
 public:
 
-	FactoryAlloc_t(IRuntimeAlloc  &alloc):alloc(alloc) {}
+	FactoryAlloc(IRuntimeAlloc  &alloc):alloc(alloc) {}
 
-	virtual PNode newClass() {return new(alloc) T<Object_t>;}
-	virtual PNode newArray() {return new(alloc) T<Array_t>;}
-	virtual PNode newValue(natural v) {return new(alloc) T<IntField_t>(v);}
-	virtual PNode newValue(integer v) {return new(alloc) T<IntField_t>(v);}
+	virtual PNode newClass() {return new(alloc) T<Object>;}
+	virtual PNode newArray() {return new(alloc) T<Array>;}
+	virtual PNode newValue(natural v) {return new(alloc) T<IntField>(v);}
+	virtual PNode newValue(integer v) {return new(alloc) T<IntField>(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
-	virtual PNode newValue(lnatural v) {return new(alloc) T<IntField64_t>(v);}
-	virtual PNode newValue(linteger v) {return new(alloc) T<IntField64_t>(v);}
+	virtual PNode newValue(lnatural v) {return new(alloc) T<IntField64>(v);}
+	virtual PNode newValue(linteger v) {return new(alloc) T<IntField64>(v);}
 #endif
-	virtual PNode newValue(float v) {return new(alloc) T<FloatField_t>(v);}
-	virtual PNode newValue(double v) {return new(alloc) T<FloatField_t>(v);}
-	virtual PNode newValue(bool v) {return new(alloc) T<Bool_t>(v);}
-	virtual PNode newValue(ConstStrW v) {return new(alloc) T<TextField_t>(v);}
-	virtual PNode newValue(ConstStrA v) {return new(alloc) T<TextFieldA_t>(v);}
-	virtual PNode newValue(const String &v) {return new(alloc) T<TextField_t>(v);}
-	virtual PNode newValue(const StringA &v) {return new(alloc) T<TextField_t>(v);}
+	virtual PNode newValue(float v) {return new(alloc) T<FloatField>(v);}
+	virtual PNode newValue(double v) {return new(alloc) T<FloatField>(v);}
+	virtual PNode newValue(bool v) {return new(alloc) T<Bool>(v);}
+	virtual PNode newValue(ConstStrW v) {return new(alloc) T<TextField>(v);}
+	virtual PNode newValue(ConstStrA v) {return new(alloc) T<TextFieldA>(v);}
+	virtual PNode newValue(const String &v) {return new(alloc) T<TextField>(v);}
+	virtual PNode newValue(const StringA &v) {return new(alloc) T<TextField>(v);}
 	virtual IRuntimeAlloc *getAllocator() const {return &alloc;}
 
-	virtual IFactory *clone() {return new FactoryAlloc_t(alloc);}
+	virtual IFactory *clone() {return new FactoryAlloc(alloc);}
 
 protected:
 

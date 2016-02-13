@@ -38,7 +38,7 @@ namespace JSON {
 	};
 	typedef RefCntPtr<IFPool> PFPool;
 
-	class FRawValueW_t: public INode {
+	class FRawValueW_t: public AbstractNode_t {
 	public:
 		FRawValueW_t(PFPool f, StrRefA_t value, bool string)
 			:f(f),value(value),nodeType(detectType(value,string))  {}
@@ -98,7 +98,7 @@ namespace JSON {
 
 
 	typedef Map<StrRefA_t,PNode> FFieldMap_t;
-	class FObject_t: public INode {
+	class FObject_t: public AbstractNode_t {
 	public:
 		FObject_t(PFPool f):f(f) {}
 
@@ -117,6 +117,8 @@ namespace JSON {
 		virtual bool enumEntries(const IEntryEnum &fn) const;
 
 		virtual bool empty() const {return fields.empty();}
+		virtual INode *replace(ConstStrA name, Value newValue, Value *prevValue = 0);
+		virtual INode * clear();
 
 		virtual INode *add(PNode nd);
 		virtual INode *add(ConstStrW name, PNode nd);

@@ -26,7 +26,7 @@ namespace JSON {
 
 
 
-INode *Object_t::getVariable(ConstStrA var) const {
+INode *Object::getVariable(ConstStrA var) const {
 	const PNode *x = fields.find(var);
 	if (x) return *x; else return 0;
 }
@@ -50,7 +50,7 @@ protected:
 	ConstStrA str;
 };
 
-bool Object_t::enumEntries(const IEntryEnum &fn) const {
+bool Object::enumEntries(const IEntryEnum &fn) const {
 	StrKeyA2 kk;
 	for (FieldMap_t::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FieldMap_t::Entity &e = iter.getNext();
@@ -60,12 +60,12 @@ bool Object_t::enumEntries(const IEntryEnum &fn) const {
 	return false;
 }
 
-void Object_t::insertField(const StringA &name, PNode nd) {
+void Object::insertField(const StringA &name, PNode nd) {
 	if (isMTAccessEnabled()) fields.insert(name,nd.getMT());
 	else fields.insert(name,nd);
 }
 
-INode *Object_t::add(PNode nd) {
+INode *Object::add(PNode nd) {
 	if (nd == nil) nd = getNullNode();
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	natural l = fields.length();
@@ -74,14 +74,14 @@ INode *Object_t::add(PNode nd) {
 	return add(StringA(fmt.write()),nd);
 }
 
-INode *Object_t::add(ConstStrA name, PNode nd) {
+INode *Object::add(ConstStrA name, PNode nd) {
 	if (nd == nil) nd = getNullNode();
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	insertField(name,nd);
 	return this;
 }
 
-INode *Object_t::clone(PFactory factory) const {
+INode *Object::clone(PFactory factory) const {
 	PNode r = factory->newClass();
 	for (FieldMap_t::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FieldMap_t::Entity &e = iter.getNext();
@@ -90,8 +90,8 @@ INode *Object_t::clone(PFactory factory) const {
 	return r.detach();
 }
 
-bool Object_t::operator==(const INode &other) const {
-	const Object_t *k = dynamic_cast<const Object_t *>(&other);
+bool Object::operator==(const INode &other) const {
+	const Object *k = dynamic_cast<const Object *>(&other);
 	if (k == 0) return false;
 	if (fields.length() != k->fields.length()) return false;
 	for (FieldMap_t::Iterator iter = fields.getFwIter(),iter2 =k->fields.getFwIter();
@@ -103,8 +103,24 @@ bool Object_t::operator==(const INode &other) const {
 	return true;
 }
 
+INode *Object::replace(ConstStrA name, Value newValue, Value *prevValue ) {
+	bool found;
+	FieldMap_t::Iterator iter = fields.seek(name,&found);
+	Value prev;
+	if (!found) {
+		add(name,newValue);
+	} else {
+		const FieldMap_t::Entity &e = iter.peek();
+		prev = e.value;
+		e.value = newValue;
+	}
+	if (prevValue) *prevValue = prev;
+	return this;
+}
+INode *Object::clear() {fields.clear();return this;}
 
-INode *Object_t::enableMTAccess()
+
+INode *Object::enableMTAccess()
 {
 	RefCntObj::enableMTAccess();
 	for (FieldMap_t::Iterator iter = fields.getFwIter(); iter.hasItems();) {
@@ -115,7 +131,7 @@ INode *Object_t::enableMTAccess()
 	return this;
 }
 
-bool Array_t::enumEntries(const IEntryEnum &fn) const {
+bool Array::enumEntries(const IEntryEnum &fn) const {
 	natural p = 0;
 	for (FieldList_t::Iterator iter = list.getFwIter();iter.hasItems();) {
 		const PNode &nd = iter.getNext();
@@ -125,7 +141,7 @@ bool Array_t::enumEntries(const IEntryEnum &fn) const {
 	return false;
 }
 
-INode *Array_t::add(PNode nd) {
+INode *Array::add(PNode nd) {
 	if (nd == nil) nd = getNullNode();
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	if (isMTAccessEnabled()) list.add(nd.getMT());
@@ -133,18 +149,18 @@ INode *Array_t::add(PNode nd) {
 	return this;
 }
 
-INode *Array_t::add(ConstStrA , PNode nd) {
+INode *Array::add(ConstStrA , PNode nd) {
 	return add(nd);
 }
 
-INode *Array_t::erase(natural index) {
+INode *Array::erase(natural index) {
 	list.erase(index);
 	return this;
 }
 
-void Array_t::internalAdd(PNode nd) {list.add(nd);}
+void Array::internalAdd(PNode nd) {list.add(nd);}
 
-INode *Array_t::clone(PFactory factory) const {
+INode *Array::clone(PFactory factory) const {
 	PNode r = factory->newArray();
 	for (FieldList_t::Iterator iter = list.getFwIter();iter.hasItems();) {
 		const PNode &e = iter.getNext();
@@ -153,8 +169,8 @@ INode *Array_t::clone(PFactory factory) const {
 	return r.detach();
 }
 
-bool Array_t::operator==(const INode &other) const {
-	const Array_t *k = dynamic_cast<const Array_t *>(&other);
+bool Array::operator==(const INode &other) const {
+	const Array *k = dynamic_cast<const Array *>(&other);
 	if (k == 0) return false;
 	if (list.length() != k->list.length()) return false;
 	for (FieldList_t::Iterator iter = list.getFwIter(),iter2 =k->list.getFwIter();
@@ -168,7 +184,7 @@ bool Array_t::operator==(const INode &other) const {
 
 
 
-INode * Array_t::enableMTAccess()
+INode * Array::enableMTAccess()
 {
 	RefCntObj::enableMTAccess();
 	for (FieldList_t::Iterator iter = list.getFwIter(); iter.hasItems();) {
@@ -177,49 +193,33 @@ INode * Array_t::enableMTAccess()
 		e->enableMTAccess();
 	}
 	return this;
-
-}
-template<typename JSONStream_t>
-static PNode JSON_parseArray( JSONStream_t & parser, PFactory factory  )
-{
-
-	PNode res = factory->newArray();
-	Array_t *arr = static_cast<Array_t *>(res.get());
-	try {
-
-		PNode x = JSON_parseNode(parser,factory);
-		while (x != nil) {
-			arr->internalAdd(x);
-			if (parser(L" ]%")) {
-				return res;
-			} else if (!parser(L" ,%")) {
-				throw ErrorMessageException(THISLOCATION,"Expecting ','");				}
-			x = JSON_parseNode(parser,factory);
-		}
-		if (parser(L" ]%")) {
-			return res;
-		}
-		throw ErrorMessageException(THISLOCATION,"Syntax error");
-	} catch (Exception &e) {
-		TextFormatBuff<wchar_t,StaticAlloc<100> > fmt;
-		fmt("after index: %1") << arr->getEntryCount();
-		throw ParseError_t(THISLOCATION,fmt.write()) << e;
-	}
 }
 
-integer TextField_t::getInt() const {
+INode *Array::replace(natural index, Value newValue, Value *prevValue) {
+	Value prev = list[index];
+	list(index) = newValue;
+	if (prevValue) *prevValue = prev;
+	return this;
+}
+INode *Array::clear() {
+	list.clear();
+	return this;
+}
+
+
+integer TextField::getInt() const {
 	integer res;
 	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
-linteger TextField_t::getLongInt() const {
+linteger TextField::getLongInt() const {
 	linteger res;
 	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
-ConstStrA TextField_t::getStringUtf8() const {
+ConstStrA TextField::getStringUtf8() const {
 	if (utf!=0) return *utf;
 	StringA *k = new StringA(x.getUtf8());
 	k->getMT();
@@ -229,25 +229,25 @@ ConstStrA TextField_t::getStringUtf8() const {
 	return *utf;
 }
 
-INode * TextField_t::enableMTAccess() {
+INode * TextField::enableMTAccess() {
 	RefCntObj::enableMTAccess();
 	x = x.getMT();
 	return this;
 }
 
-INode *TextField_t::clone(PFactory factory) const {
+INode *TextField::clone(PFactory factory) const {
 	return factory->newValue(x).detach();
 }
 
-bool TextField_t::operator==(const INode &other) const {
+bool TextField::operator==(const INode &other) const {
 	if (other.getType() == ndString) return other.getString() == getString();
 	else return false;
 }
 
-TextField_t::~TextField_t() {delete utf;}
+TextField::~TextField() {delete utf;}
 
 
-double TextField_t::getFloat() const {
+double TextField::getFloat() const {
 	TextParser<wchar_t,StaticAlloc<100> > parser;
 	if (parser(L"%f1",x)) return parser[1];
 	return 0;
@@ -256,19 +256,19 @@ double TextField_t::getFloat() const {
 
 
 
-integer TextFieldA_t::getInt() const {
+integer TextFieldA::getInt() const {
 	integer res;
 	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
-linteger TextFieldA_t::getLongInt() const {
+linteger TextFieldA::getLongInt() const {
 	linteger res;
 	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
-ConstStrW AbstractTextFieldA_t::getString() const {
+ConstStrW AbstractTextFieldA::getString() const {
 	if (unicode!=0) return *unicode;
 	String *k = new String(getStringUtf8());
 	k->getMT();
@@ -278,31 +278,31 @@ ConstStrW AbstractTextFieldA_t::getString() const {
 	return *unicode;
 }
 
-INode * TextFieldA_t::enableMTAccess() {
+INode * TextFieldA::enableMTAccess() {
 	RefCntObj::enableMTAccess();
 	x = x.getMT();
 	return this;
 }
 
-INode *TextFieldA_t::clone(PFactory factory) const {
+INode *TextFieldA::clone(PFactory factory) const {
 	return factory->newValue(x).detach();
 }
 
-bool TextFieldA_t::operator==(const INode &other) const {
+bool TextFieldA::operator==(const INode &other) const {
 	if (other.getType() == ndString) return other.getStringUtf8() == getStringUtf8();
 	else return false;
 }
 
-AbstractTextFieldA_t::~AbstractTextFieldA_t() { delete unicode; }
+AbstractTextFieldA::~AbstractTextFieldA() { delete unicode; }
 
 
-double TextFieldA_t::getFloat() const {
+double TextFieldA::getFloat() const {
 	TextParser<char,StaticAlloc<100> > parser;
 	if (parser("%f1",x)) return parser[1];
 	return 0;
 }
 
-ConstStrA IntField_t::getStringUtf8() const {
+ConstStrA IntField::getStringUtf8() const {
 	if (strx.empty()) {
 		TextFormatBuff<char,StaticAlloc<200> > fmt;
 		fmt("%1") << x;
@@ -311,7 +311,7 @@ ConstStrA IntField_t::getStringUtf8() const {
 	return strx;
 }
 
-ConstStrA IntField64_t::getStringUtf8() const {
+ConstStrA IntField64::getStringUtf8() const {
 	if (strx.empty()) {
 		TextFormatBuff<char,StaticAlloc<200> > fmt;
 		fmt("%1") << x;
@@ -320,27 +320,27 @@ ConstStrA IntField64_t::getStringUtf8() const {
 	return strx;
 }
 
-INode *IntField_t::clone(PFactory factory) const {
+INode *IntField::clone(PFactory factory) const {
 	return factory->newValue(x).detach();
 }
 
-INode *IntField64_t::clone(PFactory factory) const {
+INode *IntField64::clone(PFactory factory) const {
 	return factory->newValue(x).detach();
 }
 
-bool IntField_t::operator==(const INode &other) const {
-	const IntField_t *t = dynamic_cast<const IntField_t *>(&other);
+bool IntField::operator==(const INode &other) const {
+	const IntField *t = dynamic_cast<const IntField *>(&other);
 	if (t == 0) return false;
 	else return x == t->x;
 }
 
-bool IntField64_t::operator==(const INode &other) const {
-	const IntField64_t *t = dynamic_cast<const IntField64_t *>(&other);
+bool IntField64::operator==(const INode &other) const {
+	const IntField64 *t = dynamic_cast<const IntField64 *>(&other);
 	if (t == 0) return false;
 	else return x == t->x;
 }
 
-ConstStrA FloatField_t::getStringUtf8() const {
+ConstStrA FloatField::getStringUtf8() const {
 	if (strx.empty()) {
 		TextFormatBuff<char,StaticAlloc<200> > fmt;
 		fmt("%1") << x;
@@ -349,79 +349,49 @@ ConstStrA FloatField_t::getStringUtf8() const {
 	return strx;
 }
 
-INode *FloatField_t::clone(PFactory factory) const {
+INode *FloatField::clone(PFactory factory) const {
 	return factory->newValue(x).detach();
 }
 
-bool FloatField_t::operator==(const INode &other) const {
-	const FloatField_t *t = dynamic_cast<const FloatField_t *>(&other);
+bool FloatField::operator==(const INode &other) const {
+	const FloatField *t = dynamic_cast<const FloatField *>(&other);
 	if (t == 0) return false;
 	else return x == t->x;
 }
 
-INode *Null_t::clone(PFactory ) const {
+INode *Null::clone(PFactory ) const {
 	return getNullNode().detach();
 }
 
-bool Null_t::operator==(const INode &other) const {
-	const Null_t *t = dynamic_cast<const Null_t *>(&other);
+bool Null::operator==(const INode &other) const {
+	const Null *t = dynamic_cast<const Null *>(&other);
 	if (t == 0) return false;
 	else return true;
 }
 
-INode *Delete_t::clone(PFactory factory) const {
+INode *Delete::clone(PFactory factory) const {
 	return factory->newDeleteNode().detach();
 }
 
-bool Delete_t::operator==(const INode &other) const {
-	const Delete_t *t = dynamic_cast<const Delete_t *>(&other);
+bool Delete::operator==(const INode &other) const {
+	const Delete *t = dynamic_cast<const Delete *>(&other);
 	if (t == 0) return false;
 	else return true;
 }
 
-ErrorMessageException Delete_t::accessError(const ProgramLocation &loc) const {
+ErrorMessageException Delete::accessError(const ProgramLocation &loc) const {
 	return ErrorMessageException(loc,"Member is deleted");
 }
 
-INode *Bool_t::clone(PFactory factory) const {
+INode *Bool::clone(PFactory factory) const {
 	return factory->newValue(b).detach();
 }
 
-bool Bool_t::operator==(const INode &other) const {
-	const Bool_t *t = dynamic_cast<const Bool_t *>(&other);
+bool Bool::operator==(const INode &other) const {
+	const Bool *t = dynamic_cast<const Bool *>(&other);
 	if (t == 0) return false;
 	else return b == t->b;
 }
-
-
-template<typename JSONStream_t>
-PNode JSON_parseNode( JSONStream_t &parser, PFactory factory )
-{
-	if (parser(L" {%")) {
-		return JSON_parseClass(parser,factory);
-	} else if (parser(L" [%")) {
-		return JSON_parseArray(parser,factory);
-/*			} else if (parser(L" \"%(0,)1%%!(1,1)[\\\\]%\"%")) {
-		return factory->newValue(decodeString(parser[1].str()));*/
-	} else if (parser(L" \"%(0,)[*^\\\\]1\"%") || parser(L" \"%(0,)*[\\\\](1,)[*^\\\\]1\"%")) {
-		return factory->newValue(decodeString(parser[1].str()));
-	} else if (parser(L" %f1%%")) {
-		ConstStrW text = parser[1].str();
-		if (text.find('.')!= naturalNull || text.find('E') != naturalNull || text.find('e') != naturalNull)
-			return factory->newValue((double)parser[1]);
-		else
-			return factory->newValue((integer)parser[1]);
-	} else if (parser(L" %(1,1)[nN][uU][lL][lL]1%%")) {
-		return getNullNode();
-	} else if (parser(L" %(1,1)[tT][rR][uU][eE]1%%")) {
-		return factory->newValue(true);
-	} else if (parser(L" %(1,1)[fF][aA][lL][sS][eE]1%%")) {
-		return factory->newValue(false);
-	} else
-		return nil;
-			
-}
-
 
 
 void ParseError_t::message( ExceptionMsg &msg ) const
@@ -472,68 +442,68 @@ INode * AbstractNode_t::add( ConstStrA name, PNode newNode )
 
 PNode getNullNode()
 {
-	static PNode nd = new Null_t;
+	static PNode nd = new Null;
 	return nd.getMT();
 }
 
 PNode getDeleteNode()
 {
-	static PNode nd = new Delete_t;
+	static PNode nd = new Delete;
 	return nd.getMT();
 }
 
-PNode Factory_t::newClass() {return new Object_t;}
-PNode Factory_t::newArray() {return new Array_t;}
-PNode Factory_t::newValue(natural v) {return new IntField_t(v);}
-PNode Factory_t::newValue(integer v) {return new IntField_t(v);}
+PNode Factory::newClass() {return new Object;}
+PNode Factory::newArray() {return new Array;}
+PNode Factory::newValue(natural v) {return new IntField(v);}
+PNode Factory::newValue(integer v) {return new IntField(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
-PNode Factory_t::newValue(lnatural v) {return new IntField64_t(v);}
-PNode Factory_t::newValue(linteger v) {return new IntField64_t(v);}
+PNode Factory::newValue(lnatural v) {return new IntField64(v);}
+PNode Factory::newValue(linteger v) {return new IntField64(v);}
 #endif
-PNode Factory_t::newValue(float v) {return new FloatField_t(v);}
-PNode Factory_t::newValue(double v) {return new FloatField_t(v);}
-PNode Factory_t::newValue(bool v) {return new Bool_t(v);}
-PNode Factory_t::newValue(ConstStrW v) {return new TextField_t(v);}
-PNode Factory_t::newValue(ConstStrA v) {return new TextFieldA_t(v);}
+PNode Factory::newValue(float v) {return new FloatField(v);}
+PNode Factory::newValue(double v) {return new FloatField(v);}
+PNode Factory::newValue(bool v) {return new Bool(v);}
+PNode Factory::newValue(ConstStrW v) {return new TextField(v);}
+PNode Factory::newValue(ConstStrA v) {return new TextFieldA(v);}
 
 
 
 
-class FastFactory_t: public FactoryAlloc_t<> {
+class FastFactory: public FactoryAlloc<> {
 public:
 
 	ClusterAlloc alloc;
 
-	FastFactory_t():FactoryAlloc_t<>(alloc) {}
-	virtual IFactory *clone() {return new FastFactory_t;}
+	FastFactory():FactoryAlloc<>(alloc) {}
+	virtual IFactory *clone() {return new FastFactory;}
 };
 
 
 
 PFactory create()
 {
-	return new Factory_t;	
+	return new Factory;	
 }
 
 
 PFactory create(IRuntimeAlloc &alloc)
 {
-	return new FactoryAlloc_t<>(alloc);
+	return new FactoryAlloc<>(alloc);
 }
 
 PFactory createFast()
 {
-		return new FastFactory_t();
+		return new FastFactory();
 }
 
-ConstStrA Factory_t::toString(const INode &nd )
+ConstStrA Factory::toString(const INode &nd )
 {
 	strRes.clear();
 	serialize(&nd,strRes,this->escapeUTF);
 	return strRes.getArray();
 }
 
-void FactoryCommon_t::toStream(const INode &nd, SeqFileOutput &stream) {
+void FactoryCommon::toStream(const INode &nd, SeqFileOutput &stream) {
 	JSON::toStream(&nd,stream,this->escapeUTF);
 }
 
@@ -541,7 +511,7 @@ void FactoryCommon_t::toStream(const INode &nd, SeqFileOutput &stream) {
 
 
 
-LightSpeed::JSON::PNode Factory_t::fromString( ConstStrA text )
+LightSpeed::JSON::PNode Factory::fromString( ConstStrA text )
 {
 	ConstStrA::Iterator iter = text.getFwIter();
 	return parseFast(iter, *getAllocator());
@@ -598,8 +568,8 @@ public:
 		if (chgnd) {
 			if (chgnd->getType() == ndObject && nd.getType() == ndObject) {
 				newcls->add(name.getString(),fact->mergeClasses(
-					static_cast<const Object_t *>(chgnd),
-					static_cast<const Object_t *>(&nd)));
+					static_cast<const Object *>(chgnd),
+					static_cast<const Object *>(&nd)));
 			}
 		} else {
 			newcls->add(name.getString(),nd.clone(fact));
@@ -607,12 +577,12 @@ public:
 		return false;
 	}
 
-	MergeClassDropOld_t(Object_t *newcls, const Object_t *changes, FactoryCommon_t *fact)
+	MergeClassDropOld_t(Object *newcls, const Object *changes, FactoryCommon *fact)
 		:newcls(newcls),changes(changes),fact(fact) {}
 protected:
-	Object_t *newcls;
-	const Object_t *changes;
-	FactoryCommon_t *fact;
+	Object *newcls;
+	const Object *changes;
+	FactoryCommon *fact;
 };
 
 /* Adds new items into class, not removing already existing */
@@ -625,18 +595,18 @@ public:
 		}
 		return false;
 	}
-	MergeClassAddNew_t(Object_t *newcls, IFactory *fact)
+	MergeClassAddNew_t(Object *newcls, IFactory *fact)
 		:newcls(newcls),fact(fact) {}
 protected:
-	Object_t *newcls;
+	Object *newcls;
 	IFactory *fact;
 };
 
-LightSpeed::JSON::PNode FactoryCommon_t::merge( const INode &base, const INode &change )
+LightSpeed::JSON::PNode FactoryCommon::merge( const INode &base, const INode &change )
 {
 
-	const Object_t *clsbase = dynamic_cast<const Object_t *>(&base);
-	const Object_t *clschange = dynamic_cast<const Object_t *>(&change);
+	const Object *clsbase = dynamic_cast<const Object *>(&base);
+	const Object *clschange = dynamic_cast<const Object *>(&change);
 	if (NULL != clsbase && NULL != clschange) {
 		return mergeClasses(clschange, clsbase);
 	} else {
@@ -645,10 +615,10 @@ LightSpeed::JSON::PNode FactoryCommon_t::merge( const INode &base, const INode &
 	
 }
 
-LightSpeed::JSON::PNode FactoryCommon_t::mergeClasses( const Object_t * clschange, const Object_t * clsbase )
+LightSpeed::JSON::PNode FactoryCommon::mergeClasses( const Object * clschange, const Object * clsbase )
 {
 	PNode nwnode = this->newClass();
-	Object_t *newcls = static_cast<Object_t *>(nwnode.get());
+	Object *newcls = static_cast<Object *>(nwnode.get());
 	MergeClassDropOld_t mgd(newcls,clschange, this);
 	MergeClassAddNew_t mga(newcls,this);
 	clsbase->enumEntries(mgd);
@@ -693,7 +663,7 @@ bool Iterator::hasItems() const {
 	return next;
 }
 
-Iterator Object_t::getFwIter() const {
+Iterator Object::getFwIter() const {
 
 	class Iter: public Iterator::IIntIter, public DynObject {
 	public:
@@ -728,7 +698,7 @@ Iterator Object_t::getFwIter() const {
 
 }
 
-Iterator Array_t::getFwIter() const {
+Iterator Array::getFwIter() const {
 
 	class Iter: public Iterator::IIntIter, public DynObject {
 	public:

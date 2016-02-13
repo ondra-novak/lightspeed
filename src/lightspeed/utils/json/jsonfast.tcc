@@ -41,26 +41,26 @@ public:
 	}
 	virtual PNode getBoolNode(bool v) {
 		if (v) {
-			if (trueNode == nil) trueNode = new(alloc) DynNode_t<Bool_t>(true);
+			if (trueNode == nil) trueNode = new(alloc) DynNode<Bool>(true);
 			return trueNode;
 		} else {
-			if (falseNode == nil) falseNode = new(alloc) DynNode_t<Bool_t>(false);
+			if (falseNode == nil) falseNode = new(alloc) DynNode<Bool>(false);
 			return falseNode;
 		}
 
 	}
 	virtual PNode getNullNode() {
-		if (nullNode == nil) nullNode = new(alloc) DynNode_t<Null_t>();
+		if (nullNode == nil) nullNode = new(alloc) DynNode<Null>();
 		return nullNode;
 	}
 
-	class EmptyStrNode_t: public Null_t {
+	class EmptyStrNode_t: public Null {
 	public:
 		virtual NodeType getType() const {return ndString;}
 	};
 
 	virtual PNode getEmptyStrNode() {
-		if (emptyStrNode == nil) emptyStrNode = new(alloc) DynNode_t<EmptyStrNode_t>();
+		if (emptyStrNode == nil) emptyStrNode = new(alloc) DynNode<EmptyStrNode_t>();
 		return nullNode;
 	}
 
@@ -259,7 +259,7 @@ inline PNode ParserFast<T>::parseObject() {
 template<typename T>
 inline PNode ParserFast<T>::parseArray() {
 	char x = getNextEatW();
-	AllocPointer<Array_t> obj = new Array_t;
+	AllocPointer<Array> obj = new Array;
 	natural i = 0;
 	while (x != ']') {
 		try {
