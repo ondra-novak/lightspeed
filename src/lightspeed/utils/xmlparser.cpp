@@ -179,10 +179,10 @@ void XMLIteratorT<Scanner>::readAttr()
 template<typename Scanner>
 void XMLIteratorT<Scanner>::enterTag()
 {
-	if (txtin(L"[CDATA[%")) {
+	if (txtin(L"![CDATA[%")) {
 		curState = textCData;
 		loadNext();
-	} else if (txtin(L"--")) {
+	} else if (txtin(L"!--")) {
 		curState = incomment;
 		loadNext();
 	} else if (txtin(L"/%[0-9a-zA-Z:_]1 >%")) {

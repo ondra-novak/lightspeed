@@ -41,12 +41,12 @@ namespace LightSpeed {
 
 	protected:
 
-		typedef Promise<void> Promise;
+		typedef Promise<void> PromiseV;
 
 		struct QueueItem {
 			Timeout tm;
-			Promise promise;
-			QueueItem(Timeout tm, Promise promise) :tm(tm), promise(promise) {}
+			PromiseV promise;
+			QueueItem(Timeout tm, PromiseV promise) :tm(tm), promise(promise) {}
 		};
 
 		struct CmpQueue {

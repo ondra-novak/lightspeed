@@ -11,6 +11,7 @@
 #include "../../mt/exceptions/timeoutException.h"
 #include "../memory/allocPointer.h"
 #include "../exceptions/stdexception.h"
+#include "../exceptions/throws.tcc"
 #include "../actions/parallelExecutor.h"
 #include "../framework/iapp.h"
 

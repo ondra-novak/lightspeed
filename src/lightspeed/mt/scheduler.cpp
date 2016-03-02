@@ -12,7 +12,7 @@ namespace LightSpeed {
 
 	}
 
-	void Scheduler::schedule(const Timeout &tm, const Promise &promise)
+	void Scheduler::schedule(const Timeout &tm, const PromiseV &promise)
 	{
 		if (tm.isInfinite()) throw InvalidParamException(THISLOCATION, 0, "Cannot use infinity time");
 		Synchronized<FastLock> _(lock);
@@ -28,7 +28,7 @@ namespace LightSpeed {
 		SysTime curTime = SysTime::now();
 		QueueItem &itm = pqueue(0);
 		if (itm.tm.expired(curTime)) {			
-			Promise p = itm.promise;
+			PromiseV p = itm.promise;
 			pqheap.pop();
 			pqueue.trunc(1);
 			SyncReleased<FastLock> _(lock);
