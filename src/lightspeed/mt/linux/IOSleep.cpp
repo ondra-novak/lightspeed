@@ -13,6 +13,7 @@
 #include "../../base/memory/smallAlloc.h"
 #include <signal.h>
 #include "../../base/streams/netio_ifc.h"
+#include "../../base/interface.tcc"
 #include <unistd.h>
 #include <fcntl.h>
 

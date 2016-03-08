@@ -44,7 +44,7 @@ define genlibdeps
 		PWD=`pwd`;find $$PWD "(" -name "*.h" -or -name "*.tcc" ")" -and -printf "\\\\\\n\\t%p" ;\
 		for K in $(abspath $(CPP_SRCS)); do echo -n "\\\\\\n\\t $$K"; done;\
 		echo " \$$(CFGNAME)";\
-		echo -n "\\t@flock $$PWD -c \"\$$(MAKE) -C $$PWD \$$(MAKECMDGOALS)\" \\n" ;\
+		echo -n "\\t@flock $$PWD -c \"\$$(MAKE) -C $$PWD \$$(LIBMAKEGOALS)\" \\n" ;\
 		echo "$$PWD/$(LIBFULLNAME).clean :";\
 		echo -n "\\t@flock $$PWD -c \"\$$(MAKE) -C $$PWD clean\" \\n" ;\
 	) > $(LIBDEPS) 
