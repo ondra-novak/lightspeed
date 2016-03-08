@@ -162,7 +162,7 @@ natural IOBuffer<bufferSize>::peek(void *buffer, natural size) const {
 	//calculate available data
 	natural s = rdend - rdpos;
 	//if less than required data are available
-	while (s < size) {
+	while (s < size && (s == 0 || targetIn->dataReady())) {
 		//try to fetch more
 		natural k = fetch();
 		//in case of unsucess, break cycle
