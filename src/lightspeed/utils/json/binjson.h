@@ -166,7 +166,7 @@ public:
 	void convertObjectToText(SeqFileInput &binIn, SeqTextOutA &textOut);
 	void convertFloat32ToText(SeqFileInput &binIn, SeqTextOutA &textOut);
 	void convertFloat64ToText(SeqFileInput &binIn, SeqTextOutA &textOut);
-	void convertStringToText(SeqFileInput &binIn, SeqTextOutA &textOut);
+	void convertStringToText(natural code, SeqFileInput &binIn, SeqTextOutA &textOut);
 
 };
 

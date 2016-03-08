@@ -21,8 +21,8 @@ Promise<void> Future<void>::getPromise()
 
 IRuntimeAlloc * getPromiseAlocator()
 {
-	static PoolAlloc pool;
-	return &pool;
+	// use singleton to allocate promise's pool
+	return &Singleton<PoolAlloc>::getInstance();
 }
 
 }

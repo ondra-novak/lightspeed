@@ -121,7 +121,7 @@ void JsonToBinary::writeString(ConstStrA string, SeqFileOutput& output) {
 		output.blockWrite(string.data(),string.length(),true);
 	} else {
 		wchar_t code = (wchar_t)*p;
-		WideToUtf8Writer<SeqFileOutput> w(output);
+		WideToUtf8Writer<SeqTextOutA> w(output);
 		w.write(code);
 	}
 }
@@ -221,7 +221,7 @@ protected:
 
 JSON::Value BinaryToJson::parse(SeqFileInput& input) {
 
-	Utf8ToWideReader<SeqFileInput &> w(input);
+	Utf8ToWideReader<SeqTextInA> w(input);
 	wchar_t code = (OpCode)(w.getNext());
 	switch ((OpCode)code) {
 	case opcArray: return parseArray(input);
@@ -284,7 +284,7 @@ JSON::Value BinaryToJson::parse(SeqFileInput& input) {
 }
 
 void BinaryToJson::convertToText(SeqFileInput& binIn, SeqTextOutA& textOut) {
-	Utf8ToWideReader<SeqFileInput &> w(binIn);
+	Utf8ToWideReader<SeqTextInA> w(binIn);
 	wchar_t code = (OpCode)(w.getNext());
 	switch ((OpCode)code) {
 	case opcArray: convertArrayToText(binIn,textOut);break;
@@ -341,14 +341,13 @@ void BinaryToJson::convertToText(SeqFileInput& binIn, SeqTextOutA& textOut) {
 	case opcString2:
 	case opcString4:
 	case opcString8:
-			 convertStringToText(binIn, textOut);
+			 convertStringToText(code, binIn, textOut);
 			 break;
 	case opcTrue:
 			textOut.blockWrite(ConstStrA("true"),true);break;
 	case opcZero:
 			textOut.blockWrite(ConstStrA("0"),true);break;
 	default: {
-		IRuntimeAlloc *alloc = factory->getAllocator();
 		if (code < opcFirstCode) {
 			throw ParseError_t(THISLOCATION,ConstStrA("<binary> - Invalid opcode:")+ToString<natural>(code));
 		}
@@ -388,7 +387,7 @@ Value BinaryToJson::parseArray(SeqFileInput& input) {
 
 Value BinaryToJson::parseObject(SeqFileInput& input) {
 	JSON::Value a = factory->object();
-	Utf8ToWideReader<SeqFileInput &> w(input);
+	Utf8ToWideReader<SeqTextInA> w(input);
 	wchar_t code = w.getNext();
 	AutoArray<char, SmallAlloc<256> > buffer;
 	while (code != opcEnd) {
@@ -466,6 +465,73 @@ JSON::Value BinaryToJson::parseString(natural opcode, SeqFileInput& input) {
 	buffer.resize(len);
 	input.blockRead(buffer.data(),len,true);
 	return factory->newValue(buffer);
+
+}
+
+void BinaryToJson::convertArrayToText(SeqFileInput& binIn,SeqTextOutA& textOut) {
+	textOut.write('{');
+	byte b = binIn.peek();
+	while (b != opcEnd) {
+		convertToText(binIn,textOut);
+		b = binIn.peek();
+		if (b != opcEnd) {
+			textOut.write(',');
+		}
+	}
+	textOut.write('}');
+}
+
+
+
+void BinaryToJson::convertObjectToText(SeqFileInput& binIn, SeqTextOutA& textOut) {
+	textOut.write('{');
+	byte b = binIn.peek();
+	while (b != opcEnd) {
+		convertToText(binIn,textOut);
+		textOut.write(':');
+		convertToText(binIn,textOut);
+		if (b != opcEnd) {
+			textOut.write(',');
+		}
+	}
+	textOut.write('}');
+}
+
+void BinaryToJson::convertFloat32ToText(SeqFileInput& binIn,SeqTextOutA& textOut) {
+	float f;
+	binIn.blockRead(&f,sizeof(f));
+	PrintTextA print(textOut);
+	print("%1") << f;
+}
+
+void BinaryToJson::convertFloat64ToText(SeqFileInput& binIn,SeqTextOutA& textOut) {
+	double f;
+	binIn.blockRead(&f,sizeof(f));
+	PrintTextA print(textOut);
+	print("%1") << f;
+
+}
+
+void BinaryToJson::convertStringToText(natural code, SeqFileInput &binIn, SeqTextOutA &textOut) {
+	AutoArray<char, SmallAlloc<256> > buffer;
+	ConstStrA toOut;
+	if (code < opcFirstCode) {
+		natural n = readNumber(code,binIn);
+		buffer.resize(n);
+		binIn.blockRead(buffer.data(),n,true);
+		toOut = buffer;
+	} else if (code >= stringTable.length()) {
+		buffer.append(ConstStrA("undefined"));
+		buffer.append(ToString<natural>(code));
+		toOut = buffer;
+	} else {
+		toOut = stringTable[code - opcFirstCode];
+	}
+	textOut.write('"');
+	for (ConstStrA::Iterator iter = toOut.getFwIter(); iter.hasItems();) {
+		writeChar(iter.getNext(),textOut);
+	}
+	textOut.write('"');
 
 }
 
