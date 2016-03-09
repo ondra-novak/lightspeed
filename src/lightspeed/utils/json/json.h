@@ -2,6 +2,7 @@
 #include "../../base/iter/vtiterator.h"
 #include "../../base/memory/refcntifc.h"
 #include "../../base/meta/emptyClass.h"
+
 /**@file
  * All basic declarations to allow JSON work. To compile this header, you will need declare two classes in
  * LightSpeed namespace
@@ -571,7 +572,7 @@ namespace LightSpeed {
 			Value newValue(NullType) {return newNullNode();}
 
 #if __cplusplus >= 201103L
-			Value newValue(nullptr x) {return newNullNode();}
+			Value newValue(std::nullptr_t x) {return newNullNode();}
 #endif
 
 			///Serialize custom value (undefined upper)
