@@ -22,6 +22,7 @@
 #include "../../base/sync/synchronize.h"
 #include "../../base/text/textParser.tcc"
 #include "../../base/interface.tcc"
+#include "jsonserializer.tcc"
 
 namespace LightSpeed {
 namespace JSON {

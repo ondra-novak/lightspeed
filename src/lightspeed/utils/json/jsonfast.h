@@ -16,6 +16,7 @@
 #include "jsonimpl.h"
 #include "../../base/containers/map.h"
 #include "jsondefs.h"
+#include "jsonserializer.h"
 
 
 namespace LightSpeed {
