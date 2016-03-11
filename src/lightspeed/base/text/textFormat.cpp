@@ -19,7 +19,7 @@ namespace LightSpeed {
 
 namespace _intr {
 
-	static char hexChars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	static char hexChars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 
 template<typename UNum>

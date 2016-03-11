@@ -117,12 +117,13 @@ namespace LightSpeed {
 			return *this;
 		}
 		Optional(Optional &&other) {
-			if (other.engaged) construct(std::move(other.val));
+			if (other.engaged) construct(std::move(other.get()));
 			engaged = other.engaged;
+			other = nil;
 		}
 		Optional(T &&val) {
 			construct(std::move(val));
-			engaged = true;
+			engaged = true;			
 		}
 		Optional &operator=(Optional &&other) {
 			if (this != &other) {
@@ -133,6 +134,7 @@ namespace LightSpeed {
 				if (other.engaged) {
 					constuct(std::move(other.get()));
 					engaged = true;
+					other = nil;
 				}
 			}
 			return *this;
