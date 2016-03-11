@@ -1,5 +1,9 @@
 /*
- * jsonfast.h
+ *
+ *  * OBSOLETE!!!!
+ *
+ *
+ *  jsonfast.h
  *
  *  Created on: 20.5.2013
  *      Author: ondra
@@ -153,23 +157,28 @@ namespace JSON {
 	};
 
 
+	///obsolete
 	template<typename T>
 	PNode parseFast(IIterator<char, T> &iter);
+	///obsolete
 	template<typename T>
 	PNode parseFast(IIterator<char, T> &iter, IRuntimeAlloc &factory );
+	///obsolete
 	template<typename T>
 	PNode parseFast(IIterator<char, T> &iter, const PFPool &pool );
-
+	///obsolete
 	template<typename T>
 	PNode parseFast(const IIterator<char, T> &iter) {
 		T cpy = iter;
 		return parseFast(cpy);
 	}
+	///obsolete
 	template<typename T>
 	PNode parseFast(const IIterator<char, T> &iter, IRuntimeAlloc &factory ) {
 		T cpy = iter;
 		return parseFast(cpy,factory);
 	}
+	///obsolete
 	template<typename T>
 	PNode parseFast(const IIterator<char, T> &iter, const PFPool &pool ) {
 		T cpy = iter;
@@ -189,8 +198,6 @@ namespace JSON {
 	
 	PNode fromStream( SeqFileInput &output);
 
-	template<typename T>
-	void serialize(const INode *json, IWriteIterator<char, T> &iter, bool escapeUTF8);
 
 	void toStream(const INode *json, SeqFileOutput &output, bool escapeUTF8);
 
@@ -201,11 +208,6 @@ namespace JSON {
 
 
 
-
-	extern LIGHTSPEED_EXPORT const char *strTrue;
-	extern LIGHTSPEED_EXPORT const char *strFalse;
-	extern LIGHTSPEED_EXPORT const char *strNull;
-	extern LIGHTSPEED_EXPORT const char *strDelete;
 
 }}
 

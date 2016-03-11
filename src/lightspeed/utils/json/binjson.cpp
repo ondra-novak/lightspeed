@@ -15,7 +15,8 @@
 #include "../../mt/atomic.h"
 #include "jsondefs.h"
 #include "jsonexception.h"
-#include "jsonfast.tcc"
+#include "jsonserializer.tcc"
+
 namespace LightSpeed  {
 namespace JSON {
 

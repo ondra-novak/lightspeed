@@ -95,61 +95,69 @@ protected:
 
 class TextField: public LeafNode {
 public:
-	TextField(String x):x(x),utf(0) {}
+	TextField(ConstStrW x):value(x),utf(0) {}
 	~TextField();
 
 	virtual NodeType getType() const {return ndString;}
-	virtual ConstStrW getString() const {return x;}
+	virtual ConstStrW getString() const {return value;}
 	virtual integer getInt() const;
 	virtual linteger getLongInt() const;
 	virtual double getFloat() const;
-	virtual bool getBool() const {return !x.empty();}
+	virtual bool getBool() const {return !value.empty();}
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const;
 	virtual INode * enableMTAccess();
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
-	String x;
+	AutoArray<wchar_t,SmallAlloc<32> > value;
 	mutable StringA *utf;
 };
 
-class AbstractTextFieldA : public LeafNode {
+
+class TextFieldA: public LeafNode {
 public:
-
-	AbstractTextFieldA() :unicode(0) {}
-	~AbstractTextFieldA();
-	virtual ConstStrW getString() const;
-
-	mutable String *unicode;
-};
-
-class TextFieldA: public AbstractTextFieldA {
-public:
-	TextFieldA(StringA x):x(x) {}
-	
+	TextFieldA(ConstStrA x):value(x),wide(0) {}
+	~TextFieldA();
 
 	virtual NodeType getType() const {return ndString;}
 	virtual integer getInt() const;
 	virtual linteger getLongInt() const;
 	virtual double getFloat() const;
-	virtual bool getBool() const {return !x.empty();}
+	virtual bool getBool() const {return !value.empty();}
 	virtual bool isNull() const {return false;}
-	ConstStrA getStringUtf8() const  {return x;}
+	ConstStrA getStringUtf8() const  {return value;}
 	virtual INode * enableMTAccess();
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 	virtual bool isUtf8() const {return true;}
+	virtual ConstStrW getString() const;
 
-	StringA x;
+
+	AutoArray<char,SmallAlloc<32> > value;
+	mutable String *wide;
+};
+
+class LeafNodeConvToStr: public LeafNode {
+public:
+	LeafNodeConvToStr():txtBackend(0) {}
+	~LeafNodeConvToStr();
+
+	TextFieldA &getTextNode() const;
+
+	virtual TextFieldA *createTextNode() const = 0;
+
+protected:
+	mutable TextFieldA *txtBackend;
 };
 
 
-class IntField : public AbstractTextFieldA {
+class IntField : public LeafNodeConvToStr {
 public:
 	IntField(integer x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
-	virtual ConstStrA getStringUtf8() const;
+	virtual ConstStrW getString() const {return getTextNode().getString();}
+	virtual ConstStrA getStringUtf8() const {return getTextNode().getStringUtf8();}
 	virtual integer getInt() const {return x;}
 	virtual linteger getLongInt() const {return x;}
 	virtual double getFloat() const {return double(x);}
@@ -158,15 +166,18 @@ public:
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
+	virtual TextFieldA *createTextNode() const;
+
 	integer x;
 	mutable StringA strx;
 };
 
-class IntField64 : public AbstractTextFieldA {
+class IntField64 : public LeafNodeConvToStr {
 public:
 	IntField64(linteger x):x(x) {}
 	virtual NodeType getType() const {return ndInt;}
-	virtual ConstStrA getStringUtf8() const;
+	virtual ConstStrW getString() const {return getTextNode().getString();}
+	virtual ConstStrA getStringUtf8() const {return getTextNode().getStringUtf8();}
 	virtual integer getInt() const {return (integer)x;}
 	virtual linteger getLongInt() const {return x;}
 	virtual double getFloat() const {return double(x);}
@@ -175,20 +186,26 @@ public:
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
+	virtual TextFieldA *createTextNode() const;
+
 	linteger x;
 	mutable StringA strx;
 };
 
-class FloatField : public AbstractTextFieldA {
+class FloatField : public LeafNodeConvToStr {
 public:
 	FloatField(double x):x(x) {}
 	virtual NodeType getType() const {return ndFloat;}
-	virtual ConstStrA getStringUtf8() const;
+	virtual ConstStrW getString() const {return getTextNode().getString();}
+	virtual ConstStrA getStringUtf8() const {return getTextNode().getStringUtf8();}
 	virtual integer getInt() const {return (integer)x;}
 	virtual linteger getLongInt() const {return (linteger)x;}
 	virtual double getFloat() const {return x;}
 	virtual bool getBool() const {return x != 0;}
 	virtual bool isNull() const {return false;}
+
+	virtual TextFieldA *createTextNode() const;
+
 
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
@@ -279,8 +296,6 @@ public:
 	virtual PNode newValue(bool v) {return new(alloc) T<Bool>(v);}
 	virtual PNode newValue(ConstStrW v) {return new(alloc) T<TextField>(v);}
 	virtual PNode newValue(ConstStrA v) {return new(alloc) T<TextFieldA>(v);}
-	virtual PNode newValue(const String &v) {return new(alloc) T<TextField>(v);}
-	virtual PNode newValue(const StringA &v) {return new(alloc) T<TextField>(v);}
 	virtual IRuntimeAlloc *getAllocator() const {return &alloc;}
 
 	virtual IFactory *clone() {return new FactoryAlloc(alloc);}

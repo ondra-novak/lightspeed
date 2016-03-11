@@ -1,5 +1,7 @@
-/*
- * jsonfast.cpp
+/* * OBSOLETE!!!!
+ *
+ *
+jsonfast.cpp
  *
  *  Created on: 20.5.2013
  *      Author: ondra
@@ -18,12 +20,9 @@
 #include "../../base/text/textFormat.h"
 #include "jsonfast.tcc"
 
+#include "jsonserializer.h"
 namespace LightSpeed {namespace JSON {
 
-const char *strTrue = "true";
-const char *strFalse = "false";
-const char *strNull = "null";
-const char *strDelete = "deleted";
 
 #ifdef _WIN32
 static double round(double v) {

@@ -1,29 +1,24 @@
-#include "../../base/text/textIn.tcc"
-#include "../../base/streams/utf.h"
-#include "../../base/containers/constStr.h"
-#include "../../base/memory/smallAlloc.h"
-#include "../../base/containers/map.h"
-#include "../../base/text/textFormat.tcc"
-#include "json.h"
-#include "jsonexception.h"
-#include "../../base/memory/clusterAllocFactory.h"
-#include "../../base/streams/fileio.h"
-#include "../../base/text/textstream.h"
-#include "../../base/iter/limiter.h"
-#include "../../base/text/textOut.tcc"
-#include "../../mt/atomic.h"
-#include "jsondefs.h"
-#include "../../base/containers/stringparam.h"
-#include "jsonimpl.h"
-#include "jsonfast.tcc"
-#include "../../base/text/textParser.tcc"
-#include "../../base/exceptions/throws.h"
+#include "../../base/containers/string.h"
 #include "../../base/exceptions/invalidParamException.h"
+#include "../../base/text/textFormat.tcc"
+#include "../../mt/atomic.h"
+#include "../../base/iter/vtiterator.h"
+#include "json.h"
+#include "jsonimpl.h"
+#include "jsonexception.h"
+#include "jsonfast.tcc"
+#include "jsonparser.tcc"
+#include "jsonserializer.tcc"
+
 
 namespace LightSpeed {
 
 namespace JSON {
 
+const char *strTrue = "true";
+const char *strFalse = "false";
+const char *strNull = "null";
+const char *strDelete = "deleted";
 
 
 INode *Object::getVariable(ConstStrA var) const {
@@ -209,19 +204,19 @@ INode *Array::clear() {
 
 integer TextField::getInt() const {
 	integer res;
-	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
+	if (parseSignedNumber(value.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
 linteger TextField::getLongInt() const {
 	linteger res;
-	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
+	if (parseSignedNumber(value.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
 ConstStrA TextField::getStringUtf8() const {
 	if (utf!=0) return *utf;
-	StringA *k = new StringA(x.getUtf8());
+	StringA *k = new StringA(String::getUtf8(value));
 	k->getMT();
 	if (lockCompareExchangePtr<StringA>(&utf,0,k) != 0) {
 		delete k;
@@ -229,14 +224,22 @@ ConstStrA TextField::getStringUtf8() const {
 	return *utf;
 }
 
+ConstStrW TextFieldA::getString() const {
+	if (wide!=0) return *wide;
+	String *k = new String(ConstStrA(value));
+	if (lockCompareExchangePtr<String>(&wide,0,k) != 0) {
+		delete k;
+	}
+	return *wide;
+}
+
 INode * TextField::enableMTAccess() {
 	RefCntObj::enableMTAccess();
-	x = x.getMT();
 	return this;
 }
 
 INode *TextField::clone(PFactory factory) const {
-	return factory->newValue(x).detach();
+	return factory->newValue(value).detach();
 }
 
 bool TextField::operator==(const INode &other) const {
@@ -245,11 +248,12 @@ bool TextField::operator==(const INode &other) const {
 }
 
 TextField::~TextField() {delete utf;}
+TextFieldA::~TextFieldA() {delete wide;}
 
 
 double TextField::getFloat() const {
 	TextParser<wchar_t,StaticAlloc<100> > parser;
-	if (parser(L"%f1",x)) return parser[1];
+	if (parser(L"%f1",value)) return parser[1];
 	return 0;
 }
 
@@ -258,34 +262,24 @@ double TextField::getFloat() const {
 
 integer TextFieldA::getInt() const {
 	integer res;
-	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
+	if (parseSignedNumber(value.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
 linteger TextFieldA::getLongInt() const {
 	linteger res;
-	if (parseSignedNumber(x.getFwIter(),res,10)) return res;
+	if (parseSignedNumber(value.getFwIter(),res,10)) return res;
 	else return integerNull;
 }
 
-ConstStrW AbstractTextFieldA::getString() const {
-	if (unicode!=0) return *unicode;
-	String *k = new String(getStringUtf8());
-	k->getMT();
-	if (lockCompareExchangePtr<String>(&unicode,0,k) != 0) {
-		delete k;
-	}
-	return *unicode;
-}
 
 INode * TextFieldA::enableMTAccess() {
 	RefCntObj::enableMTAccess();
-	x = x.getMT();
 	return this;
 }
 
 INode *TextFieldA::clone(PFactory factory) const {
-	return factory->newValue(x).detach();
+	return factory->newValue(value).detach();
 }
 
 bool TextFieldA::operator==(const INode &other) const {
@@ -293,31 +287,35 @@ bool TextFieldA::operator==(const INode &other) const {
 	else return false;
 }
 
-AbstractTextFieldA::~AbstractTextFieldA() { delete unicode; }
+TextFieldA &LeafNodeConvToStr::getTextNode() const {
+	if (txtBackend == 0) {
+		TextFieldA *z = createTextNode();
+		TextFieldA *r = lockCompareExchangePtr<TextFieldA>(&txtBackend,0,z);
+		if (r) delete z;
+	}
+	return *txtBackend;
+}
 
+LeafNodeConvToStr::~LeafNodeConvToStr() {
+	if (txtBackend != 0) delete txtBackend;
+}
 
 double TextFieldA::getFloat() const {
 	TextParser<char,StaticAlloc<100> > parser;
-	if (parser("%f1",x)) return parser[1];
+	if (parser("%f1",value)) return parser[1];
 	return 0;
 }
 
-ConstStrA IntField::getStringUtf8() const {
-	if (strx.empty()) {
-		TextFormatBuff<char,StaticAlloc<200> > fmt;
-		fmt("%1") << x;
-		strx = fmt.write();
-	}
-	return strx;
+TextFieldA *IntField::createTextNode() const {
+	TextFormatBuff<char,StaticAlloc<200> > fmt;
+	fmt("%1") << x;
+	return new TextFieldA(fmt.write());
 }
 
-ConstStrA IntField64::getStringUtf8() const {
-	if (strx.empty()) {
-		TextFormatBuff<char,StaticAlloc<200> > fmt;
-		fmt("%1") << x;
-		strx = fmt.write();
-	}
-	return strx;
+TextFieldA *IntField64::createTextNode() const {
+	TextFormatBuff<char,StaticAlloc<200> > fmt;
+	fmt("%1") << x;
+	return new TextFieldA(fmt.write());
 }
 
 INode *IntField::clone(PFactory factory) const {
@@ -340,13 +338,10 @@ bool IntField64::operator==(const INode &other) const {
 	else return x == t->x;
 }
 
-ConstStrA FloatField::getStringUtf8() const {
-	if (strx.empty()) {
-		TextFormatBuff<char,StaticAlloc<200> > fmt;
-		fmt("%1") << x;
-		strx = fmt.write();
-	}
-	return strx;
+TextFieldA *FloatField::createTextNode() const {
+	TextFormatBuff<char,StaticAlloc<200> > fmt;
+	fmt("%1") << x;
+	return new TextFieldA(fmt.write());
 }
 
 INode *FloatField::clone(PFactory factory) const {
@@ -514,49 +509,21 @@ void FactoryCommon::toStream(const INode &nd, SeqFileOutput &stream) {
 LightSpeed::JSON::PNode Factory::fromString( ConstStrA text )
 {
 	ConstStrA::Iterator iter = text.getFwIter();
-	return parseFast(iter, *getAllocator());
+	return parseStream(iter);
 }
 
 
-LightSpeed::JSON::PNode IFactory::fromStream( SeqFileInput &stream )
+LightSpeed::JSON::PNode Factory::fromStream( SeqFileInput &stream )
 {
 	SeqTextInA in(stream);
-	return parseFast(in,*getAllocator());
+	return parseStream(in);
+
+}
+LightSpeed::JSON::PNode Factory::fromCharStream( IVtIterator<char> &stream )
+{
+	return parseStream(stream);
 			
 }
-String decodeString( ConstStrW jsontext ) 
-{
-	AutoArrayStream<wchar_t> buffer;
-	ConstStrW::Iterator rd(jsontext.getFwIter());
-	buffer.reserve(jsontext.length());
-	while (rd.hasItems()) {
-		wchar_t x = rd.getNext();
-		if (x == '\\') {
-			wchar_t y = rd.getNext();
-			switch (y) {
-				case 'n': buffer.write('\n');break;
-				case 'r': buffer.write('\r');break;
-				case 'b': buffer.write('\b');break;
-				case 't': buffer.write('\t');break;
-				case '\\':buffer.write('\\');break;
-				case '/': buffer.write('/');break;
-				case 'u': {
-					natural hexChar = 0;
-					IteratorLimiter<ConstStrW::Iterator &> lmrd(rd,4);
-					parseUnsignedNumber(lmrd,hexChar,16);
-					buffer.write((wchar_t)hexChar);
-							}break;
-				default: buffer.write(x);
-							buffer.write(y);
-							break;
-			}
-		} else {
-			buffer.write(x);
-		}
-	}
-	return String(buffer.getArray());
-}
-
 /* creates new JSON class, merges subclasses and
    skips items presented in changes JSON class, because
    it expects that they will be added by MergeClassAddNew_t
@@ -794,13 +761,19 @@ LightSpeed::JSON::PNode PNode::operator[]( natural pos ) const
 }
 
 
+template<typename T>
+Value Factory::parseStream( IIterator<char, T> &iter ) {
+	Parser<T> parser(iter, this);
+	return parser.parse();
+
+}
+
+
+
 } 
 
 
 
-
-
-
-
 }
+
 

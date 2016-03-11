@@ -652,7 +652,9 @@ namespace LightSpeed {
 			 *
 			 * @see parseFast
 			 */
-			Value fromStream( SeqFileInput &stream );
+			virtual Value fromStream( SeqFileInput &stream ) = 0;
+
+			virtual Value fromCharStream( IVtIterator<char> &iter) = 0;
 
 			template<typename T>
 			Value operator()(const T &v) {return newValue(v);}
@@ -783,6 +785,13 @@ namespace LightSpeed {
 
 			return Conv::conv(val,*this);
 		}
+
+
+
+		extern LIGHTSPEED_EXPORT const char *strTrue;
+		extern LIGHTSPEED_EXPORT const char *strFalse;
+		extern LIGHTSPEED_EXPORT const char *strNull;
+		extern LIGHTSPEED_EXPORT const char *strDelete;
 
 	};
 

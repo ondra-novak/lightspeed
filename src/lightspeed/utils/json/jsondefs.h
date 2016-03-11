@@ -19,7 +19,6 @@ namespace LightSpeed {
 
 namespace JSON {
 
-String decodeString( ConstStrW jsontext );
 
 PNode getNullNode();
 PNode getDeleteNode();
@@ -153,8 +152,13 @@ public:
 	Stream_t strRes;
 
 	virtual PNode fromString(ConstStrA text);
+	virtual Value fromStream( SeqFileInput &stream );
+	virtual Value fromCharStream( IVtIterator<char> &iter);
 	virtual IRuntimeAlloc *getAllocator() const {return &StdAlloc::getInstance();}
 	virtual IFactory *clone() {return new Factory;}
+
+	template<typename T>
+	Value parseStream(IIterator<char,T> &iter);
 };
 
 
