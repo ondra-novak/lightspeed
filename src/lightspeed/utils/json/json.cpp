@@ -20,6 +20,8 @@ const char *strFalse = "false";
 const char *strNull = "null";
 const char *strDelete = "deleted";
 
+static Value sharedNull, sharedTrue, sharedFalse, sharedZero, sharedDelete, sharedEmptyStr;
+
 
 INode *Object::getVariable(ConstStrA var) const {
 	const PNode *x = fields.find(var);
@@ -61,7 +63,7 @@ void Object::insertField(const StringA &name, PNode nd) {
 }
 
 INode *Object::add(PNode nd) {
-	if (nd == nil) nd = getNullNode();
+	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	natural l = fields.length();
 	TextFormatBuff<char,StaticAlloc<50> > fmt;
@@ -70,7 +72,7 @@ INode *Object::add(PNode nd) {
 }
 
 INode *Object::add(ConstStrA name, PNode nd) {
-	if (nd == nil) nd = getNullNode();
+	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	insertField(name,nd);
 	return this;
@@ -115,6 +117,8 @@ INode *Object::replace(ConstStrA name, Value newValue, Value *prevValue ) {
 INode *Object::clear() {fields.clear();return this;}
 
 
+
+
 INode *Object::enableMTAccess()
 {
 	RefCntObj::enableMTAccess();
@@ -125,6 +129,15 @@ INode *Object::enableMTAccess()
 	}
 	return this;
 }
+
+Array::Array() {}
+Array::Array(ConstStringT<Value> v) {
+	list.append(v);
+}
+Array::Array(ConstStringT<INode *> v) {
+	list.append(v);
+}
+
 
 bool Array::enumEntries(const IEntryEnum &fn) const {
 	natural p = 0;
@@ -137,7 +150,7 @@ bool Array::enumEntries(const IEntryEnum &fn) const {
 }
 
 INode *Array::add(PNode nd) {
-	if (nd == nil) nd = getNullNode();
+	if (nd == nil) throw InvalidParamException(THISLOCATION,0,"Argument has no value");
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	if (isMTAccessEnabled()) list.add(nd.getMT());
 	else list.add(nd);
@@ -354,8 +367,9 @@ bool FloatField::operator==(const INode &other) const {
 	else return x == t->x;
 }
 
-INode *Null::clone(PFactory ) const {
-	return getNullNode().detach();
+INode *Null::clone(PFactory f) const {
+	return f->newValue(null);
+
 }
 
 bool Null::operator==(const INode &other) const {
@@ -434,32 +448,20 @@ INode * AbstractNode_t::add( ConstStrA name, PNode newNode )
 
 
 
-
-PNode getNullNode()
-{
-	static PNode nd = new Null;
-	return nd.getMT();
-}
-
-PNode getDeleteNode()
-{
-	static PNode nd = new Delete;
-	return nd.getMT();
-}
-
-PNode Factory::newClass() {return new Object;}
-PNode Factory::newArray() {return new Array;}
-PNode Factory::newValue(natural v) {return new IntField(v);}
-PNode Factory::newValue(integer v) {return new IntField(v);}
+PNode Factory::createObject() {return new Object;}
+PNode Factory::createNumber(natural v) {return new IntField(v);}
+PNode Factory::createNumber(integer v) {return new IntField(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
-PNode Factory::newValue(lnatural v) {return new IntField64(v);}
-PNode Factory::newValue(linteger v) {return new IntField64(v);}
+PNode Factory::createNumber(lnatural v) {return new IntField64(v);}
+PNode Factory::createNumber(linteger v) {return new IntField64(v);}
 #endif
-PNode Factory::newValue(float v) {return new FloatField(v);}
-PNode Factory::newValue(double v) {return new FloatField(v);}
-PNode Factory::newValue(bool v) {return new Bool(v);}
-PNode Factory::newValue(ConstStrW v) {return new TextField(v);}
-PNode Factory::newValue(ConstStrA v) {return new TextFieldA(v);}
+PNode Factory::createNumber(float v) {return new FloatField(v);}
+PNode Factory::createNumber(double v) {return new FloatField(v);}
+PNode Factory::createNumber(bool v) {return new Bool(v);}
+PNode Factory::createString(ConstStrW v) {return new TextField(v);}
+PNode Factory::createString(ConstStrA v) {return new TextFieldA(v);}
+PNode Factory::createArray(ConstStringT<Value> v) {return new Array(v);}
+PNode Factory::createArray(ConstStringT<INode *> v) {return new Array(v);}
 
 
 
@@ -761,6 +763,18 @@ LightSpeed::JSON::PNode PNode::operator[]( natural pos ) const
 }
 
 
+bool PNode::setIfNullDeleteOtherwiseAtomic(INode *nd) {
+	nd->enableMTAccess();
+	nd->addRef();
+	if (lockCompareExchangePtr<INode>(&this->ptr,0,nd) != 0) {
+		delete nd;
+		return false;
+	} else {
+		return true;
+	}
+}
+
+
 template<typename T>
 Value Factory::parseStream( IIterator<char, T> &iter ) {
 	Parser<T> parser(iter, this);
@@ -768,7 +782,137 @@ Value Factory::parseStream( IIterator<char, T> &iter ) {
 
 }
 
+///Creates JSON object
+Value FactoryCommon::newObject() {
+	return createObject();
+}
+///Creates JSON array
+Value FactoryCommon::newArray() {
+	return createArray(ConstStringT<Value>());
 
+}
+///Creates JSON number using unsigned value
+Value FactoryCommon::newValue(natural v) {
+	if (v == 0) {
+		if (sharedZero == nil) sharedZero.setIfNullDeleteOtherwiseAtomic(new ZeroNumber);
+		return sharedZero;
+	}
+	return createNumber(v);
+}
+///Creates JSON number using signed value
+Value FactoryCommon::newValue(integer v) {
+	if (v == 0) {
+		if (sharedZero == nil) sharedZero.setIfNullDeleteOtherwiseAtomic(new ZeroNumber);
+		return sharedZero;
+	}
+	return createNumber(v);
+}
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+///Creates JSON number using unsigned value
+Value FactoryCommon::newValue(lnatural v) {
+	if (v == 0) {
+		if (sharedZero == nil) sharedZero.setIfNullDeleteOtherwiseAtomic(new ZeroNumber);
+		return sharedZero;
+	}
+	return createNumber(v);
+}
+///Creates JSON number using signed value
+Value FactoryCommon::newValue(linteger v) {
+	if (v == 0) {
+		if (sharedZero == nil) sharedZero.setIfNullDeleteOtherwiseAtomic(new ZeroNumber);
+		return sharedZero;
+	}
+	return createNumber(v);
+}
+#endif
+///Creates JSON number using double-float value
+Value FactoryCommon::newValue(double v) {
+	if (v == 0) {
+		if (sharedZero == nil) sharedZero.setIfNullDeleteOtherwiseAtomic(new ZeroNumber);
+		return sharedZero;
+	}
+	return createNumber(v);
+}
+///Creates JSON bool and stores value
+Value FactoryCommon::newValue(bool v) {
+	if (v) {
+		if (sharedTrue == nil) sharedTrue.setIfNullDeleteOtherwiseAtomic(new Bool(true));
+		return sharedTrue;
+	} else {
+		if (sharedFalse == nil) sharedFalse.setIfNullDeleteOtherwiseAtomic(new Bool(false));
+		return sharedFalse;
+
+	}
+}
+///Creates JSON string
+Value FactoryCommon::newValue(ConstStrW v) {
+	if (v.empty()) {
+		if (sharedEmptyStr == nil) sharedEmptyStr.setIfNullDeleteOtherwiseAtomic(new EmptyString);
+		return sharedEmptyStr;
+	}
+	return createString(v);
+}
+///Creates JSON string
+Value FactoryCommon::newValue(ConstStrA v) {
+	if (v.empty()) {
+		if (sharedEmptyStr == nil) sharedEmptyStr.setIfNullDeleteOtherwiseAtomic(new EmptyString);
+		return sharedEmptyStr;
+	}
+	return createString(v);
+
+}
+///Creates JSON array
+Value FactoryCommon::newValue(ConstStringT<JSON::Value> v) {
+	return createArray(v);
+}
+///Creates JSON array
+Value FactoryCommon::newValue(ConstStringT<JSON::INode *> v) {
+	return createArray(v);
+}
+
+
+Value FactoryCommon::newValue(NullType) {
+	if (sharedNull == nil) sharedNull.setIfNullDeleteOtherwiseAtomic(new Null);
+	return sharedNull;
+}
+
+Value FactoryCommon::newDeleteNode() {
+	if (sharedDelete == nil) sharedDelete.setIfNullDeleteOtherwiseAtomic(new Delete);
+	return sharedDelete;
+}
+
+INode *EmptyString::clone(PFactory f) const {
+	return f->newValue(ConstStrA());
+}
+
+bool EmptyString::operator==(const INode &other)const {
+	return !other.getBool();
+}
+
+
+
+INode *ZeroNumber::clone(PFactory f)const {
+	return f->newValue(natural(0));
+}
+
+bool ZeroNumber::operator==(const INode &other)const {
+	if (other.getType() == ndInt) return other.getLongInt() == 0;
+	else return other.getFloat() == 0;
+}
+
+
+INode *SingleCharacter::clone(PFactory f)const {
+	return f->newValue(getStringUtf8());
+}
+
+int SingleCharacter::getNum()const {
+	if (isdigit(x)) return (x - '0');
+	else return 0;
+}
+bool SingleCharacter::operator==(const INode &other) const {
+	if (other.isUtf8()) return ConstStrA(x) == other.getStringUtf8();
+	else return ConstStrW(x) == other.getString();
+}
 
 } 
 

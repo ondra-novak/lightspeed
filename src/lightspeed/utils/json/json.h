@@ -47,7 +47,7 @@ namespace LightSpeed {
 			ndDelete = 7,
 			///Custom node - custom serialization. Should not appear during parsing
 			ndCustom = 0x100,
-
+			///obsolete
 			ndClass = 5
 		};
 
@@ -76,6 +76,13 @@ namespace LightSpeed {
 			Value operator[](int i) const;
 			Value operator[](natural i) const;
 
+			///Sets value if pointer is NULL atomically
+			/**
+			 * @param nd new value
+			 * @retval true value has been set
+			 * @retval false some value is already set
+			 */
+			bool setIfNullDeleteOtherwiseAtomic(INode *nd);
 
 		};
 
@@ -105,6 +112,7 @@ namespace LightSpeed {
 			Value operator()(const T &val);
 			Value array();
 			Value object();
+
 
 		};
 
@@ -563,16 +571,20 @@ namespace LightSpeed {
 			virtual Value newValue(ConstStrW v) = 0;
 			///Creates JSON string
 			virtual Value newValue(ConstStrA v) = 0;
+			///Creates JSON array
+			virtual Value newValue(ConstStringT<JSON::Value> v) = 0;
+			///Creates JSON array
+			virtual Value newValue(ConstStringT<JSON::INode *> v) = 0;
 			///Retrieves allocator used to allocate nodes
 			virtual IRuntimeAlloc *getAllocator() const = 0;
 
 			///to keep templates to work
 			Value newValue(Value v) {return v;}
 			
-			Value newValue(NullType) {return newNullNode();}
+			virtual Value newValue(NullType) = 0;
 
 #if __cplusplus >= 201103L
-			Value newValue(std::nullptr_t x) {return newNullNode();}
+			Value newValue(std::nullptr_t x) {return newValue(null);}
 #endif
 
 			///Serialize custom value (undefined upper)
@@ -590,7 +602,7 @@ namespace LightSpeed {
 			/**
 			 * @note factory can use one NULL node for all required NULLs
 			 */
-			virtual Value newNullNode() = 0;
+			Value newNullNode() {return newValue(null);}
 			///Creates new DELETE node
 			/**
 			 * @note factory can use one NULL node for all required DELETEs
@@ -730,9 +742,6 @@ namespace LightSpeed {
 		}
 
 
-
-
-
 		template<typename A,typename B>
 		struct ConvHelper {
 			template<typename X>
@@ -777,21 +786,23 @@ namespace LightSpeed {
 					ConvHelper<double,
 					ConvHelper<ConstStrA,
 					ConvHelper<ConstStrW,
+					ConvHelper<ConstStringT<JSON::Value>,
+					ConvHelper<ConstStringT<JSON::INode *>,
 					ConvHelper<bool,Empty>
 #ifdef LIGHTSPEED_HAS_LONG_TYPES					
 					> > 
 #endif				
-					> > > > > >				Conv;
+					> > > > > > > >				Conv;
 
 			return Conv::conv(val,*this);
 		}
-
-
 
 		extern LIGHTSPEED_EXPORT const char *strTrue;
 		extern LIGHTSPEED_EXPORT const char *strFalse;
 		extern LIGHTSPEED_EXPORT const char *strNull;
 		extern LIGHTSPEED_EXPORT const char *strDelete;
+
+
 
 	};
 

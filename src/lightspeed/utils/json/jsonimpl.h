@@ -59,6 +59,9 @@ protected:
 typedef AutoArray<PNode> FieldList_t;
 class Array: public AbstractNode_t {
 public:
+	Array();
+	Array(ConstStringT<Value> v);
+	Array(ConstStringT<INode *> v);
 	virtual NodeType getType() const {return ndArray;}
 	virtual ConstStrW getString() const {return list.empty()?ConstStrW():list[0]->getString();}
 	virtual integer getInt() const {return list.empty()?0:list[0]->getInt();}
@@ -138,6 +141,62 @@ public:
 	mutable String *wide;
 };
 
+class EmptyString: public LeafNode {
+public:
+	EmptyString() {}
+
+	virtual NodeType getType() const {return ndString;}
+	virtual integer getInt() const {return 0;}
+	virtual linteger getLongInt() const {return 0;}
+	virtual double getFloat() const {return 0;}
+	virtual bool getBool() const {return false;}
+	virtual bool isNull() const {return false;}
+	ConstStrA getStringUtf8() const  {return ConstStrA();}
+	virtual INode *clone(PFactory factory) const;
+	virtual bool operator==(const INode &other) const;
+	virtual bool isUtf8() const {return true;}
+	virtual ConstStrW getString() const {return ConstStrW();}
+};
+
+class ZeroNumber: public LeafNode {
+public:
+	ZeroNumber() {}
+
+	virtual NodeType getType() const {return ndInt;}
+	virtual integer getInt() const {return 0;}
+	virtual linteger getLongInt() const {return 0;}
+	virtual double getFloat() const {return 0;}
+	virtual bool getBool() const {return false;}
+	virtual bool isNull() const {return false;}
+	ConstStrA getStringUtf8() const  {return ConstStrA("0");}
+	virtual INode *clone(PFactory factory) const;
+	virtual bool operator==(const INode &other) const;
+	virtual bool isUtf8() const {return true;}
+	virtual ConstStrW getString() const {return ConstStrW(L"0");}
+};
+
+class SingleCharacter: public LeafNode {
+public:
+	SingleCharacter(char x):x(x) {}
+
+	virtual NodeType getType() const {return ndString;}
+	virtual integer getInt() const {return getNum();}
+	virtual linteger getLongInt() const {return getNum();}
+	virtual double getFloat() const {return getNum();}
+	virtual bool getBool() const {return false;}
+	virtual bool isNull() const {return false;}
+	ConstStrA getStringUtf8() const  {return ConstStrA(x);}
+	virtual INode *clone(PFactory factory) const;
+	virtual bool operator==(const INode &other) const;
+	virtual bool isUtf8() const {return true;}
+	virtual ConstStrW getString() const {return ConstStrW(x);}
+
+	char x;
+protected:
+	int getNum() const;
+};
+
+
 class LeafNodeConvToStr: public LeafNode {
 public:
 	LeafNodeConvToStr():txtBackend(0) {}
@@ -188,6 +247,8 @@ public:
 
 	virtual TextFieldA *createTextNode() const;
 
+
+
 	linteger x;
 	mutable StringA strx;
 };
@@ -210,6 +271,7 @@ public:
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
+
 	double x;
 	mutable StringA strx;
 };
@@ -227,6 +289,9 @@ public:
 
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
+
+	static Null *getNull();
+
 };
 class Delete: public LeafNode {
 public:
@@ -243,6 +308,8 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	ErrorMessageException accessError(const ProgramLocation &loc) const;
+
+	static Delete *getDelete();
 
 };
 
@@ -265,6 +332,9 @@ public:
 	virtual bool operator==(const INode &other) const;
 
 	bool b;
+
+	static Bool *getTrue();
+	static Bool *getFalse();
 };
 
 
@@ -283,20 +353,22 @@ public:
 
 	FactoryAlloc(IRuntimeAlloc  &alloc):alloc(alloc) {}
 
-	virtual PNode newClass() {return new(alloc) T<Object>;}
-	virtual PNode newArray() {return new(alloc) T<Array>;}
-	virtual PNode newValue(natural v) {return new(alloc) T<IntField>(v);}
-	virtual PNode newValue(integer v) {return new(alloc) T<IntField>(v);}
+	virtual PNode createObject() {return new(alloc) T<Object>;}
+	virtual PNode createNumber(natural v) {return new(alloc) T<IntField>(v);}
+	virtual PNode createNumber(integer v) {return new(alloc) T<IntField>(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
-	virtual PNode newValue(lnatural v) {return new(alloc) T<IntField64>(v);}
-	virtual PNode newValue(linteger v) {return new(alloc) T<IntField64>(v);}
+	virtual PNode createNumber(lnatural v) {return new(alloc) T<IntField64>(v);}
+	virtual PNode createNumber(linteger v) {return new(alloc) T<IntField64>(v);}
 #endif
-	virtual PNode newValue(float v) {return new(alloc) T<FloatField>(v);}
-	virtual PNode newValue(double v) {return new(alloc) T<FloatField>(v);}
-	virtual PNode newValue(bool v) {return new(alloc) T<Bool>(v);}
-	virtual PNode newValue(ConstStrW v) {return new(alloc) T<TextField>(v);}
-	virtual PNode newValue(ConstStrA v) {return new(alloc) T<TextFieldA>(v);}
+	virtual PNode createNumber(float v) {return new(alloc) T<FloatField>(v);}
+	virtual PNode createNumber(double v) {return new(alloc) T<FloatField>(v);}
+	virtual PNode createNumber(bool v) {return new(alloc) T<Bool>(v);}
+	virtual PNode createString(ConstStrW v) {return new(alloc) T<TextField>(v);}
+	virtual PNode createString(ConstStrA v) {return new(alloc) T<TextFieldA>(v);}
 	virtual IRuntimeAlloc *getAllocator() const {return &alloc;}
+	virtual Value createArray(ConstStringT<JSON::Value> v) {return new(alloc) T<Array>(v);}
+	virtual Value createArray(ConstStringT<JSON::INode *> v) {return new(alloc) T<Array>(v);}
+
 
 	virtual IFactory *clone() {return new FactoryAlloc(alloc);}
 
@@ -304,6 +376,7 @@ protected:
 
 	IRuntimeAlloc &alloc;
 };
+
 
 }
 }

@@ -20,8 +20,6 @@ namespace LightSpeed {
 namespace JSON {
 
 
-PNode getNullNode();
-PNode getDeleteNode();
 
 class NumKey: public IKey {
 public:
@@ -97,8 +95,39 @@ class Object;
 
 class FactoryCommon: public IFactory, public IFactoryToStringProperty {
 public:
-	virtual PNode newNullNode() {return getNullNode();}
-	virtual PNode newDeleteNode() {return getDeleteNode();}
+
+	///Create object (obsolete)
+	virtual Value newClass() {return newObject();}
+	///Creates JSON object
+	virtual Value newObject();
+	///Creates JSON array
+	virtual Value newArray();
+	///Creates JSON number using unsigned value
+	virtual Value newValue(natural v);
+	///Creates JSON number using signed value
+	virtual Value newValue(integer v);
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+	///Creates JSON number using unsigned value
+	virtual Value newValue(lnatural v);
+	///Creates JSON number using signed value
+	virtual Value newValue(linteger v);
+#endif
+	///Creates JSON number using double-float value
+	virtual Value newValue(double v);
+	///Creates JSON bool and stores value
+	virtual Value newValue(bool v);
+	///Creates JSON string
+	virtual Value newValue(ConstStrW v);
+	///Creates JSON string
+	virtual Value newValue(ConstStrA v);
+	///Creates JSON array
+	virtual Value newValue(ConstStringT<JSON::Value> v);
+	///Creates JSON array
+	virtual Value newValue(ConstStringT<JSON::INode *> v);
+
+	virtual Value newValue(NullType);
+
+	virtual Value newDeleteNode();
 	virtual PNode merge(const INode &base, const INode &change);
 
 	using IFactory::newValue;
@@ -115,25 +144,53 @@ public:
 	bool escapeUTF;
 
 	FactoryCommon():escapeUTF(false) {}
+
+protected:
+	///Creates JSON object
+	virtual Value createObject() = 0;
+	///Creates JSON number using unsigned value
+	virtual Value createNumber(natural v) = 0;
+	///Creates JSON number using signed value
+	virtual Value createNumber(integer v) = 0;
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+	///Creates JSON number using unsigned value
+	virtual Value createNumber(lnatural v) = 0;
+	///Creates JSON number using signed value
+	virtual Value createNumber(linteger v) = 0;
+#endif
+	///Creates JSON number using double-float value
+	virtual Value createNumber(double v) = 0;
+	///Creates JSON bool and stores value
+	virtual Value createNumber(bool v) = 0;
+	///Creates JSON string
+	virtual Value createString(ConstStrW v) = 0;
+	///Creates JSON string
+	virtual Value createString(ConstStrA v) = 0;
+	///Creates JSON array
+	virtual Value createArray(ConstStringT<JSON::Value> v) = 0;
+	///Creates JSON array
+	virtual Value createArray(ConstStringT<JSON::INode *> v) = 0;
+
 };
 
 class Factory: public FactoryCommon {
 public:
 	using FactoryCommon::newValue;
-	virtual PNode newObject() {return newClass();}
-	virtual PNode newClass();
-	virtual PNode newArray();
-	virtual PNode newValue(natural v);
-	virtual PNode newValue(integer v);
+	virtual PNode createObject();
+	virtual PNode createNumber(natural v);
+	virtual PNode createNumber(integer v);
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
-	virtual PNode newValue(lnatural v);
-	virtual PNode newValue(linteger v);
+	virtual PNode createNumber(lnatural v);
+	virtual PNode createNumber(linteger v);
 #endif
-	virtual PNode newValue(float v);
-	virtual PNode newValue(double v);
-	virtual PNode newValue(bool v);
-	virtual PNode newValue(ConstStrW v);
-	virtual PNode newValue(ConstStrA v);
+	virtual PNode createNumber(float v);
+	virtual PNode createNumber(double v);
+	virtual PNode createNumber(bool v);
+	virtual PNode createString(ConstStrW v);
+	virtual PNode createString(ConstStrA v);
+	virtual Value createArray(ConstStringT<JSON::Value> v);
+	virtual Value createArray(ConstStringT<JSON::INode *> v);
+
 
 	virtual ConstStrA toString(const INode &nd);
 

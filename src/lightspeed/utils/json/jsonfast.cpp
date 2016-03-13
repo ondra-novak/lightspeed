@@ -21,6 +21,8 @@ jsonfast.cpp
 #include "jsonfast.tcc"
 
 #include "jsonserializer.h"
+
+#include "../../base/exceptions/invalidParamException.h"
 namespace LightSpeed {namespace JSON {
 
 
@@ -188,7 +190,7 @@ INode* FObject_t::add(PNode nd) {
 }
 
 INode* FObject_t::add(ConstStrW name, PNode nd) {
-	if (nd == nil) nd = getNullNode();
+	if (nd == nil) throwNullPointerException(THISLOCATION);
 	IFPool *ff = static_cast<IFPool *>(f.get());
 	WideToUtf8Reader<ConstStrW::Iterator> rd(name.getFwIter());
 	AutoArray<char,SmallAlloc<256> > buff(rd);
@@ -302,7 +304,7 @@ ConstStrA FObject_t::getStringUtf8() const {
 	return ConstStrA();
 }
 INode *FObject_t::add(ConstStrA name, PNode nd) {
-	if (nd == nil) nd = getNullNode();
+	if (nd == nil) throwNullPointerException(THISLOCATION);
 	StrRefA_t str = f->addString(name);
 	insertField(str,nd);
 	return this;
