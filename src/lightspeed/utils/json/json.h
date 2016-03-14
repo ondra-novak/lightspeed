@@ -63,6 +63,7 @@ namespace LightSpeed {
 			typedef ::LightSpeed::RefCntPtr<INode> Super;
 
 			Value() {}
+			Value(const Value &x):Super(x) {}
 			Value(const Super &x):Super(x) {}
 			Value(NullType x):Super(x) {}
 	        Value(INode *p):Super(p) {}
@@ -76,6 +77,9 @@ namespace LightSpeed {
 			Value operator[](int i) const;
 			Value operator[](natural i) const;
 
+#if __cplusplus >= 201103L
+			Value(Value &&other):Super(std::move(other)) {}
+#endif
 			///Sets value if pointer is NULL atomically
 			/**
 			 * @param nd new value
@@ -584,7 +588,7 @@ namespace LightSpeed {
 			virtual Value newValue(NullType) = 0;
 
 #if __cplusplus >= 201103L
-			Value newValue(std::nullptr_t x) {return newValue(null);}
+			Value newValue(std::nullptr_t) {return newValue(null);}
 #endif
 
 			///Serialize custom value (undefined upper)

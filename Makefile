@@ -17,6 +17,7 @@ LIBINCLUDES=src
 
 CONFIG=src/lightspeed/platform.h
 CXX=clang++
+CXXFLAGS +=-std=c++11
 
 include building/build_$(BUILDTYPE).mk
 include building/testfns.mk

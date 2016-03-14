@@ -12,7 +12,7 @@ namespace JSON {
 
 template<typename T>
 Value Parser<T>::parse() {
-	try {
+
 		while (true) {
 			char x = iter.getNext();
 			switch (x) {
@@ -38,10 +38,7 @@ Value Parser<T>::parse() {
 				default: return parseValue(x);
 			}
 		}
-	} catch (Exception &e) {
-		throw ParseError_t(THISLOCATION,"<root>") << e;
 	}
-}
 
 
 template<typename T>
@@ -110,10 +107,15 @@ PNode Parser<T>::parseObject(INode *container) {
 	AutoArray<char, SmallAlloc<256> > name;
 	Value obj = container;
 
+	char c=iter.getNext();
+	if (isspace(c)) c = iter.getNext();
+	///empty object can be there
+	if (c == '}') return obj;
+
+
 	bool cont;
 	do {
 
-		char c=iter.getNext();
 		while (isspace(c)) c= iter.getNext();
 		if (c != '"') throw ParseError_t(THISLOCATION,ConstStrA());
 		parseRawString();
@@ -132,11 +134,11 @@ PNode Parser<T>::parseObject(INode *container) {
 		name.clear();
 		bool rep;
 		do {
-			char e = iter.getNext();
-			switch (e) {
-			case ',': rep = false; cont = true;break;
+			c = iter.getNext();
+			switch (c) {
+			case ',': rep = false; cont = true;c = iter.getNext();break;
 			case '}': rep = false; cont = false;break;
-			default: if (isspace(e)) rep = true;
+			default: if (isspace(c)) rep = true;
 					else throw ParseError_t(THISLOCATION,name);
 			}
 		}while (rep);
@@ -151,6 +153,15 @@ PNode Parser<T>::parseArray(INode *container) {
 	Value arr = container;
 
 	natural i = 0;
+
+	char c=iter.peek();
+	if (isspace(c)) {iter.skip();c = iter.peek();}
+	///empty array can be there
+	if (c == ']') {
+		iter.skip();
+		return arr;
+	}
+
 
 	bool cont;
 	do {

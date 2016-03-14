@@ -77,6 +77,12 @@ namespace LightSpeed {
 
 			///constructor
 			Entity(const Key &key, const Value &value):key(key),value(value) {}
+#if __cplusplus >= 201103L
+			Entity(Key &&key, Value &&value):key(std::move(key)),value(std::move(value)) {}
+			Entity(Entity &&x):key(std::move(x.key)),value(std::move(x.value)) {}
+			Entity(const Entity &x):key(x.key),value(x.value) {}
+#endif
+
 
 			template<typename Archive>
 			void serialize(Archive &arch) {
@@ -132,6 +138,13 @@ namespace LightSpeed {
 		Iterator insert(const Key &key, const Value &value, bool *exist = 0) {
 			return tree.insert(Entity(key,value),exist);
 		}
+
+#if __cplusplus >= 201103L
+		Iterator insert(Key &&key,Value &&value, bool *exist = 0) {
+			return tree.insert(Entity(std::move(key),std::move(value)),exist);
+		}
+#endif
+
 
 		///Erases the key and value
 		bool erase(const Key &key) {

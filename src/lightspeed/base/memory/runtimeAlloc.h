@@ -11,6 +11,7 @@
 #pragma once
 
 #include <typeinfo>
+#include <utility>
 #include "../types.h"
 #include "../exceptions/throws.h"
 #include "../meta/isDynamic.h"
@@ -75,6 +76,7 @@ namespace LightSpeed {
 		 *
 		 *
 		 */
+
 		template<typename T>
 		T *createInstance(const T &obj)  {
 			natural s = sizeof(T);
@@ -90,6 +92,7 @@ namespace LightSpeed {
 				throw;
 			}
 		}
+
 
 		template<typename T, typename U>
 		T *createInstanceUsing(const U &obj)  {
@@ -107,6 +110,24 @@ namespace LightSpeed {
 			}
 		}
 
+#if __cplusplus >= 201103L
+
+		template<typename T, typename U>
+		T *createInstanceUsing(U &&obj)  {
+			natural s = sizeof(T);
+			void *p = alloc(s);
+			try {
+				return new(p) T(std::move(obj));
+			} catch (...) {
+				try {
+					dealloc(p,s);
+				} catch (...) {
+
+				}
+				throw;
+			}
+		}
+#endif
 		///Deletes instance using IRuntimeAlloc
 		/**
 		 * @param inst pointer to instance created by createInstance.

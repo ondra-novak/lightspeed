@@ -124,7 +124,6 @@ INode *Object::enableMTAccess()
 	RefCntObj::enableMTAccess();
 	for (FieldMap_t::Iterator iter = fields.getFwIter(); iter.hasItems();) {
 		const FieldMap_t::Entity &e = iter.getNext();
-		e.key.getMT();
 		e.value->enableMTAccess();
 	}
 	return this;
@@ -841,7 +840,6 @@ Value FactoryCommon::newValue(bool v) {
 	} else {
 		if (sharedFalse == nil) sharedFalse.setIfNullDeleteOtherwiseAtomic(new Bool(false));
 		return sharedFalse;
-
 	}
 }
 ///Creates JSON string
@@ -913,6 +911,7 @@ bool SingleCharacter::operator==(const INode &other) const {
 	if (other.isUtf8()) return ConstStrA(x) == other.getStringUtf8();
 	else return ConstStrW(x) == other.getString();
 }
+
 
 } 
 

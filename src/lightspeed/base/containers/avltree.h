@@ -29,6 +29,9 @@ namespace LightSpeed {
 		class DataNode {
 		public:
 			DataNode(const T &data):data(data) {}
+#if __cplusplus >= 201103L
+			DataNode(T &&data):data(std::move(data)) {}
+#endif
 			const T &getData() const {return data;}
 			T &getData() {return data;}
 		protected:
@@ -39,6 +42,10 @@ namespace LightSpeed {
 		class Node:  public AvlTreeNode<Traits>,public DataNode {
 		public:
 			Node(const T &data):DataNode(data) {}
+#if __cplusplus >= 201103L
+			Node(T &&data):DataNode(std::move(data)) {}
+#endif
+
 
 		public:
 			///Converts T to Node usable for search
@@ -164,14 +171,8 @@ namespace LightSpeed {
 			return WriteIterator(*this);
 		}
 
-		///Adds value into tree
-		/**
-		 * @param value new value
-		 * @param exist optional argument is set to true, if item is already in
-		 *   the tree.
-		 * @return iterator, where item has been placed
-		 */
-		Iterator insert(const T &value, bool *exist = 0) {
+
+		private:
 			class AutoRemove {
 			public:
 				AutoRemove(Node *k, bool *ex, IRuntimeAlloc *fact)
@@ -184,7 +185,17 @@ namespace LightSpeed {
 				bool *ex;
 				IRuntimeAlloc *fact;
 			};
+		public:
 
+
+		///Adds value into tree
+		/**
+		 * @param value new value
+		 * @param exist optional argument is set to true, if item is already in
+		 *   the tree.
+		 * @return iterator, where item has been placed
+		 */
+		Iterator insert(const T &value, bool *exist = 0) {
 			bool ex;
 			if (exist == 0) exist = &ex;
 			Node *k = allocFactory->createInstanceUsing<Node,T>(value);
@@ -193,6 +204,24 @@ namespace LightSpeed {
 			return insert(k,exist);
 		}
 
+#if __cplusplus >= 201103L
+
+		///Adds value into tree
+		/**
+		 * @param value new value
+		 * @param exist optional argument is set to true, if item is already in
+		 *   the tree.
+		 * @return iterator, where item has been placed
+		 */
+		Iterator insert(T &&value, bool *exist = 0) {
+			bool ex;
+			if (exist == 0) exist = &ex;
+			Node *k = allocFactory->createInstanceUsing<Node,T>(std::move(value));
+			*exist = true;
+			AutoRemove z(k,exist,allocFactory);
+			return insert(k,exist);
+		}
+#endif
 
 		///Adds node created outside of tree
 		/**
