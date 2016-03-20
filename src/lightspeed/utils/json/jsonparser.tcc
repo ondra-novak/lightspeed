@@ -108,7 +108,7 @@ PNode Parser<T>::parseObject(INode *container) {
 	Value obj = container;
 
 	char c=iter.getNext();
-	if (isspace(c)) c = iter.getNext();
+	while (isspace(c)) c = iter.getNext();
 	///empty object can be there
 	if (c == '}') return obj;
 
@@ -155,7 +155,7 @@ PNode Parser<T>::parseArray(INode *container) {
 	natural i = 0;
 
 	char c=iter.peek();
-	if (isspace(c)) {iter.skip();c = iter.peek();}
+	while (isspace(c)) {iter.skip();c = iter.peek();}
 	///empty array can be there
 	if (c == ']') {
 		iter.skip();
