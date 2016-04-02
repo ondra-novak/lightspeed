@@ -14,7 +14,7 @@ class Timeout;
 	 *
 	 * @tparam Socket type of socket
 	 *
-	 * @note objects inplementing this interface are not requered to be MT safe. Just only function
+	 * @note objects implementing this interface are not required to be MT safe. Just only function
 	 * wakeUp must allow MT Safety, so other threads can call it without harming the internals
 	 */
 	template<typename Socket>
