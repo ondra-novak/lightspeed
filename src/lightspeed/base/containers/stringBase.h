@@ -9,7 +9,6 @@
 namespace LightSpeed {
 
 
-	template<typename T>
 	class StringBufferHdrBase: public RefCntObj {
 	protected:
 		IRuntimeAlloc *alloc;
@@ -30,7 +29,7 @@ namespace LightSpeed {
 	 *
 	 */
 	template<typename T>
-	class StringBufferHdr: public StringBufferHdrBase<T> {
+	class StringBufferHdr: public StringBufferHdrBase {
 	protected:
 		///this is not alocated - useful only for peek string in the debbugger
 		T stringData[1000];
@@ -46,7 +45,7 @@ namespace LightSpeed {
 		{
 			natural needSz = calcSize(charCount);
 			IRuntimeAlloc *owner;
-			StringBufferHdr *hdr = static_cast<StringBufferHdr *>(new(alloc.alloc(needSz,owner)) StringBufferHdrBase<T>);
+			StringBufferHdr *hdr = static_cast<StringBufferHdr *>(new(alloc.alloc(needSz,owner)) StringBufferHdrBase);
 			hdr->alloc = owner;
 			hdr->charCount = charCount;
 			hdr->initCount = 0;
@@ -57,7 +56,8 @@ namespace LightSpeed {
 		{
 			natural needSz=calcSize(hdr->charCount);
 			IRuntimeAlloc *owner = hdr->alloc;
-			hdr->~StringBufferHdr();
+			StringBufferHdrBase *base = hdr;
+			base->~StringBufferHdrBase();
 			owner->dealloc(hdr,needSz);
 		}
 
@@ -79,7 +79,7 @@ namespace LightSpeed {
 
 		static natural calcSize( natural charCount ) 
 		{
-			return sizeof(StringBufferHdrBase<T>)+charCount * sizeof(T);
+			return sizeof(StringBufferHdrBase)+charCount * sizeof(T);
 		}
 
 		StringBufferHdr *resizeStringBuffer(natural newCharCount) {
