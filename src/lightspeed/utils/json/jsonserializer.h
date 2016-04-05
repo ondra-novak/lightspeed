@@ -46,6 +46,10 @@ public:
 	template<typename X>
 	static void writeChar(X c, IWriteIterator<char, T> & iter);
 
+	void serializeString(ConstStrA str);
+	void serializeString(ConstStrW str);
+	void serializeStringEscUTF(ConstStrA str);
+
 
 
 protected:
@@ -53,10 +57,7 @@ protected:
 	void serializeBool(const INode *json);
 	void serializeDeleted(const INode *);
 	void serializeNull(const INode *);
-	void serializeString(ConstStrA str);
-	void serializeString(ConstStrW str);
 
-	void serializeStringEscUTF(ConstStrA str);
 	void serializeObjectNode(const NodeInfo &n);
 	void serializeObject(const INode *json);
 	void serializeString(const INode *json);

@@ -33,7 +33,7 @@ namespace LightSpeed {
 	public:
 
 		Optional():engaged(false) {}
-		explicit Optional(const T &val) {
+		Optional(const T &val) {
 			construct(val);
 			engaged = true;
 		}

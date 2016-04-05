@@ -208,16 +208,19 @@ namespace LightSpeed {
 
 
 		static TimeStamp intervalMSec(natural msec) {
-			return TimeStamp(0,msec);
+			return TimeStamp(msec/dayMillis,msec%dayMillis);
 		}
 		static TimeStamp intervalSec(natural sec) {
-			return TimeStamp(0,sec*timeResolution);
+			return TimeStamp(sec/daySecs,(sec % daySecs)*timeResolution);
 		}
 		static TimeStamp intervalMin(natural min)  {
-			return TimeStamp(0,min*timeResolution*60);
+			return TimeStamp(min/144,(min%144)*timeResolution*60);
 		}
 		static TimeStamp intervalHour(natural hour){
-			return TimeStamp(0,hour*timeResolution*60*60);
+			return TimeStamp(hour/24,(hour % 24)*timeResolution*60*60);
+		}
+		static TimeStamp intervalDay(natural day){
+			return TimeStamp(day,0);
 		}
 
 		time_t asUnix() const {return ((time_t)day * daySecs) + (time / timeResolution);}

@@ -14,7 +14,7 @@
 namespace LightSpeed {
 
 	
-    template<class T >
+    template<class T, class Allocator = StdAlloc >
     class Stack
     {
     public:
@@ -34,7 +34,7 @@ namespace LightSpeed {
 		natural length() const {return deque.length();}
 
     protected:
-        Deque<T> deque;
+        Deque<T,Allocator > deque;
     };
 
 } // namespace LightSpeed
