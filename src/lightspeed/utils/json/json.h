@@ -452,7 +452,7 @@ namespace LightSpeed {
 			 *
 			 * @param from source object
 			 */
-			INode *copy(Value from) {
+			INode *copy(const INode *from) {
 				for (JSON::Iterator iter = from->getFwIter(); iter.hasItems();) add(iter.getNext());
 				return this;
 			}
