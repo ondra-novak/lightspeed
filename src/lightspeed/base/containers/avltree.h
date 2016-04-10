@@ -88,6 +88,14 @@ namespace LightSpeed {
 				return nd;
 			}
 
+			const Node *getNode(natural depth) const {
+				return nditer.getNode(depth);
+			}
+
+			natural getMaxDepth() const {
+				return nditer.getMaxDepth();
+			}
+
 			typename Node::Iterator &getNodeIterator() {return nditer;}
 			const typename Node::Iterator &getNodeIterator() const {return nditer;}
 		protected:
@@ -105,7 +113,7 @@ namespace LightSpeed {
 			AVLTree &owner;
 		};
 
-		AVLTree():tree(0),allocFactory(createDefaultNodeAllocator()),count(0) {}
+		AVLTree():tree(0),allocFactory(createDefaultNodeAllocator()),cmpOper((Cmp())),count(0) {}
 		AVLTree(const Cmp &cmp, NodeAlloc alloc)
 			:tree(0),allocFactory(alloc),cmpOper(cmp),count(0) {}
 		AVLTree(const Cmp &cmp)
@@ -315,7 +323,7 @@ namespace LightSpeed {
 		Node *remove(Iterator &iter) {
 			bool done = false;
 			Node *nd = iter.peekNode();
-			typename AvlTreeNode<Traits>::Iterator &nditer = iter.getNodeIterator();
+			typename Node::Iterator &nditer = iter.getNodeIterator();
 			tree = static_cast<Node *>(tree->remove(nditer,done));
 			iter = Iterator(cmpOper,tree,nd,iter.getDir());
 			count--;
@@ -391,6 +399,9 @@ namespace LightSpeed {
 			std::swap(cmpOper,other.cmpOper);
 			std::swap(count,other.count);
 		}
+
+	const Cmp &getCompareOperator() const {return cmpOper;}
+
 
 	protected:
 		Node *tree;

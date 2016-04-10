@@ -167,6 +167,18 @@ public:
 		 */
 		natural getPosition() const;
 
+		///returns depth of iterator - depth in tree structure
+		natural getMaxDepth() const;
+
+		///Retrieves node at given depth
+		/**
+		 * Use this to explore nodes in the way to the selected item
+		 *
+		 * @param depth depth must be between 0 and getMaxDepth()
+		 * @return node at given depth
+		 */
+		const AvlTreeNode *getNode(natural depth) const;
+
 	protected:
 		static const natural maxPathLen = 64;
 		PNode path[maxPathLen]; //should be enough 2^64 nodes
@@ -363,6 +375,7 @@ public:
 		}
 		//update root
 		link(dir) = nd;
+		//make whole path from down to the top dirty
 		dirty = true;
 
 		if (pathStore) *pathStore = nd;
@@ -426,7 +439,9 @@ public:
 		}
 
 		link(dir) = link(dir)->remove(cmp,toDel,done,removedNode);
+		//make whole path from down to the top dirty
 		dirty = true;
+
 		return balanceAfterRemove(this,done,dir);
 	}
 

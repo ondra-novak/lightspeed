@@ -57,6 +57,18 @@ Direction::Type AvlTreeNode<T, LinkT>::Iterator::getDir() const {
 }
 
 template<typename T, typename LinkT>
+natural AvlTreeNode<T, LinkT>::Iterator::getMaxDepth() const {
+	return pathlen;
+}
+
+template<typename T, typename LinkT>
+const AvlTreeNode<T, LinkT> *AvlTreeNode<T, LinkT>::Iterator::getNode(natural depth) const {
+	return path[depth];
+}
+
+
+
+template<typename T, typename LinkT>
 const typename AvlTreeNode<T, LinkT>::PNode &AvlTreeNode<T, LinkT>::Iterator::peek() const {
 	if (!hasItems()) throwIteratorNoMoreItems(THISLOCATION, typeid(PNode));
 	return retNode = getCurNode();
