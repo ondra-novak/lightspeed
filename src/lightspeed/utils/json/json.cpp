@@ -25,8 +25,11 @@ static Value sharedNull, sharedTrue, sharedFalse, sharedZero, sharedDelete, shar
 
 
 INode *Object::getVariable(ConstStrA var) const {
-	const PNode *x = fields.find(var);
-	if (x) return *x; else return 0;
+
+	FieldNode f((Field(var, null) ));
+
+	const FieldNode *x = fields.find(f);
+	if (x) return x->data.value; else return 0;
 }
 
 class StrKeyA2: public IKey {
@@ -50,23 +53,26 @@ protected:
 
 bool Object::enumEntries(const IEntryEnum &fn) const {
 	StrKeyA2 kk;
-	for (FieldMap_t::Iterator iter = fields.getFwIter();iter.hasItems();) {
-		const FieldMap_t::Entity &e = iter.getNext();
-		kk = StrKeyA2(e.key);
-		if (fn(*e.value.get(),kk)) return true;
+	for (FieldMap::Iterator iter = fields.getFwIter();iter.hasItems();) {
+		const FieldNode *e = iter.getNext();
+		kk = StrKeyA2(e->data.key);
+		if (fn(*e->data.value,kk)) return true;
 	}
 	return false;
 }
 
-void Object::insertField(const StringA &name, PNode nd) {
-	if (isMTAccessEnabled()) fields.insert(name,nd.getMT());
-	else fields.insert(name,nd);
+void Object::insertField(ConstStrA name, PNode nd) {
+	Value v = isMTAccessEnabled()?nd.getMT():nd;
+
+	ConstStrA out;
+	FieldNode *item = new(name, out) FieldNodeNew(Field(out, nd));
+	fields.insert(item);
 }
 
 INode *Object::add(PNode nd) {
 	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
-	natural l = fields.length();
+	natural l = fields.size();
 	TextFormatBuff<char,StaticAlloc<50> > fmt;
 	fmt("unnamed%l") << l;
 	return add(StringA(fmt.write()),nd);
@@ -81,9 +87,9 @@ INode *Object::add(ConstStrA name, PNode nd) {
 
 INode *Object::clone(PFactory factory) const {
 	PNode r = factory->newClass();
-	for (FieldMap_t::Iterator iter = fields.getFwIter();iter.hasItems();) {
-		const FieldMap_t::Entity &e = iter.getNext();
-		r->add(e.key,e.value->clone(factory));
+	for (FieldMap::Iterator iter = fields.getFwIter();iter.hasItems();) {
+		const FieldNode *e = iter.getNext();
+		r->add(e->data.key,e->data.value->clone(factory));
 	}
 	return r.detach();
 }
@@ -91,31 +97,40 @@ INode *Object::clone(PFactory factory) const {
 bool Object::operator==(const INode &other) const {
 	const Object *k = dynamic_cast<const Object *>(&other);
 	if (k == 0) return false;
-	if (fields.length() != k->fields.length()) return false;
-	for (FieldMap_t::Iterator iter = fields.getFwIter(),iter2 =k->fields.getFwIter();
+	if (fields.size() != k->fields.size()) return false;
+	for (FieldMap::Iterator iter = fields.getFwIter(),iter2 =k->fields.getFwIter();
 		iter.hasItems();) {
-		const FieldMap_t::Entity &e1 = iter.getNext();
-		const FieldMap_t::Entity &e2 = iter2.getNext();
-		if (e1.key != e2.key || (*e1.value) != (*e2.value)) return false;
+		const FieldNode *e1 = iter.getNext();
+		const FieldNode *e2 = iter2.getNext();
+		if (e1->data.key != e2->data.key || (e1->data.value) != (e2->data.value)) return false;
 	}
 	return true;
 }
 
 INode *Object::replace(ConstStrA name, Value newValue, Value *prevValue ) {
 	bool found;
-	FieldMap_t::Iterator iter = fields.seek(name,&found);
+	FieldNode search(Field(name, null));
+	FieldMap::Iterator iter = fields.seek(search,Direction::forward,&found);
 	Value prev;
 	if (!found) {
 		add(name,newValue);
 	} else {
-		const FieldMap_t::Entity &e = iter.peek();
-		prev = e.value;
-		e.value = newValue;
+		const FieldNode *e = iter.peek();
+		prev = e->data.value;
+		e->data.value = newValue;
 	}
 	if (prevValue) *prevValue = prev;
 	return this;
 }
-INode *Object::clear() {fields.clear();return this;}
+
+void Object::releaseNode(FieldNode *x) {
+	delete static_cast<FieldNodeNew *>(x);
+}
+
+INode *Object::clear() {
+	fields.clear(releaseNode);
+	return this;
+}
 
 
 
@@ -123,12 +138,49 @@ INode *Object::clear() {fields.clear();return this;}
 INode *Object::enableMTAccess()
 {
 	RefCntObj::enableMTAccess();
-	for (FieldMap_t::Iterator iter = fields.getFwIter(); iter.hasItems();) {
-		const FieldMap_t::Entity &e = iter.getNext();
-		e.value->enableMTAccess();
+	for (FieldMap::Iterator iter = fields.getFwIter(); iter.hasItems();) {
+		const FieldNode *e = iter.getNext();
+		e->data.value->enableMTAccess();
 	}
 	return this;
 }
+
+Object::Object() {
+
+}
+
+Object::~Object() {
+	clear();
+}
+
+void *Object::FieldNodeNew::operator new( size_t objSize, ConstStrA str, ConstStrA &stored) {
+	size_t total = objSize + str.length();
+	void *r = ::operator new(total);
+	char *c = reinterpret_cast<char *>(r) + objSize;
+	memcpy(c, str.data(), str.length());
+	stored = ConstStrA(c,str.length());
+	return r;
+}
+void Object::FieldNodeNew::operator delete(void *ptr, ConstStrA , ConstStrA &) {
+	::operator delete(ptr);
+}
+void Object::FieldNodeNew::operator delete(void *ptr, size_t ) {
+	::operator delete(ptr);
+}
+
+bool Object::CompareItems::operator ()(const FieldNode *a, const FieldNode *b) const {
+	return a->data.key < b->data.key;
+}
+
+INode * Object::erase(ConstStrA name) {
+	FieldNode search(Field(name,null));
+	FieldNode *out = fields.remove(search);
+	if (out != 0) {
+		releaseNode(out);
+	}
+	return this;
+}
+
 
 Array::Array() {}
 Array::Array(ConstStringT<Value> v) {
@@ -636,21 +688,21 @@ Iterator Object::getFwIter() const {
 
 	class Iter: public Iterator::IIntIter, public DynObject {
 	public:
-		Iter(const FieldMap_t &mp):iter(mp.getFwIter()) {}
+		Iter(const FieldMap &mp):iter(mp.getFwIter()) {}
 
 		virtual bool hasItems() const {return iter.hasItems();}
 		virtual bool getNext(NodeInfo &nfo) {
-			const FieldMap_t::Entity &e = iter.getNext();
-			k = e.key;
+			const FieldNode *e = iter.getNext();
+			k = e->data.key;
 			nfo.key = &k;
-			nfo.node = e.value;
+			nfo.node = e->data.value;
 			return iter.hasItems();
 		}
 		virtual bool peek(NodeInfo &nfo) const {
-			const FieldMap_t::Entity &e = iter.peek();
-			k = e.key;
+			const FieldNode *e = iter.peek();
+			k = e->data.key;
 			nfo.key = &k;
-			nfo.node = e.value;
+			nfo.node = e->data.value;
 			return iter.hasItems();
 		}
 		virtual IIntIter *clone(IRuntimeAlloc &alloc) const {
@@ -658,7 +710,7 @@ Iterator Object::getFwIter() const {
 		}
 
 	protected:
-		FieldMap_t::Iterator iter;
+		FieldMap::Iterator iter;
 		mutable StrKeyA2 k;
 	};
 
