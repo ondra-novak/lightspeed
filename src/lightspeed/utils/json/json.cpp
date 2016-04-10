@@ -1,4 +1,5 @@
 #include "../../base/containers/string.h"
+#include "../../base/containers/map.tcc"
 #include "../../base/exceptions/invalidParamException.h"
 #include "../../base/text/textFormat.tcc"
 #include "../../mt/atomic.h"

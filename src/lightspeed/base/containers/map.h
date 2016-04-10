@@ -68,7 +68,7 @@ namespace LightSpeed {
 		 *
 		 */
 
-		struct Entity
+		struct KeyValue
 		{
 			///key cannot be changed
 			const Key key;
@@ -76,11 +76,11 @@ namespace LightSpeed {
 			mutable Value value;
 
 			///constructor
-			Entity(const Key &key, const Value &value):key(key),value(value) {}
+			KeyValue(const Key &key, const Value &value):key(key),value(value) {}
 #if __cplusplus >= 201103L
-			Entity(Key &&key, Value &&value):key(std::move(key)),value(std::move(value)) {}
-			Entity(Entity &&x):key(std::move(x.key)),value(std::move(x.value)) {}
-			Entity(const Entity &x):key(x.key),value(x.value) {}
+			KeyValue(Key &&key, Value &&value):key(std::move(key)),value(std::move(value)) {}
+			KeyValue(KeyValue &&x):key(std::move(x.key)),value(std::move(x.value)) {}
+			KeyValue(const KeyValue &x):key(x.key),value(x.value) {}
 #endif
 
 
@@ -91,19 +91,21 @@ namespace LightSpeed {
 			}
 		};
 
+		typedef KeyValue Entity;
+
 	protected:
 
 
 		struct CmpData {
 			Cmp cmp;
 
-			bool operator()(const Entity &a, const Entity &b) const {
+			bool operator()(const KeyValue &a, const KeyValue &b) const {
 				return cmp(a.key,b.key);
 			}
 			CmpData(const Cmp &cmp):cmp(cmp) {}
 		};
 
-		typedef AVLTree<Entity,CmpData> Tree;
+		typedef AVLTree<KeyValue,CmpData> Tree;
 
 	public:
 
@@ -136,19 +138,19 @@ namespace LightSpeed {
 		 * @note if key already exist, function will not replace the value
 		 */
 		Iterator insert(const Key &key, const Value &value, bool *exist = 0) {
-			return tree.insert(Entity(key,value),exist);
+			return tree.insert(KeyValue(key,value),exist);
 		}
 
 #if __cplusplus >= 201103L
 		Iterator insert(Key &&key,Value &&value, bool *exist = 0) {
-			return tree.insert(Entity(std::move(key),std::move(value)),exist);
+			return tree.insert(KeyValue(std::move(key),std::move(value)),exist);
 		}
 #endif
 
 
 		///Erases the key and value
 		bool erase(const Key &key) {
-			const Entity &e = reinterpret_cast<const Entity &>(key);
+			const KeyValue &e = reinterpret_cast<const KeyValue &>(key);
 			return tree.erase(e);
 		}
 
@@ -158,14 +160,14 @@ namespace LightSpeed {
 		 * @return returns pointer to value, or NULL, if not exist
 		 */
 		const Value *find(const Key &key) const {
-			const Entity &e = reinterpret_cast<const Entity &>(key);
-			const Entity *res = tree.find(e);
+			const KeyValue &e = reinterpret_cast<const KeyValue &>(key);
+			const KeyValue *res = tree.find(e);
 			return res?&res->value:0;
 		}
 
 		Value *find(const Key &key)  {
-			const Entity &e = reinterpret_cast<const Entity &>(key);
-			const Entity *res = tree.find(e);
+			const KeyValue &e = reinterpret_cast<const KeyValue &>(key);
+			const KeyValue *res = tree.find(e);
 			return res?&res->value:0;
 		}
 
@@ -179,7 +181,7 @@ namespace LightSpeed {
 		 * @return iterator that refers the found item
 		 */
 		Iterator seek(const Key &key, bool *found = 0) const {
-			const Entity &e = reinterpret_cast<const Entity &>(key);
+			const KeyValue &e = reinterpret_cast<const KeyValue &>(key);
 			return tree.seek(e,found);
 		}
 
@@ -235,7 +237,7 @@ namespace LightSpeed {
 
 		///loads data into the container
 		template<typename K>
-		void insert(IIterator<Entity,K> &in) {
+		void insert(IIterator<KeyValue,K> &in) {
 			while (in.hasItems()) tree.insert(in.getNext());
 		}
 
@@ -260,7 +262,7 @@ namespace LightSpeed {
 			if (arch.storing()) {
 				Iterator x = getFwIter();
 				while (x.hasItems() && arr.next()) {
-					const Entity &e = x.getNext();
+					const KeyValue &e = x.getNext();
 					arch << e.key;
 					arch << e.value;
 				}
@@ -281,13 +283,13 @@ namespace LightSpeed {
 		Map operator+(const Map &other) const {
 			return Map(*this,other,include);
 		}
-		Map operator+(const Entity &item) const {
+		Map operator+(const KeyValue &item) const {
 			return Map(*this,item,include);
 		}
 		Map operator-(const Map &other) const {
 			return Map(*this,other,exclude);
 		}
-		Map operator-(const Entity &item) const{
+		Map operator-(const KeyValue &item) const{
 			return Map(*this,item,exclude);
 		}
 		Map &operator+=(const Map &other) {
@@ -295,7 +297,7 @@ namespace LightSpeed {
 				(*this) += iter.getNext();
 			return *this;
 		}
-		Map &operator+=(const Entity &item) {
+		Map &operator+=(const KeyValue &item) {
 			insert(item.key,item.value);			
 			return *this;
 		}
@@ -304,7 +306,7 @@ namespace LightSpeed {
 				(*this) -= iter.getNext();
 			return *this;
 		}
-		Map &operator-=(const Entity &item) {
+		Map &operator-=(const KeyValue &item) {
 			erase(item.key);
 			return *this;
 		}
@@ -314,8 +316,8 @@ namespace LightSpeed {
 			Iterator iter2 = other.getFwIter();
 
 			while(iter1.hasItems() && iter2.hasItems()) {
-				const Entity &a = iter1.getNext();
-				const Entity &b = iter2.getNext();
+				const KeyValue &a = iter1.getNext();
+				const KeyValue &b = iter2.getNext();
 				if (tree.cmpOper(a.key,b.key)) return cmpResultLess;
 				if (tree.cmpOper(b.key,a.key)) return cmpResultGreater;
 			}
@@ -340,11 +342,11 @@ namespace LightSpeed {
 			(*this)+=other;
 			(*this)+=other2;
 		}
-		Map(const Map &other, const Entity &other2, Exclude ) {
+		Map(const Map &other, const KeyValue &other2, Exclude ) {
 			(*this)-=other;
 			(*this)-=other2;
 		}
-		Map(const Map &other, const Entity &other2, Include ) {
+		Map(const Map &other, const KeyValue &other2, Include ) {
 			(*this)+=other;
 			(*this)+=other2;
 		}
@@ -372,7 +374,7 @@ namespace LightSpeed {
 
 		typedef typename Super::Iterator MapIter; ///< obsolette
 		typedef typename Super::Iterator KeyIter;
-		typedef typename Super::Entity KeyEntity;
+		typedef typename Super::KeyValue KeyKeyValue;
 		typedef typename ValueList::Iterator ListIter;
 
 
@@ -398,21 +400,24 @@ namespace LightSpeed {
 
 		///This structure is used in the iterator.
 		/**
-		 * This entity is virtual, in fact keys and values are stored
+		 * This KeyValue is virtual, in fact keys and values are stored
 		 * separately. While processing items using iterator, each item
-		 * with the same key is returned as standalone entity containing
+		 * with the same key is returned as standalone KeyValue containing
 		 * key same for these values and different value for each item.
 		 *
 		 * This allows to use MultiMap as replacement of Map and vice versa
 		 */
-		struct Entity {
+		struct KeyValue {
 			const Key &key;
 			 Value &value;
 
-			Entity(const Key &key,
+			 KeyValue(const Key &key,
 				   Value &value):key(key),value(value) {}
 
 		};
+
+		///Backward compatibility
+		typedef KeyValue Entity;
 
 		///Iterator
 		/** iterates through structure
@@ -422,7 +427,7 @@ namespace LightSpeed {
 		 * keys appears in backward order, but values under keys are
 		 * processed in order of inserting for both directions.
 		 */
-		class Iterator: public IteratorBase<Entity, Iterator> {
+		class Iterator: public IteratorBase<KeyValue, Iterator> {
 		public:
 
 			friend class MultiMap;
@@ -436,16 +441,16 @@ namespace LightSpeed {
 							 mapIter.peek().value.getFwIter():ListIter(0)) {}
 
 			bool hasItems() const {return mapIter.hasItems();}
-			const Entity &getNext(){
-				const Entity &out = getEntity(mapIter.peek().key,
+			const KeyValue &getNext(){
+				const KeyValue &out = getKeyValue(mapIter.peek().key,
 							const_cast<Value &>(listIter.peek()));
 				listIter.skip();
 				adjustAfterSkip();
 				return out;
 			}
 
-			const Entity &peek() const {
-				return getEntity(mapIter.peek().key,
+			const KeyValue &peek() const {
+				return getKeyValue(mapIter.peek().key,
 						const_cast<Value &>(listIter.peek()));
 			}
 			bool equalTo(const Iterator &iter) const {
@@ -469,10 +474,10 @@ namespace LightSpeed {
 		protected:
 			MapIter mapIter;
 			ListIter listIter;
-			mutable byte item[sizeof(Entity)];
+			mutable byte item[sizeof(KeyValue)];
 
-			const Entity &getEntity(const Key &key,  Value &value) const  {
-				return *(new(reinterpret_cast<void *>(item)) Entity(key,value));
+			const KeyValue &getKeyValue(const Key &key,  Value &value) const  {
+				return *(new(reinterpret_cast<void *>(item)) KeyValue(key,value));
 			}
 
 			void adjustAfterSkip() {
@@ -574,9 +579,9 @@ namespace LightSpeed {
 
 
 		template<typename K>
-		void insert(IIterator<Entity,K> &in) {
+		void insert(IIterator<KeyValue,K> &in) {
 			while (in.hasItems()) {
-				const Entity &e = in.getNext();
+				const KeyValue &e = in.getNext();
 				Super::insert(e.key,e.value);
 			}
 		}

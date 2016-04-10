@@ -16,7 +16,7 @@ namespace LightSpeed {
 	 * overhead.
 	 */
 	class AllocCluster: public IRuntimeAlloc, 
-						public AvlTreeNode<> {
+						public AvlTreeNode<char> {
 	public:
 
 		virtual natural getObjectSize() const {return owner->getObjectSize();}
@@ -153,9 +153,9 @@ namespace LightSpeed {
 	};
 
 
-	 class AllocMulticlusterNode: public AvlTreeNode<> {
+	 class AllocMulticlusterNode: public AvlTreeNode<char> {
 	 public:
-		 AllocMulticlusterNode(natural bkSize):bkSize(bkSize) {}
+		 AllocMulticlusterNode(natural bkSize):AvlTreeNode<char>(0), bkSize(bkSize) {}
 		 natural getBlockSize() const {return bkSize;}
 	 protected:
 		natural bkSize;
@@ -195,7 +195,7 @@ namespace LightSpeed {
 		LIGHTSPEED_CLONEABLECLASS;
 	protected:
 		struct PtrNodeCmp {
-			bool operator()(const AvlTreeNode<> *a, const AvlTreeNode<> *b) const;
+			bool operator()(const AvlTreeNode<char> *a, const AvlTreeNode<char> *b) const;
 		};
 
 		virtual void onDealloc(AllocCluster *cluster, bool wasFull) ;
@@ -205,7 +205,7 @@ namespace LightSpeed {
 		void checkEmpty(AllocCluster *k);
 
 			///tree of all clusters ordered by its address
-		AvlTreeBasic<PtrNodeCmp> allClusters;
+		AvlTreeBasic<PtrNodeCmp, char> allClusters;
 			///linked list of cluster where is at least one empty space
 		Pointer<AllocCluster> freeClusters;
 
@@ -258,15 +258,15 @@ namespace LightSpeed {
 	protected:
 
 		struct McCmp {
-			bool operator()(const AvlTreeNode<> *a, const AvlTreeNode<> *b) const;
+			bool operator()(const AvlTreeNode<char> *a, const AvlTreeNode<char> *b) const;
 		};
 
 		IRuntimeAlloc &rtalloc;
-		AvlTreeBasic<McCmp> tree;		
+		AvlTreeBasic<McCmp,char> tree;
 
 	private:
 		ClusterAlloc &operator=(ClusterAlloc &other);
-		static void treeEraser(AvlTreeNode<> *nd);
+		static void treeEraser(AvlTreeNode<char> *nd);
 	};
 
 

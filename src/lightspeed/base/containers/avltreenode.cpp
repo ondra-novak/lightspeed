@@ -8,6 +8,6 @@
 #include "avltreenode.tcc"
 
 namespace LightSpeed {
-template class AvlTreeNode<>;
+template class AvlTreeNode<char,  AvlTreeNodeTraits<char> >;
 }
 

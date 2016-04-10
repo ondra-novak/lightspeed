@@ -10,6 +10,7 @@
 #include "../base/streams/fileiobuff.tcc"
 #include "../base/framework/app.h"
 #include "FilePath.tcc"
+#include "../base/containers/map.tcc"
 
 namespace LightSpeed {
 

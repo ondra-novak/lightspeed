@@ -13,6 +13,8 @@
 #include "../containers/autoArray.tcc"
 #include "../../mt/atomic.h"
 #include "../exceptions/netExceptions.h"
+#include "../containers/map.tcc"
+
 
 namespace LightSpeed {
 
