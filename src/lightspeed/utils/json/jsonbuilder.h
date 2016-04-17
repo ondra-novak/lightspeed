@@ -115,6 +115,7 @@ public:
 
 		template<typename T>
 		Object operator()(ConstStrA name, const T &value);
+		Object operator()(ConstStrA name, NullType n) {set(name, n, MFalse());return *this;};
 	protected:
 		template<typename T>
 		void append(ConstStrA name, const T &item, MTrue ) {(*this)->add(name, item);}
@@ -137,6 +138,7 @@ public:
 		Array operator,(const T &x) {return operator<<(x);}
 		template<typename T>
 		Array operator<<(const T &x);
+		Array operator<<(NullType n) {append(n,MFalse()); return *this;}
 	protected:
 		template<typename T>
 		void append(const T &item, MTrue ) {(*this)->add(item);}

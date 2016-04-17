@@ -32,32 +32,36 @@ namespace LightSpeed {
 	class Optional {
 	public:
 
-		Optional():engaged(false) {}
+		Optional():_x(0) {}
 		Optional(const T &val) {
 			construct(val);
-			engaged = true;
+			arm();
 		}
 		template<typename Impl>
 		Optional(const Constructor<T,Impl> &c) {
 			construct(c);
-			engaged = true;
+			arm();
 		}
-		Optional(NullType):engaged(false) {}
+		Optional(NullType):_x(0) {}
 		Optional(const Optional &other) {
-			if (other.engaged) construct(other.get());
-			engaged = other.engaged;
+			if (other._x) {
+				construct(other.get());
+				arm();
+			} else {
+				disarm();
+			}
 		}
 
 		~Optional() {
-			if (engaged) {
+			if (_x) {
 				destruct();
 			}
 		}
 
 
 		Optional &operator=(NullType) {
-			if (engaged) {
-				engaged = false;
+			if (_x) {
+				disarm();
 				destruct();
 			}
 			return *this;
@@ -65,12 +69,12 @@ namespace LightSpeed {
 
 		Optional &operator=(const T &val) {
 			if (&val != &get()) {
-				if (engaged) {
-					engaged = false;
+				if (_x) {
+					disarm();
 					destruct();
 				}
 				construct(val);
-				engaged = true;
+				arm();
 
 			}
 			return *this;
@@ -78,25 +82,25 @@ namespace LightSpeed {
 
 		template<typename Impl>
 		Optional &operator=(const Constructor<T,Impl> &val) {
-			if (engaged) {
-				engaged = false;
+			if (_x) {
+				disarm();
 				destruct();
 			}
 			construct(val);
-			engaged = true;
+			arm();
 
 			return *this;
 		}
 
 		Optional &operator=(const Optional &other) {
 			if (this != &other) {
-				if (engaged) {
-					engaged = false;
+				if (_x) {
+					disarm();
 					destruct();
 				}
-				if (other.engaged) {
+				if (other._x) {
 					construct(other.get());
-					engaged = true;
+					arm();
 				}
 			}
 			return *this;
@@ -106,34 +110,38 @@ namespace LightSpeed {
 #if __cplusplus >= 201103L
 		Optional &operator=(T &&val) {
 			if (&val != &get()) {
-				if (engaged) {
-					engaged = false;
+				if (_x) {
+					disarm();
 					destruct();
 				}
 				construct(std::move(val));
-				engaged = true;
+				arm();
 
 			}
 			return *this;
 		}
 		Optional(Optional &&other) {
-			if (other.engaged) construct(std::move(other.get()));
-			engaged = other.engaged;
+			if (other._x) {
+				construct(std::move(other.get()));
+				arm();
+			} else{
+				disarm();
+			}
 			other = nil;
 		}
 		Optional(T &&val) {
 			construct(std::move(val));
-			engaged = true;			
+			arm();
 		}
 		Optional &operator=(Optional &&other) {
 			if (this != &other) {
-				if (engaged) {
-					engaged = false;
+				if (_x) {
+					disarm();
 					destruct();
 				}
-				if (other.engaged) {
+				if (other._x) {
 					constuct(std::move(other.get()));
-					engaged = true;
+					arm();
 					other = nil;
 				}
 			}
@@ -143,48 +151,55 @@ namespace LightSpeed {
 #endif
 
 		operator const T &() const {
-			if (!engaged) throwNullPointerException(THISLOCATION);
+			if (!_x) throwNullPointerException(THISLOCATION);
 			return get();
 		}
 
 		operator T &() {
-			if (!engaged) throwNullPointerException(THISLOCATION);
+			if (!_x) throwNullPointerException(THISLOCATION);
 			return get();
 		}
 
 		bool operator==(NullType) const {
-			return !engaged;
+			return !_x;
 		}
 
 		bool operator!=(NullType) const {
-			return engaged;
+			return _x;
 		}
 
 		const T *operator->() const {
-			if (!engaged) throwNullPointerException(THISLOCATION);
+			if (!_x) throwNullPointerException(THISLOCATION);
 			return &get();
 		}
 
 		T *operator->() {
-			if (!engaged) throwNullPointerException(THISLOCATION);
+			if (!_x) throwNullPointerException(THISLOCATION);
 			return &get();
 		}
 
 
 	protected:
 		byte buffer[sizeof(T)];
-		bool engaged;
+		T *_x;
 
-		T &get() {
+		inline void arm() {
+			_x = &get();
+		}
+		inline void disarm() {
+			_x = 0;
+		}
+
+		inline T &get() {
 			void *buff = buffer; //need to break strict aliasing - compiler cannot optimize here
 			return *reinterpret_cast<T *>(buff);
 		}
-		const T &get() const {
+		inline const T &get() const {
 			const void *buff = buffer; //need to break strict aliasing - compiler cannot optimize here
 			return *reinterpret_cast<const T *>(buff);
 		}
 
-		void destruct() {
+		inline void destruct() {
 			get().~T();
 		}
 
