@@ -120,6 +120,10 @@ public:
 		void append(ConstStrA name, const T &item, MTrue ) {(*this)->add(name, item);}
 		template<typename T>
 		void append(ConstStrA name, const T &item, MFalse ) {(*this)->add(name, factory->newValue(item));}
+		template<typename T>
+		void set(ConstStrA name, const T &item, MTrue ) {(*this)->replace(name, item);}
+		template<typename T>
+		void set(ConstStrA name, const T &item, MFalse ) {(*this)->replace(name, factory->newValue(item));}
 
 	};
 
@@ -174,13 +178,13 @@ inline Builder::Array Builder::operator <<(const T&value) const {
 
 template<typename T>
 inline Builder::Object Builder::Object::operator ()(ConstStrA name, const T& value) {
-	append(name, value,typename MIsConvertible<T,const PNode &>::MValue());
+	set(name, value,typename MIsConvertible<T,const PNode &>::MValue());
 	return *this;
 }
 
 template<typename T>
 inline Builder::Array Builder::Array::operator <<(const T& value) {
-	append(value,typename MIsConvertible<T,const PNode &>::MValue());
+	set(value,typename MIsConvertible<T,const PNode &>::MValue());
 	return *this;
 }
 
