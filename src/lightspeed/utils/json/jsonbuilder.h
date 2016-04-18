@@ -186,7 +186,7 @@ inline Builder::Object Builder::Object::operator ()(ConstStrA name, const T& val
 
 template<typename T>
 inline Builder::Array Builder::Array::operator <<(const T& value) {
-	set(value,typename MIsConvertible<T,const PNode &>::MValue());
+	append(value,typename MIsConvertible<T,const PNode &>::MValue());
 	return *this;
 }
 
