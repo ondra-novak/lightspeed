@@ -539,9 +539,12 @@ public:
 
 	typedef typename AvlTreeNode<T, LinkT>::Iterator Iterator;
 
-	Iterator insert(AvlTreeNode<T, LinkT> *nd) {
+
+	Iterator insert(AvlTreeNode<T, LinkT> *nd, bool *exists = 0) {
 		Iterator out;
-		tree = tree->insert(order,nd,&out);
+		AvlTreeNode<T, LinkT> *x = tree->insert(order,nd,&out);
+		if (exists) *exists = x == 0;
+		if (x) tree = x;
 		return out;
 	}
 

@@ -66,7 +66,9 @@ void Object::insertField(ConstStrA name, PNode nd) {
 
 	ConstStrA out;
 	FieldNode *item = new(name, out) FieldNodeNew(Field(out, nd));
-	fields.insert(item);
+	bool exists;
+	fields.insert(item, &exists);
+	if (exists) delete item;
 }
 
 INode *Object::add(PNode nd) {
