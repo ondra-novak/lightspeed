@@ -201,6 +201,11 @@ namespace LightSpeed {
 		///Format time as database time YYYY-MM-DD HH:MM:SS
 		DBTime asDBTime() const;
 
+		typedef DBTime JSONTime;
+
+		///Format time as database time YYYY/MM/DD HH:MM:SS
+		JSONTime asJSONTime() const;
+
 		typedef CArray<char,20> ISO8601Time;
 
 		///Format time as database time YYYY-MM-DD HH:MM:SS

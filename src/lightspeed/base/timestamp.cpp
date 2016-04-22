@@ -301,6 +301,11 @@ namespace LightSpeed {
 		return formatTime(buf,"%Y-%m-%d %H:%M:%S");
 	}
 
+	TimeStamp::JSONTime TimeStamp::asJSONTime() const {
+		CArray<char,20> buf;
+		return formatTime(buf,"%Y/%m/%d %H:%M:%S");
+	}
+
 
 	TimeStamp::ISO8601Time TimeStamp::asISO8601Time() const
 	{
