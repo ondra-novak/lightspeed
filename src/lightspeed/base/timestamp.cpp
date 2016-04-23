@@ -302,8 +302,7 @@ namespace LightSpeed {
 	}
 
 	TimeStamp::JSONTime TimeStamp::asJSONTime() const {
-		CArray<char,20> buf;
-		return formatTime(buf,"%Y/%m/%d %H:%M:%S");
+		return asISO8601Time();
 	}
 
 
