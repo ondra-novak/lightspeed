@@ -89,7 +89,7 @@ protected:
 			Destructor oldDtor = dtor;
 			ptr = newptr;
 			dtor = newdtor;
-			if (oldDtor) oldDtor(ptr);
+			if (oldDtor) oldDtor(oldPtr);
 		}
 
 		bool used() const { return ptr != 0; }		

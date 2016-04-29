@@ -26,7 +26,6 @@
 
 namespace LightSpeed {
 
-static const natural flagAttached = 2;
 
 struct ThreadBootstrap {
 
@@ -61,8 +60,6 @@ public:
 
 	//owner Thread object
 	Thread *owner;
-	//pointer to current TLS table
-	ITLSTable *tlstable;
 
 
 	ThreadContext() {
@@ -107,17 +104,16 @@ public:
 		}
 	}
 	void finishThread() {
-		//clear TLS - it is better to do this now, because destructor cannot throw exceptions
-		//note - it still can throw an exception - this will be caught by outside
-		//note - thread is still running yet
-		tlstable->clear();
-		//open gate, when thread finished
 		if (owner) {
-			//reset context pointer - it is no longer available
-			writeReleasePtr<ThreadContext>(&owner->threadContext,0);
-			owner->getJoinObject().open();
-		}
-
+				//clear TLS - it is better to do this now, because destructor cannot throw exceptions
+				//note - it still can throw an exception - this will be caught by outside
+				//note - thread is still running yet
+				owner->getTls().clear();
+				//open gate, when thread finished
+				//reset context pointer - it is no longer available
+				writeReleasePtr<ThreadContext>(&owner->threadContext, 0);
+				owner->getJoinObject().open();
+			}
 	}
 protected:
 	ThreadContext(const ThreadContext &other);
@@ -179,18 +175,6 @@ void *ThreadContext::bootstrap(void * data) {
 
 	//store owner from bootstrap
 	ctx->owner = bs->owner;
-
-	//receive current state of TLS table
-	//calculate space needed
-	bksize = (TLSAllocator::getInstance().getMaxIndex() + 1) * sizeof (TLSRecord);
-	//reserve space at stack
-	bk = alloca(bksize);
-	//create allocator for AutoArray
-	InBlockAlloc bkalloc(bk,bksize);
-	//create TLS table for this thread
-	TLSTable<InBlockAlloc> tlstable(bkalloc);
-	//refer TLS table in the context
-	ctx->tlstable = &tlstable;
 
 
 	//store thread ID
@@ -329,7 +313,6 @@ void Thread::start(const IThreadFunction &fn, natural stackSize) {
 	 * it is not good practice to access TLS directly and is better to use synchronization. So you
 	 * will deal with fully constructred thread
 	 */
-	fakeContext.tlstable = &ITLSTable::getInstance();
 	fakeContext.owner = this;
 
 	///Now, try to set new context. If there is one, function fails
@@ -439,18 +422,6 @@ bool Thread::isFinishing() const throw() {
 	return (current().flags & flagFinish) != 0;
 }
 
-///retrieves reference to TLS table
-ITLSTable &Thread::getTls() {
-	if (isRunning()) return *threadContext->tlstable;
-	throw ThreadNotRunningException(THISLOCATION);
-}
-
-///retrieves reference to TLS table
-const ITLSTable &Thread::getTls() const {
-	if (isRunning()) return *threadContext->tlstable;
-	throw ThreadNotRunningException(THISLOCATION);
-}
-
 ///Retrieves reference to Gate object
 /** Gate object becomes signaled when thread finishes */
 Gate &Thread::getJoinObject() {
@@ -460,78 +431,10 @@ Gate &Thread::getJoinObject() {
 
 
 
-///MT TLS allocator
-/**
- * Allocates in TLS table, guards TLS table by lock
- */
-class MTTLSAllocator: public ITLSAllocator {
-public:
-
-    virtual natural allocIndex() {
-    	Synchronized<FastLock> _(lock);
-    	return allocator.allocIndex();
-    }
-    virtual void freeIndex(natural index) {
-    	Synchronized<FastLock> _(lock);
-    	allocator.freeIndex(index);
-
-    }
-    virtual natural getMaxIndex() const {
-    	return allocator.getMaxIndex();
-    }
-
-    MTTLSAllocator():allocator(ITLSAllocator::getInstance()) {}
-
-protected:
-    FastLock lock;
-	ITLSAllocator &allocator;
-
-};
-
-class ThreadAttachContext: public ThreadContext {
-public:
-
-	ThreadAttachContext(bool keepContext);
-	void handleCleanup();
-	void unkeep();
-	ThreadAttachContext *nextContext;
-protected:
-	bool keepContext;
-	TLSTable<> tls;
-};
-
-ThreadAttachContext::ThreadAttachContext( bool keepContext )
-	:keepContext(keepContext)
-{
-	this->tlstable = &tls;
-	this->owner = 0;
-}
-
-void ThreadAttachContext::handleCleanup()
-{
-	if (owner) {
-		AbstractThreadHook::callOnThreadExitHooks(*owner);
-		finishThread();
-		owner = 0;
-	}
-	if (!keepContext) {
-		setCurrentContext(0);
-		delete this;
-	}
-}
-
-void ThreadAttachContext::unkeep()
-{
-	if (owner) keepContext = false;
-	else delete this;
-}
-
 ///Master thread object - created on first call of the function Thread::getMaster()
 class MasterThread: public Thread, public RefCntObj {
 public:
 
-	///Retrieves master-thread's TLS allocator
-	ITLSAllocator &getTLSAllocator()  {return tlsalloc;}
 
 	///Constructs master thread
 	MasterThread() {
@@ -543,27 +446,14 @@ public:
 		adjustThreadSignals(true);
 		//store reference to master thread
 		context.owner = this;
-		//retrieve global TLS table - use as master thread's TLS table
-		context.tlstable = &ITLSTable::getInstance();
-
-		//store pointer to TLS-Table instance retriever
-		oldTableInstance = ITLSTable::getTLSFunction();
-		//store pointer to TLS-Allocator object
-		oldAllocInstance = ITLSAllocator::getTLSFunction();
 
 
 		joinObject.close();
 		flags = 0;
 
-		//redirect allocator
-		ITLSAllocator::setTLSFunction(&getTLSAlloc);
-		//redirect table
-		ITLSTable::setTLSFunction(&getTLS);
 
-		keptContext = 0;
-
-
-
+		//read global "singlethread TLS" and move its content to the master thread
+		tls = TLSTable::getInstance();
 
 		//mark down that application is threaded now
 		threaded = true;
@@ -573,92 +463,29 @@ public:
 		AbstractThreadHook::callOnThreadInitHooks(*this);
 	}
 
-	void updatePointers() {
-		//redirect allocator
-		ITLSAllocator::setTLSFunction(&getTLSAlloc);
-		//redirect table
-		ITLSTable::setTLSFunction(&getTLS);
-	}
 
 	///Destructor - should be called at exit only
 	virtual ~MasterThread() {
-		removeAllContexts();
 		AbstractThreadHook::callOnThreadExitHooks(*this);
-		//restore old pointers
-		ITLSAllocator::setTLSFunction(oldAllocInstance);
-		ITLSTable::setTLSFunction(oldTableInstance);
+
+		//move master's thread TLS back to singlethreaded TLS
+		TLSTable::getInstance() = tls;
+
 		//mark down, that application is not threaded
 		threaded = false;
 		setCurrentContext(0);
 		threadContext = 0;
 	}
 
-	///Retrieves threaded TLS allocator
-	static ITLSAllocator &getTLSAlloc();
-
-	///Retrieves threaded TLS table
-	static ITLSTable &getTLS();
-
 	///true, if application is threaded
 	static bool threaded;
 
 
-	void registerContext(ThreadAttachContext *ctx);
-
-	void cleanupContext();
-
-	void removeAllContexts();
-
-protected:
-
-	MTTLSAllocator tlsalloc;
 	ThreadContext context;
-	ITLSAllocator::fn_GetTLSAllocator oldAllocInstance;
-	ITLSTable::fn_GetTLS oldTableInstance;
-	ThreadAttachContext *keptContext;
 
 
 };
 
-void MasterThread::registerContext( ThreadAttachContext *ctx )
-{
-	cleanupContext();
-	ctx->nextContext = keptContext;
-	while (lockCompareExchangePtr<ThreadAttachContext>(&keptContext,ctx->nextContext,ctx) != ctx->nextContext) {
-		ctx->nextContext = keptContext;
-	}
-}
-
-void MasterThread::cleanupContext()
-{
-	ThreadAttachContext *save = keptContext;
-	while (lockCompareExchangePtr<ThreadAttachContext>(&keptContext,save,0) != keptContext)
-		save = keptContext;
-	while (save) {
-		ThreadAttachContext *subj = save;
-		save = save->nextContext;
-		if (save->owner == 0) {
-			delete subj;
-		} else {
-			subj->nextContext = keptContext;
-			while (lockCompareExchangePtr<ThreadAttachContext>(&keptContext,subj->nextContext,subj) != subj->nextContext) {
-				subj->nextContext = keptContext;
-			}
-		}
-	}
-}
-
-void MasterThread::removeAllContexts()
-{
-	ThreadAttachContext *save = keptContext;
-	while (lockCompareExchangePtr<ThreadAttachContext>(&keptContext,save,0) != save)
-		save = keptContext;
-	while (save) {
-		ThreadAttachContext *subj = save;
-		save = save->nextContext;
-		subj->unkeep();
-	}
-}
 
 
 bool MasterThread::threaded = false;
@@ -679,66 +506,11 @@ bool Thread::isThreaded() {
 }
 
 
-
-
-bool Thread::attach( bool keepContext, IRuntimeAlloc *contextAlloc /*= 0*/ )
-{
-	ThreadContext *ctx = getCurrentContext();
-	if (ctx) {
-		if (ctx->owner) return false;
-		ctx->owner = this;
-		threadContext = ctx;
-		flags = flagAttached;
-		joinObject.close();
-		AbstractThreadHook::callOnThreadInitHooks(*this);
-		return true;
-	}
-
-
-	if (contextAlloc)
-		ctx = new(*contextAlloc) ThreadAttachContext(keepContext);
-	else
-		ctx = new ThreadAttachContext(keepContext);
-
-	ctx->owner = this;
-	threadContext = ctx;
-	flags = flagAttached;
-	if (sleeper == nil) sleeper = new ThreadSleeper;
-	id = pthread_self();
-
-
-	if (keepContext) {
-		if (master == nil) Thread::getMaster();
-		master->registerContext(static_cast<ThreadAttachContext *>(ctx));
-	}
-	setCurrentContext(ctx);
-	joinObject.close();
-	AbstractThreadHook::callOnThreadInitHooks(*this);
-	return true;
-}
-
 //not necesery on linux
 struct LibInfo {
 	natural versionId;
 
 };
-
-//not necesery on linux
-ITLSAllocator & MasterThread::getTLSAlloc()
-{
-	if (master != nil) return master->tlsalloc;
-	else return _stGetTLSAllocator();
-}
-
-ITLSTable & MasterThread::getTLS()
-{
-	if (master != nil) {
-		ThreadContext *ctx = getCurrentContext();
-		if (ctx) return *ctx->tlstable;
-		else throw NoCurrentThreadException(THISLOCATION,pthread_self());
-	}
-	else return _stGetTLS();
-}
 
 const char *linuxThreads_signalExceptionMsg = "Unexpected signal caught: %1";
 

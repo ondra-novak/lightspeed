@@ -44,7 +44,6 @@ namespace LightSpeed {
 	public:
 
 
-
 		///Creates thread and calls function
 		/**
 		 * @param fn function to call inside the thread
@@ -90,28 +89,6 @@ namespace LightSpeed {
 		void start(const IThreadFunction &fn, natural stackSize);
 
 
-		///Attaches object to the current thread
-		/**
-		 * Function examines current thread and if already has thread object
-		 * attached, it fails returning false
-		 *
-		 * Otherwise, it attaches current object to the thread.
-		 *
-		 * @param keepContext if true, context of thread is kept after thread object is destroyed. You can
-		 * later reattach the context. All variables set to the TLS is kept with the context.
-		 * Note on some platforms (Windows), context is not destroyed on thread exit, because there is no
-		 * way how to detect thread termination and perform a cleanUp. In this case, contexts of dead threads are
-		 * cleaned when next successful attach is called. If this argument is false, context is destroyed in destructor
-		 *
-		 * @param contextAlloc pointer to allocator used to allocate context. If zero, context is allocated 
-		 * using standard allocator. Note that allocator must be valid during context is allocated, which can be non-deterministic
-		 * time when keepContext is true. Also note that when keepContext is true, allocator must be thread safe
-		 *
-		 * @retval true successfully attached to this object
-		 * @retval false failure, thread is already attached
-		 */
-		 
-		bool attach(bool keepContext, IRuntimeAlloc *contextAlloc = 0);
 
 		///Retrieves master thread
 		/**
@@ -359,16 +336,7 @@ namespace LightSpeed {
 
  	class AttachedThread:public Thread {
 	public:
-		AttachedThread() {
-			attach(true);
-		}
-		AttachedThread(IRuntimeAlloc &alloc) {
-			attach(true,&alloc);
-		}
-
-		AttachedThread(bool keepContext, IRuntimeAlloc &alloc) {
-			attach(keepContext,&alloc);
-		}
+		AttachedThread();
 	};
 
 }

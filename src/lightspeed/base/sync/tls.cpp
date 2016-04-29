@@ -7,8 +7,8 @@
 
 #include "tls.h"
 #include "threadVar.h"
-#include "..\containers\queue.tcc"
-#include "..\..\mt\thread.h"
+#include "../containers/queue.tcc"
+#include "../../mt/thread.h"
 
 namespace LightSpeed {
 
