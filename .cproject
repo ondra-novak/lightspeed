@@ -67,9 +67,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.911014713" name="sha1.cpp" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/impl/sha1.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.1012285901.667832859">
-						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.1012285901.667832859" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.1012285901"/>
-					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1740631768" name="FilePath.h" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/FilePath.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="lightspeed/utils/json/bsjson.cpp|lightspeed/utils/dims.cpp|lightspeed/utils/json/jsonbin.cpp|lightspeed/base/linux/MemCheck.cpp|lightspeed/base/actions/scheduler.new.cpp|lightspeed/base/actions/msgQueue.new.cpp|lightspeed/mt/windows|lightspeed/base/streams/netio_sockets.cpp|lightspeed/uiapp|lightspeed/base/memory/shortAlloc.cpp|lightspeed/base/windows|lightspeed/uiapp_old|lightspeed/utils/windows|lightspeed/gc/gcmt.cpp|lightspeed/rpc|lightspeed/base/linux/netio.cpp|lightspeed/mt/linux/threadEngine.cpp|lightspeed/base/containers/dictionary.cpp|lightspeed/mt/masterThread.cpp|lightspeed/mt/linux/threadEngine.h|lightspeed/gc_old|lightspeed/base/memory/extendedClusterFactory.cpp|lightspeed/gc" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
@@ -144,9 +141,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950.76788989" name="sha1.cpp" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/impl/sha1.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.500605859.43972245">
-						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.500605859.43972245" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.lib.debug.500605859"/>
-					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.lib.debug.584380267.1642945950.src/lightspeed/utils/FilePath.h" name="FilePath.h" rcbsApplicability="disable" resourcePath="src/lightspeed/utils/FilePath.h" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="autobuild|lightspeed|base/obsolete|build|debian|mutex.cpp|build_release|mt/windows|base/windows|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>

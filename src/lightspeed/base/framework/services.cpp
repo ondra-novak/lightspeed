@@ -1,5 +1,7 @@
 
 #include "services.h"
+#include "../containers/map.tcc"
+
 
 namespace LightSpeed {
 

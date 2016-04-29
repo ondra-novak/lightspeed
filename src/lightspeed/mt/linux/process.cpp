@@ -27,6 +27,7 @@
 #include "../../base/containers/stringpool.tcc"
 #include "../../platform.h"
 #include "../../base/debug/dbglog.h"
+#include "../../base/containers/map.tcc"
 
 namespace LightSpeed {
 

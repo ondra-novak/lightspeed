@@ -8,21 +8,25 @@
 #ifndef LIGHTSPEED_CONTAINERS_AVLNODE_H_
 #define LIGHTSPEED_CONTAINERS_AVLNODE_H_
 
+
 #include "../memory/factory.h"
 #include "../iter/iterator.h"
 #include "../memory/pointer.h"
+#include <utility>
 
 
 namespace LightSpeed {
 
 
+template<typename T>
 struct AvlTreeNodeTraits;
-template<typename Traits = AvlTreeNodeTraits>
+template<typename T, typename Traits = AvlTreeNodeTraits<T> >
 class AvlTreeNode;
 
 
+template<typename T>
 struct AvlTreeNodeTraits {
-	typedef Pointer<AvlTreeNode<> > Link;
+	typedef AvlTreeNode<T> *Link;
 };
 ///Instance of AVL tree node
 /**
@@ -36,16 +40,17 @@ struct AvlTreeNodeTraits {
  *
  */
 
-template<typename Traits>
+template<typename T, typename Traits>
 class AvlTreeNode {
 public:
-	AvlTreeNode() {
-		link[0] = 0;
-		link[1] = 0;
-		balance = 0;
+
+	AvlTreeNode(const T &val):left(0),right(0),balance(0),dirty(true),data(val) {
 	}
 
-
+#if __cplusplus >= 201103L
+	AvlTreeNode(T &&val):left(0),right(0),balance(0),dirty(true),data(std::move(val)) {
+	}
+#endif
 
 	typedef AvlTreeNode *PNode;
 	typedef typename Traits::Link Link;
@@ -88,6 +93,22 @@ public:
 		Iterator(const Cmp &cmp, const AvlTreeNode *root,
 					const AvlTreeNode *search,
 				Direction::Type dir, bool *found = 0);
+
+		///Constructs in-order iterator as result of search the node
+		/**
+		 * @param cmp ordering operator similar to std::less
+		 * @param root root of tree
+		 * @param search item to search
+		 * @param dir direction of final iterator
+		 * @param found optional parameter can contain address, where
+		 * 		will be stored search state. It is true, when item
+		 * 		has been found exactly. When false is stored, iterator
+		 * 		is positioned on the first item greater then requested item
+		 */
+		template<typename Cmp>
+		Iterator(const Cmp &cmp, const AvlTreeNode *root, const T &search,
+				Direction::Type dir, bool *found = 0);
+
 
 		///Creates iterator using path
 		/**
@@ -146,6 +167,18 @@ public:
 		 */
 		natural getPosition() const;
 
+		///returns depth of iterator - depth in tree structure
+		natural getMaxDepth() const;
+
+		///Retrieves node at given depth
+		/**
+		 * Use this to explore nodes in the way to the selected item
+		 *
+		 * @param depth depth must be between 0 and getMaxDepth()
+		 * @return node at given depth
+		 */
+		const AvlTreeNode *getNode(natural depth) const;
+
 	protected:
 		static const natural maxPathLen = 64;
 		PNode path[maxPathLen]; //should be enough 2^64 nodes
@@ -168,16 +201,28 @@ public:
 	};
 
 	///Retrieves left node
-	AvlTreeNode *getLeft() const {return link[0];}
+	AvlTreeNode *getLeft() const {return left;}
 	///Retrieves right node
-	AvlTreeNode *getRight() const {return link[1];}
+	AvlTreeNode *getRight() const {return right;}
+
+	Link &link(int lnk) {return lnk?right:left;}
+	const Link &link(int lnk) const {return lnk?right:left;}
+
+
 
 
 protected:
 
-	Link link[2];
-	int balance;
-
+	///left and right side of tree
+	Link left, right;
+	///tree balance -2,-1,0,1,2
+	Bin::integer8 balance;
+public:
+	///everytime is node chanted (changed link), this flag is set to true.
+	bool dirty;
+	///user payload
+	T data;
+protected:
 	///Perform single rotation
 	/**
 	 * @param dir dir=0 left, dir=1 right
@@ -275,9 +320,13 @@ protected:
 
 
 	void resetLinks() {
-		link[0] = link[1] = 0;
+		left = right = 0;
 		balance = 0;
+		dirty = true;
 	}
+
+	static const AvlTreeNode *getSearchNode(const T &value);
+
 public:
 	///Inserts new node into the tree, where this item is root
 	/**
@@ -317,15 +366,17 @@ public:
 		PNode *pathStore = toStorePath?
 				static_cast<PrivateIter *>(toStorePath)->allocPath():0;
 		//insert into subtree
-		AvlTreeNode *nd = link[dir]->insert(cmp,newNode,done,toStorePath);
+		AvlTreeNode *nd = link(dir)->insert(cmp,newNode,done,toStorePath);
 		//if NULL returned, item has not been inserted, because already exists
 		if (nd == 0) {
 			if (toStorePath)
-				*pathStore = link[dir];
+				*pathStore = link(dir);
 			return 0;
 		}
 		//update root
-		link[dir] = nd;
+		link(dir) = nd;
+		//make whole path from down to the top dirty
+		dirty = true;
 
 		if (pathStore) *pathStore = nd;
 
@@ -387,7 +438,10 @@ public:
 			return ret;
 		}
 
-		link[dir] = link[dir]->remove(cmp,toDel,done,removedNode);
+		link(dir) = link(dir)->remove(cmp,toDel,done,removedNode);
+		//make whole path from down to the top dirty
+		dirty = true;
+
 		return balanceAfterRemove(this,done,dir);
 	}
 
@@ -403,6 +457,20 @@ public:
 					AvlTreeNode *& removedNode) {
 		bool done = false;
 		return remove(cmp,toDel,done,removedNode);
+	}
+
+	///Removes node by value
+	/**
+	 * @param cmp compare operator
+	 * @param toDel node to remove for comparsion
+	 * @param removedNode node has been removed
+	 * @return new root after removing
+	 */
+	template<typename NodeCmp>
+	AvlTreeNode *remove(const NodeCmp &cmp, const T &toDel,
+					AvlTreeNode *& removedNode) {
+		bool done = false;
+		return remove(cmp,getSearchNode(toDel),done,removedNode);
 	}
 
 	///Removes node by path
@@ -434,8 +502,8 @@ public:
 
 	template<typename Eraser>
 	void clear(const Eraser &eraser) {
-		if (this->link[0]) this->link[0]->clear(eraser);
-		if (this->link[1]) this->link[1]->clear(eraser);
+		if (this->left) this->left->clear(eraser);
+		if (this->right) this->right->clear(eraser);
 		eraser(this);
 	}
 
@@ -461,7 +529,7 @@ public:
 	}
 };
 
-template<typename NodeOrder, typename LinkT = AvlTreeNodeTraits>
+template<typename NodeOrder, typename T, typename LinkT = AvlTreeNodeTraits<T> >
 class AvlTreeBasic {
 public:
 	AvlTreeBasic(const NodeOrder &order)
@@ -469,36 +537,39 @@ public:
 	AvlTreeBasic()
 		:tree(0),count(0) {}
 
-	typedef typename AvlTreeNode<LinkT>::Iterator Iterator;
+	typedef typename AvlTreeNode<T, LinkT>::Iterator Iterator;
 
-	Iterator insert(AvlTreeNode<LinkT> *nd) {
+
+	Iterator insert(AvlTreeNode<T, LinkT> *nd, bool *exists = 0) {
 		Iterator out;
-		tree = tree->insert(order,nd,&out);
+		AvlTreeNode<T, LinkT> *x = tree->insert(order,nd,&out);
+		if (exists) *exists = x == 0;
+		if (x) tree = x;
 		return out;
 	}
 
-	AvlTreeNode<LinkT> *find(const AvlTreeNode<LinkT> &nd) const {
+	AvlTreeNode<T, LinkT> *find(const AvlTreeNode<T, LinkT> &nd) const {
 		bool found = false;
 		Iterator out(order,tree,&nd,Direction::forward, &found);
 		if (found) return out.getNext();
 		else return 0;
 	}
 
-	Iterator seek(const AvlTreeNode<LinkT> &nd, Direction::Type dir, bool *found = 0) {
+	Iterator seek(const AvlTreeNode<T, LinkT> &nd, Direction::Type dir, bool *found = 0) {
 		return Iterator(order,tree,&nd,dir,found);
 	}
 
-	AvlTreeNode<LinkT> *remove(const AvlTreeNode<LinkT> &nd)  {
-		AvlTreeNode<LinkT> *out;
+	AvlTreeNode<T, LinkT> *remove(const AvlTreeNode<T, LinkT> &nd)  {
+		AvlTreeNode<T, LinkT> *out;
 		tree = tree->remove(order,&nd,out);
 		count--;
 		return out;
 	}
 
-	AvlTreeNode<LinkT> *remove(Iterator &iter) {
+	AvlTreeNode<T, LinkT> *remove(Iterator &iter) {
 		bool done = false;
-		AvlTreeNode<LinkT> *nd = iter.peek();
-		tree = static_cast<AvlTreeNode<LinkT> *>(tree->remove(iter,done));
+		AvlTreeNode<T, LinkT> *nd = iter.peek();
+		tree = static_cast<AvlTreeNode<T, LinkT> *>(tree->remove(iter,done));
 		count--;
 		return nd;
 	}
@@ -527,14 +598,14 @@ public:
 
 protected:
 
-	AvlTreeNode<LinkT> *tree;
+	AvlTreeNode<T, LinkT> *tree;
 	NodeOrder order;
 	natural count;
 };
 
-template<typename Traits>
+template<typename T, typename Traits>
 template<typename Cmp>
-AvlTreeNode<Traits>::Iterator::Iterator(const Cmp &cmp,
+AvlTreeNode<T,Traits>::Iterator::Iterator(const Cmp &cmp,
 			const AvlTreeNode *root, const AvlTreeNode *search,
 		Direction::Type dir, bool *found):dir(0) {
 	if (setDir(dir))
@@ -543,9 +614,20 @@ AvlTreeNode<Traits>::Iterator::Iterator(const Cmp &cmp,
 		pathlen = 0;
 }
 
-template<typename Traits>
+template<typename T, typename Traits>
 template<typename Cmp>
-void AvlTreeNode<Traits>::Iterator::initPathSearch(const Cmp &cmp,
+AvlTreeNode<T,Traits>::Iterator::Iterator(const Cmp &cmp,
+			const AvlTreeNode *root, const T &search,
+		Direction::Type dir, bool *found):dir(0) {
+	if (setDir(dir))
+		initPathSearch(cmp, root, AvlTreeNode<T,Traits>::getSearchNode(search), found);
+	else
+		pathlen = 0;
+}
+
+template<typename T,typename Traits>
+template<typename Cmp>
+void AvlTreeNode<T,Traits>::Iterator::initPathSearch(const Cmp &cmp,
 		const AvlTreeNode *root,
 		const AvlTreeNode *search, bool *found) {
 
@@ -559,7 +641,7 @@ void AvlTreeNode<Traits>::Iterator::initPathSearch(const Cmp &cmp,
 			if (found) *found = true;
 			return;
 		}
-		root = root->link[dir];
+		root = root->link(dir);
 	}
 	if (found) *found = false;
 	if (dir != this->dir) goNext();

@@ -16,6 +16,7 @@
 #include "jsondefs.h"
 #include "jsonexception.h"
 #include "jsonserializer.tcc"
+#include "../../base/containers/map.tcc"
 
 namespace LightSpeed  {
 namespace JSON {

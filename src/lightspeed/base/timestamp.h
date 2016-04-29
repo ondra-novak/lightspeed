@@ -207,6 +207,14 @@ namespace LightSpeed {
 		ISO8601Time asISO8601Time() const;
 
 
+		typedef ISO8601Time JSONTime;
+
+		///Format time as database time YYYY/MM/DD HH:MM:SS
+		JSONTime asJSONTime() const;
+
+
+
+
 		static TimeStamp intervalMSec(natural msec) {
 			return TimeStamp(msec/dayMillis,msec%dayMillis);
 		}

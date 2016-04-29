@@ -19,62 +19,21 @@ namespace LightSpeed {
 
 
 
-	template<typename T, typename Cmp, typename Traits = AvlTreeNodeTraits >
+	template<typename T, typename Cmp, typename Traits = AvlTreeNodeTraits<T> >
 	class AVLTree {
 
 	public:
 
 
-		class Node;
-		class DataNode {
-		public:
-			DataNode(const T &data):data(data) {}
-#if __cplusplus >= 201103L
-			DataNode(T &&data):data(std::move(data)) {}
-#endif
-			const T &getData() const {return data;}
-			T &getData() {return data;}
-		protected:
-			friend class Node;
-			T data;
-		};
-
-		class Node:  public AvlTreeNode<Traits>,public DataNode {
-		public:
-			Node(const T &data):DataNode(data) {}
-#if __cplusplus >= 201103L
-			Node(T &&data):DataNode(std::move(data)) {}
-#endif
-
-
-		public:
-			///Converts T to Node usable for search
-			/** AVLTree can only compare nodes. While searching,
-			   Node's internal fields are not used for searched node.
-			   So to reduce copying and reconstructing whole searched value,
-			   you can use this function to convert searched key
-			   to searchNode */
-			static const Node &getSearchNode(const T &value) {
-
-
-				natural offs = reinterpret_cast<const byte *>(
-						&(reinterpret_cast<const DataNode *>(&value)->data))
-						 - reinterpret_cast<const byte *>(&value);
-				const DataNode *dn_ptr = reinterpret_cast<const DataNode *>(
-						reinterpret_cast<const byte *>(&value) - offs);
-				return *static_cast<const Node *>(dn_ptr);
-			}			
-		};
-
-
+		typedef AvlTreeNode<T, Traits> Node;
 		typedef Node *PNode;
+
 
 		class NodeCmp {
 		public:
 			NodeCmp(const Cmp &cmp):cmp(cmp) {}
-			bool operator()(const AvlTreeNode<Traits> *a, const AvlTreeNode<Traits> *b) const {
-				return cmp(static_cast<const Node *>(a)->getData(),
-						   static_cast<const Node *>(b)->getData());
+			bool operator()(const AvlTreeNode<T, Traits> *a, const AvlTreeNode<T, Traits> *b) const {
+				return cmp(a->data,b->data);
 			}
 		protected:
 			const Cmp &cmp;
@@ -88,22 +47,25 @@ namespace LightSpeed {
 			Iterator(const Iterator &other,
 						Direction::Type dir = Direction::undefined)
 				:nditer(other.nditer,dir) {}
-			Iterator(const Cmp &cmp, PNode root, const Node *search,
+			Iterator(const Cmp &cmp, const Node *root, const Node *search,
 					Direction::Type dir, bool *found = 0)
 				:nditer(NodeCmp(cmp),root,search,dir,found) {}
-			Iterator(AvlTreeNode<Traits> **path, natural len, Direction::Type dir)
+			Iterator(const Cmp &cmp, const Node *root, const T &search,
+					Direction::Type dir, bool *found = 0)
+				:nditer(NodeCmp(cmp),root,search,dir,found) {}
+			Iterator(Node **path, natural len, Direction::Type dir)
 				:nditer(path,len,dir) {}
-			Iterator(const typename AvlTreeNode<Traits>::Iterator &nditer):nditer(nditer) {}
+			Iterator(const typename Node::Iterator &nditer):nditer(nditer) {}
 
 			bool hasItems() const {return nditer.hasItems();}
 
 			const T &getNext()  {
-				AvlTreeNode<Traits> *nd = nditer.getNext();
-				return static_cast<Node *>(nd)->getData();
+				Node *nd = nditer.getNext();
+				return nd->data;
 			}
 			const T &peek() const {
-				AvlTreeNode<Traits> *nd = nditer.peek();
-				return static_cast<Node *>(nd)->getData();
+				Node *nd = nditer.peek();
+				return nd->data;
 			}
 
 			bool equalTo(const Iterator &iter) const {
@@ -122,14 +84,22 @@ namespace LightSpeed {
 
 
 			Node *peekNode() const {
-				AvlTreeNode<Traits> *nd = nditer.peek();
-				return static_cast<Node *>(nd);
+				Node *nd = nditer.peek();
+				return nd;
 			}
 
-			typename AvlTreeNode<Traits>::Iterator &getNodeIterator() {return nditer;}
-			const typename AvlTreeNode<Traits>::Iterator &getNodeIterator() const {return nditer;}
+			const Node *getNode(natural depth) const {
+				return nditer.getNode(depth);
+			}
+
+			natural getMaxDepth() const {
+				return nditer.getMaxDepth();
+			}
+
+			typename Node::Iterator &getNodeIterator() {return nditer;}
+			const typename Node::Iterator &getNodeIterator() const {return nditer;}
 		protected:
-			typename AvlTreeNode<Traits>::Iterator nditer;
+			typename Node::Iterator nditer;
 		};
 
 		class WriteIterator: public WriteIteratorBase<T, WriteIterator> {
@@ -143,7 +113,7 @@ namespace LightSpeed {
 			AVLTree &owner;
 		};
 
-		AVLTree():tree(0),allocFactory(createDefaultNodeAllocator()),count(0) {}
+		AVLTree():tree(0),allocFactory(createDefaultNodeAllocator()),cmpOper((Cmp())),count(0) {}
 		AVLTree(const Cmp &cmp, NodeAlloc alloc)
 			:tree(0),allocFactory(alloc),cmpOper(cmp),count(0) {}
 		AVLTree(const Cmp &cmp)
@@ -233,13 +203,13 @@ namespace LightSpeed {
 		 * @return iterator, where item has been placed
 		 */
 		Iterator insert(Node *nd, bool *exist = 0) {
-			typename AvlTreeNode<Traits>::Iterator itr;
+			typename Node::Iterator itr;
 			bool done = false;
-			AvlTreeNode<Traits> *newroot = tree->insert(NodeCmp(cmpOper),nd,done,&itr);
+			Node *newroot = tree->insert(NodeCmp(cmpOper),nd,done,&itr);
 			if (newroot == 0) {
 				if (*exist) *exist = true;
 			} else {
-				tree = static_cast<Node *>(newroot);
+				tree = newroot;
 				count++;
 				if (*exist) *exist = false;
 			}
@@ -265,9 +235,8 @@ namespace LightSpeed {
 		 * @return Pointer to found item, or NULL, if not exist
 		 */
 		const T *find(const T &value) const {
-			const Node &srch = Node::getSearchNode(value);
 			bool found = false;
-			Iterator itr(cmpOper,tree,&srch,Direction::forward,&found);
+			Iterator itr(cmpOper,tree,value,Direction::forward,&found);
 			if (found) return &itr.getNext();
 			else return 0;
 		}
@@ -280,7 +249,7 @@ namespace LightSpeed {
 		 */
 		const Node *find(const Node *nd) const {
 			bool found = false;
-			Iterator itr(cmpOper,tree,const_cast<Node *>(nd),Direction::forward,&found);
+			Iterator itr(cmpOper,tree,nd,Direction::forward,&found);
 			if (found) return itr.peekNode();
 			else return 0;
 		}
@@ -294,8 +263,7 @@ namespace LightSpeed {
 		 */
 		Iterator seek(const T &value, bool *found = 0,
 				Direction::Type dir = Direction::forward) const {
-			const Node &nd = Node::getSearchNode(value);
-			return Iterator(cmpOper,tree,&nd,dir,found);
+			return Iterator(cmpOper,tree,value,dir,found);
 		}
 
 		///seeks for node
@@ -308,7 +276,7 @@ namespace LightSpeed {
 
 		Iterator seek(const Node *nd, bool *found = 0,
 				Direction::Type dir = Direction::forward) const {
-			return Iterator(cmpOper,tree,const_cast<Node *>(nd),dir,found);
+			return Iterator(cmpOper,tree,nd,dir,found);
 		}
 
 
@@ -319,10 +287,11 @@ namespace LightSpeed {
 		 * @retval false not found
 		 */
 		bool erase(const T &value) {
-			const Node &nd = Node::getSearchNode(value);
-			Node *res = remove(&nd);
-			if (res) {
-				allocFactory->destroyInstance(res);
+			Node *removedNode;
+			tree = tree->remove(NodeCmp(cmpOper), value, removedNode);
+			if (removedNode) {
+				count--;
+				allocFactory->destroyInstance(removedNode);
 				return true;
 			} else {
 				return false;
@@ -339,11 +308,10 @@ namespace LightSpeed {
 		 */
 		Node *remove(const Node *nd) {
 			bool done = false;
-			AvlTreeNode<Traits> *removedNode;
-			AvlTreeNode<Traits> *nr = tree->remove(NodeCmp(cmpOper),nd,done,removedNode);
-			tree = static_cast<Node *>(nr);
+			Node *removedNode;
+			tree = tree->remove(NodeCmp(cmpOper),nd,done,removedNode);
 			if (removedNode) count --;
-			return static_cast<Node *>(removedNode);
+			return removedNode;
 
 		}
 
@@ -355,7 +323,7 @@ namespace LightSpeed {
 		Node *remove(Iterator &iter) {
 			bool done = false;
 			Node *nd = iter.peekNode();
-			typename AvlTreeNode<Traits>::Iterator &nditer = iter.getNodeIterator();
+			typename Node::Iterator &nditer = iter.getNodeIterator();
 			tree = static_cast<Node *>(tree->remove(nditer,done));
 			iter = Iterator(cmpOper,tree,nd,iter.getDir());
 			count--;
@@ -431,6 +399,9 @@ namespace LightSpeed {
 			std::swap(cmpOper,other.cmpOper);
 			std::swap(count,other.count);
 		}
+
+	const Cmp &getCompareOperator() const {return cmpOper;}
+
 
 	protected:
 		Node *tree;

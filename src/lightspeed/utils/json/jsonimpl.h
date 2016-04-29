@@ -33,11 +33,11 @@ public:
 	virtual bool enumEntries(const IEntryEnum &fn) const;
 
 	virtual bool empty() const {return fields.empty();}
-	void insertField(const StringA &name, PNode nd);
+	void insertField(ConstStrA name, PNode nd);
 	virtual INode *add(PNode nd);
 	virtual INode *add(ConstStrA name, PNode nd);
 
-	virtual INode * erase(ConstStrA name) {fields.erase(name);return this;}
+	virtual INode * erase(ConstStrA name);
 	virtual INode *erase(natural ) {return this;}
 
 	virtual INode * enableMTAccess();
@@ -50,9 +50,41 @@ public:
 	virtual INode *replace(ConstStrA name, Value newValue, Value *prevValue = 0);
 	virtual INode *clear();
 
+	Object();
+	~Object();
 
 protected:
-	FieldMap_t fields;
+
+	struct Field {
+		ConstStrA key;
+		mutable Value value;
+		//string follows there....
+
+
+		Field(ConstStrA key, Value value)
+			:key(key),value(value) {}
+
+		Field(const Field &other):key(other.key),value(other.value) {}
+	};
+
+	typedef AvlTreeNode<Field> FieldNode;
+	class FieldNodeNew: public FieldNode {
+	public:
+
+		FieldNodeNew(const Field &d):FieldNode(d) {}
+
+		void *operator new( size_t objSize, ConstStrA str, ConstStrA &stored);
+		void operator delete(void *ptr, ConstStrA str, ConstStrA &stored);
+		void operator delete(void *ptr, size_t sz);
+
+	};
+
+	static void releaseNode(FieldNode *x);
+	struct CompareItems{bool operator()(const FieldNode *a, const FieldNode *b) const;};
+
+
+	typedef AvlTreeBasic<CompareItems, Field > FieldMap;
+	FieldMap fields;
 };
 
 

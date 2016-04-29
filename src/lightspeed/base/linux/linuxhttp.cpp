@@ -8,6 +8,8 @@
 #include "../interface.tcc"
 #include "linuxFdSelect.h"
 #include "../debug/dbglog.h"
+#include "../containers/map.tcc"
+
 
 namespace LightSpeed {
 

@@ -9,6 +9,7 @@
 #include "../../mt/atomic.h"
 #include "../interface.tcc"
 #include "../containers/autoArray.tcc"
+#include "../containers/map.tcc"
 
 namespace LightSpeed {
 

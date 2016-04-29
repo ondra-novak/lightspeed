@@ -3,6 +3,7 @@
 #include "../exceptions/invalidParamException.h"
 #include "staticAlloc.h"
 #include "../containers/autoArray.tcc"
+#include "../containers/avltreenode.tcc"
 
 namespace LightSpeed {
 
@@ -11,7 +12,7 @@ static const natural allocClusterSize
 
 
 AllocCluster::AllocCluster(IRuntimeAlloc *alloc, IMaster *master, byte count, natural bksize)
-:llnext(0),owner(alloc),master(master),usedCount(0),firstFree(0),count(count)
+:AvlTreeNode<char>(0),llnext(0),owner(alloc),master(master),usedCount(0),firstFree(0),count(count)
 {
 	for (byte i = 1; i < count; i++) {
 		byte *b = mapIndex(i-1, bksize);
@@ -162,8 +163,8 @@ void AllocMulticluster::dealloc( void *ptr )
 		onDealloc(freeClusters,false);
 		
 	} else {
-		const AvlTreeNode<> *fakeNd = reinterpret_cast<const AvlTreeNode<> *>(ptr);
-		AvlTreeBasic<PtrNodeCmp>::Iterator iter = allClusters.seek(*fakeNd,Direction::backward,0);
+		const AvlTreeNode<char> *fakeNd = reinterpret_cast<const AvlTreeNode<char> *>(ptr);
+		AvlTreeBasic<PtrNodeCmp,char>::Iterator iter = allClusters.seek(*fakeNd,Direction::backward,0);
 		if (iter.hasItems()) {
 			AllocCluster::PNode nd =  iter.getNext();
 			AllocCluster *k = static_cast<AllocCluster *>(nd);
@@ -204,9 +205,9 @@ void AllocMulticluster::checkEmpty(AllocCluster *k)
 
 void AllocMulticluster::reportLeaks( AutoArrayStream<MemoryLeakException::Leak> &list )
 {
-	AvlTreeBasic<PtrNodeCmp>::Iterator iter = allClusters.getFwIter();
+	AvlTreeBasic<PtrNodeCmp, char>::Iterator iter = allClusters.getFwIter();
 	while (iter.hasItems()) {
-		AvlTreeNode<> *nd = iter.getNext();
+		AvlTreeNode<char> *nd = iter.getNext();
 		AllocCluster *clust = static_cast<AllocCluster *>(nd);
 		clust->reportLeaks(list,bkSize);
 	}
@@ -215,7 +216,7 @@ void AllocMulticluster::reportLeaks( AutoArrayStream<MemoryLeakException::Leak> 
 class AllocMulticluster::TreeEraser {
 public:
 	TreeEraser(natural bksize):bksize(bksize) {}
-	void operator()(AvlTreeNode<> *nd) const {
+	void operator()(AvlTreeNode<char> *nd) const {
 		AllocCluster *l = static_cast<AllocCluster *>(nd);
 		l->destroy(bksize);
 	}
@@ -232,12 +233,12 @@ AllocMulticluster::~AllocMulticluster()
 }
 
 
-bool AllocMulticluster::PtrNodeCmp::operator()( const AvlTreeNode<> *a, const AvlTreeNode<> *b ) const
+bool AllocMulticluster::PtrNodeCmp::operator()( const AvlTreeNode<char> *a, const AvlTreeNode<char> *b ) const
 {
 	return a < b;
 }
 
-bool ClusterAlloc::McCmp::operator()( const AvlTreeNode<> *a, const AvlTreeNode<> *b ) const
+bool ClusterAlloc::McCmp::operator()( const AvlTreeNode<char> *a, const AvlTreeNode<char> *b ) const
 {
 	const AllocMulticlusterNode *ca = static_cast<const AllocMulticlusterNode *>(a);
 	const AllocMulticlusterNode *cb = static_cast<const AllocMulticlusterNode *>(b);
@@ -248,7 +249,7 @@ void * ClusterAlloc::alloc( natural objSize, IRuntimeAlloc * &owner )
 {
 	natural bksize = AllocCluster::objSize2bksize(objSize);
 	AllocMulticlusterNode ndsearch(bksize);
-	AvlTreeNode<> *found = tree.find(ndsearch);
+	AvlTreeNode<char> *found = tree.find(ndsearch);
 	if (found == 0) {
 		AllocMulticluster *m = new(rtalloc) AllocMulticluster(*this,rtalloc,bksize);
 		found = tree.insert(m).getNext();
@@ -267,7 +268,7 @@ void ClusterAlloc::dealloc( void *ptr, natural objSize )
 {
 	natural bksize = AllocCluster::objSize2bksize(objSize);
 	AllocMulticlusterNode ndsearch(bksize);
-	AvlTreeNode<> *found = tree.find(ndsearch);
+	AvlTreeNode<char> *found = tree.find(ndsearch);
 	if (found == 0) throw InvalidParamException(THISLOCATION,2,
 					String("There are no clusters for such allocation"));
 	AllocMulticluster *mc = static_cast<AllocMulticluster *>(found);
@@ -299,7 +300,7 @@ ClusterAlloc::ClusterAlloc( IRuntimeAlloc &rtalloc ):rtalloc(rtalloc)
 {
 	
 }
-void ClusterAlloc::treeEraser( AvlTreeNode<> *nd )
+void ClusterAlloc::treeEraser( AvlTreeNode<char> *nd )
 {
 	delete static_cast<AllocMulticluster *>(nd);
 }
@@ -308,8 +309,8 @@ void ClusterAlloc::clear()
 {
 	if (!std::uncaught_exception()) {
 		AutoArrayStream<MemoryLeakException::Leak> lklist;
-		for (AvlTreeBasic<McCmp>::Iterator iter = tree.getFwIter(); iter.hasItems();) {
-			AvlTreeNode<> *nd = iter.getNext();
+		for (AvlTreeBasic<McCmp,char>::Iterator iter = tree.getFwIter(); iter.hasItems();) {
+			AvlTreeNode<char> *nd = iter.getNext();
 			AllocMulticluster *k = static_cast<AllocMulticluster *>(nd);
 			k->reportLeaks(lklist);
 		}

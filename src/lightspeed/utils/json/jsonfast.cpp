@@ -19,6 +19,7 @@ jsonfast.cpp
 #include "../../mt/atomic.h"
 #include "../../base/text/textFormat.h"
 #include "jsonfast.tcc"
+#include "../../base/containers/map.tcc"
 
 #include "jsonserializer.h"
 
