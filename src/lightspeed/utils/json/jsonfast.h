@@ -67,9 +67,9 @@ namespace JSON {
 		virtual natural getEntryCount() const {return 0;}
 		virtual INode *getEntry(natural ) const {return 0;}
 		virtual bool enumEntries(const IEntryEnum &) const {return false;}
-		virtual INode*  enableMTAccess() {
+		virtual const INode*  enableMTAccess() const {
 			RefCntObj::enableMTAccess();
-			f = f.getMT();
+			 f.getMT();
 			return this;
 		}
 		virtual bool operator==(const INode &other) const {
@@ -88,7 +88,6 @@ namespace JSON {
 		virtual INode* erase(ConstStrA name);
 		virtual INode* erase(natural index);
 
-		virtual Iterator getFwIter() const;
 		virtual bool isUtf8() const {return true;}
 
 	protected:
@@ -132,13 +131,12 @@ namespace JSON {
 		virtual INode * erase(ConstStrW name);
 		virtual INode *erase(natural ) {return this;}
 
-		virtual INode * enableMTAccess();
+		virtual const INode * enableMTAccess() const;
 
 		virtual INode *clone(PFactory factory) const;
 
 		virtual bool operator==(const INode &other) const;
 
-		virtual Iterator getFwIter() const;
 
 		virtual natural getUInt() const;
 		virtual lnatural getLongUInt() const;

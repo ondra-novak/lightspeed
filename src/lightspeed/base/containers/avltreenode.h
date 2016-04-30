@@ -544,7 +544,7 @@ public:
 		Iterator out;
 		AvlTreeNode<T, LinkT> *x = tree->insert(order,nd,&out);
 		if (exists) *exists = x == 0;
-		if (x) tree = x;
+		if (x) {tree = x; count++;}
 		return out;
 	}
 

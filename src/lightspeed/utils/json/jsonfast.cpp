@@ -33,32 +33,6 @@ static double round(double v) {
 }
 #endif
 
-class StrKeyA: public IKey {
-public:
-	StrKeyA() {}
-	StrKeyA(ConstStrA a):str(a) {}
-
-	StrKeyA &operator= (const StrKeyA &other) {
-		if (this != &other) {
-			str = other.str;
-			buffer.clear();
-		}
-		return *this;
-	}
-
-	virtual Type getType() const {return string;}
-	virtual ConstStrA getString() const {return str;}
-	virtual natural getIndex() const {
-		natural res = 0;
-		parseUnsignedNumber(str.getFwIter(),res,10);
-		return res;
-	}
-
-
-protected:
-	mutable AutoArray<wchar_t> buffer;
-	ConstStrA str;
-};
 
 integer FRawValueW_t::getInt() const  {
 	TextParser<char, SmallAlloc<256> > parser;
@@ -174,11 +148,11 @@ INode* FObject_t::getVariable(ConstStrW var) const {
 }
 
 bool FObject_t::enumEntries(const IEntryEnum& fn) const {
-	StrKeyA k;
+	natural index = 0;
 	for (FFieldMap_t::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FFieldMap_t::Entity &e = iter.getNext();
-		k = StrKeyA(e.key);
-		if (fn(*e.value.get(),k)) return true;
+		if (fn(e.value,e.key,index)) return true;
+		index++;
 	}
 	return false;
 }
@@ -200,7 +174,7 @@ INode* FObject_t::add(ConstStrW name, PNode nd) {
 	return this;
 }
 
-INode* FObject_t::enableMTAccess() {
+const INode* FObject_t::enableMTAccess() const {
 	RefCntObj::enableMTAccess();
 	for (FFieldMap_t::Iterator iter = fields.getFwIter(); iter.hasItems();) {
 		const FFieldMap_t::Entity &e = iter.getNext();
@@ -233,46 +207,6 @@ bool FObject_t::operator ==(const INode& other) const {
 }
 
 
-
-
-Iterator FObject_t::getFwIter() const {
-
-	class Iter: public Iterator::IIntIter, public DynObject {
-	public:
-		Iter(const FFieldMap_t &mp):iter(mp.getFwIter()) {}
-
-		virtual bool hasItems() const {return iter.hasItems();}
-		virtual bool getNext(NodeInfo &nfo) {
-			const FFieldMap_t::Entity &e = iter.getNext();
-			k = ConstStrA(e.key);
-			nfo.key = &k;
-			nfo.node = e.value;
-			return iter.hasItems();
-		}
-		virtual bool peek(NodeInfo &nfo) const {
-			const FFieldMap_t::Entity &e = iter.peek();
-			k = ConstStrA(e.key);
-			nfo.key = &k;
-			nfo.node = e.value;
-			return iter.hasItems();
-		}
-		virtual IIntIter *clone(IRuntimeAlloc &alloc) const {
-			return new(alloc) Iter(*this);
-		}
-
-	protected:
-		FFieldMap_t::Iterator iter;
-		mutable StrKeyA k;
-	};
-
-	Iter x(fields);
-	return Iterator(&x);
-
-}
-
-Iterator FRawValueW_t::getFwIter() const {
-	return Iterator();
-}
 
 natural FObject_t::getUInt() const {
 	return 0;

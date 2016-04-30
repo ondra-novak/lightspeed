@@ -21,19 +21,6 @@ namespace JSON {
 
 
 
-class NumKey: public IKey {
-public:
-	NumKey() {}
-	NumKey(natural i):i(i) {}
-
-	virtual Type getType() const {return index;}
-	virtual ConstStrA getString() const {return ConstStrA();}
-	virtual natural getIndex() const {return i;}
-protected:
-	natural i;
-};
-
-
 class AbstractNode_t: public INode {
 public:
 	using INode::add;
@@ -70,9 +57,7 @@ public:
 	virtual INode *getVariable(ConstStrA) const {return 0;}
 	virtual natural getEntryCount() const {return 0;}
 	virtual INode *getEntry(natural idx) const {return idx>0?0:const_cast<LeafNode *>(this);}
-	virtual bool enumEntries(const IEntryEnum &fn) const {
-		return fn(*this,NumKey(0));
-	}
+	virtual bool enumEntries(const IEntryEnum &) const {return true;}
 	virtual INode *add(PNode) {
 		throwUnsupportedFeature(THISLOCATION,this,"Object is not container");
 		return this;
@@ -83,12 +68,11 @@ public:
 	virtual INode*  erase(natural ) {return this;}
 	virtual INode* erase(ConstStrA) {return this;}
 
-	virtual INode*  enableMTAccess() {
+	virtual const INode*  enableMTAccess() const {
 		RefCntObj::enableMTAccess();
 		return this;
 	}
 
-	virtual Iterator getFwIter() const {return Iterator();}
 };
 
 class Object;
@@ -218,16 +202,6 @@ public:
 	Value parseStream(IIterator<char,T> &iter);
 };
 
-
-class Iterator::IIntIter{
-public:
-
-	virtual bool hasItems() const = 0;
-	virtual bool getNext(NodeInfo &nfo) = 0;
-	virtual bool peek(NodeInfo &nfo) const = 0;
-	virtual IIntIter *clone(IRuntimeAlloc &alloc) const = 0;
-	virtual ~IIntIter() {}
-};
 
 }
 

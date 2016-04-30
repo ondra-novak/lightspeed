@@ -1,7 +1,3 @@
-#include "../../base/interface.h"
-#include "../../base/iter/vtiterator.h"
-#include "../../base/memory/refcntifc.h"
-#include "../../base/meta/emptyClass.h"
 
 /**@file
  * All basic declarations to allow JSON work. To compile this header, you will need declare two classes in
@@ -18,6 +14,12 @@
 
 #pragma once
 
+
+#include "../../base/memory/refcntifc.h"
+#include "../../base/containers/arrayIterator.h"
+#include "../../base/containers/stringBase.h"
+#include "../../base/iter/vtiterator.h"
+#include "../../base/meta/emptyClass.h"
 namespace LightSpeed {
 	class SeqFileInput;
 	class SeqFileOutput;
@@ -55,12 +57,79 @@ namespace LightSpeed {
 		class INode;
 		class IFactory;
 
-		///Smart pointer to node
-		/**Automatically tracks reference counts for every node in tree allowing free unused nodes as required */
-//		typedef ::LightSpeed::RefCntPtr<INode> Value;
-		class Value: public ::LightSpeed::RefCntPtr<INode> {
+
+		class ConstValue: public ::LightSpeed::RefCntPtr<const INode> {
 		public:
-			typedef ::LightSpeed::RefCntPtr<INode> Super;
+			typedef ::LightSpeed::RefCntPtr<const INode> Super;
+			typedef NodeType Type;
+
+			ConstValue() {}
+			ConstValue(const ConstValue &x):Super(x) {}
+			ConstValue(const Super &x):Super(x) {}
+			ConstValue(NullType x):Super(x) {}
+			ConstValue(const INode *p):Super(p) {}
+
+			ConstValue &operator=(const ConstValue &other) {
+				Super::operator=(other);return *this;
+			}
+
+			#if __cplusplus >= 201103L
+					ConstValue(ConstValue &&other):Super(std::move(other)) {}
+			#endif
+
+			///Sets value if pointer is NULL atomically
+			/**
+			 * @param nd new value
+			 * @retval true value has been set
+			 * @retval false some value is already set
+			 */
+			bool setIfNullDeleteOtherwiseAtomic(const INode *nd);
+
+			ConstValue operator[](ConstStrA name) const;
+			ConstValue operator[](const char *name) const;
+			ConstValue operator[](int i) const;
+			ConstValue operator[](natural i) const;
+
+	        operator const INode *() const {return safeGet();}
+	        const INode *operator->() const {return safeGet();}
+
+	        bool isNull() const;
+	        bool getBool() const;
+	        ConstStrA getStringA() const;
+	        ConstStrW getString() const;
+	        integer getInt() const;
+	        natural getUInt() const;
+	        linteger getLongInt() const;
+	        lnatural getLongUInt() const;
+	        double getNumber() const;
+	        Type getType() const;
+
+	        bool getOrDefault(bool defVal) const;
+	        ConstStrA getOrDefault(ConstStrA defVal) const;
+	        ConstStrW getOrDefault(ConstStrW defVal) const;
+	        integer getOrDefault(integer defVal) const;
+	        natural getOrDefault(natural defVal) const;
+#ifdef LIGHTSPEED_HAS_LONG_TYPES
+	        linteger getOrDefault(linteger defVal) const;
+	        lnatural getOrDefault(lnatural defVal) const;
+#endif
+	        double getOrDefault(double defVal) const;
+	        float getOrDefault(float defVal) const;
+	        ConstValue getOrDefault(const ConstValue &value) const;
+
+	        natural length() const;
+	        bool empty() const;
+
+	        ConstValue getMT() const {
+	        	RefCntPtr x = getMT();
+	        	return static_cast<ConstValue &>(x);
+	        }
+
+	    };
+
+		class Value: public ConstValue {
+		public:
+			typedef ConstValue Super;
 
 			Value() {}
 			Value(const Value &x):Super(x) {}
@@ -77,16 +146,25 @@ namespace LightSpeed {
 			Value operator[](int i) const;
 			Value operator[](natural i) const;
 
+			INode *safeGetMutable() const {return const_cast<INode *>(Super::safeGet());}
+
+	        operator const INode *() const {return safeGet();}
+	        operator INode *() const {return safeGetMutable();}
+	        INode *operator->() const {return safeGetMutable();}
+	        operator Pointer<INode>() const {return Pointer<INode>(safeGetMutable());}
+
+	        Value getMT() const {
+	        	RefCntPtr x = getMT();
+	        	return static_cast<Value &>(x);
+	        }
+	        INode *detach()  {return const_cast<INode *>(Super::detach());}
+	        INode *get() const {return const_cast<INode *>(Super::get());}
+
 #if __cplusplus >= 201103L
 			Value(Value &&other):Super(std::move(other)) {}
 #endif
-			///Sets value if pointer is NULL atomically
-			/**
-			 * @param nd new value
-			 * @retval true value has been set
-			 * @retval false some value is already set
-			 */
-			bool setIfNullDeleteOtherwiseAtomic(INode *nd);
+
+
 
 		};
 
@@ -120,32 +198,13 @@ namespace LightSpeed {
 
 		};
 
-		
+
 
 
 
 		template<typename Fn>
 		class EntryEnum;
 
-
-		///Describes key information for iterators and enumerator
-		class IKey {
-		public:
-			///Type of key
-			enum Type {
-				/** String key, all string keys are stored as UTF-8 strings*/
-				string,
-				/** Key is index - for arrays. You should use getIndex(). Functions getString() and getStringUtf8
-				 * don't need to work and may return empty content
-				 */
-				index
-			};
-
-			virtual Type getType() const = 0;
-			virtual ConstStrA getString() const = 0;
-			virtual natural getIndex() const = 0;
-			virtual ~IKey() {}
-		};
 		///Enumerator for object nodes
 		/**@obsolete
 		 *
@@ -154,7 +213,14 @@ namespace LightSpeed {
 		 */
 		class IEntryEnum {
 		public:
-			virtual bool operator()(const INode &nd, const IKey &name) const = 0;
+			///Called for every item in collection
+			/**
+			 * @param nd pointer to INode which can be converted to ConstValue or Value
+			 * @param key name of key (or empty for array)
+			 * @param index position in enumeration (index in array), zero based
+			 * @return
+			 */
+			virtual bool operator()(const INode *nd, ConstStrA key, natural index) const = 0;
 			virtual ~IEntryEnum() {}			
 			
 			template<typename Fn>
@@ -166,99 +232,45 @@ namespace LightSpeed {
 		class EntryEnum: public IEntryEnum {
 		public:
 			EntryEnum(const Fn &fn):fn(fn) {}
-			virtual bool operator()(const INode &nd, const IKey &name) const {return fn(nd,name);}
+			virtual bool operator()(const INode *nd, ConstStrA key, natural index) const {return fn(nd,key,index);}
 		protected:
 			Fn fn;
 		};
 		
-
-		///Information about node retrieved through Iterator
-		class KeyValue {
+		class ConstKeyValue: public ConstValue {
 		public:
-			///Name of node
-			/** Field is used only when iterator processing through object. Otherwise it is not used */
-			const IKey *key;
-			/// Pointer to node
-			INode *node;
+			ConstStrA key;
+			natural index;
 
-			operator Value() const {return node;}
-			INode *operator->() const {return node;}
-			INode &operator*() const {return *node;}
+			ConstKeyValue(natural index, ConstStrA key, ConstValue value)
+				:ConstValue(value),key(key),index(index) {}
 
-			IKey::Type getKeyType() const {return key->getType();}
-			natural getIndex() const {return key->getIndex();}
-			ConstStrA getStringKey() const {return key->getString();}
+			natural getIndex() const {return index;}
+			ConstStrA getStringKey() const {return key;}
 		};
 
-		typedef KeyValue NodeInfo;
-
-		///Iterator through containers in JSON
-		/**
-		 * This allows to enumerate members of objects or values in arrays. To retrieve this object
-		 * call INode::getFwIter()
-		 */
-		class Iterator: public IteratorBase<KeyValue, Iterator> {
+		class ConstIterator: public ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > {
 		public:
+			typedef ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > Super;
+			ConstIterator(const ConstValue &object);
+		};
 
-			class IIntIter;
-			///Initializes iterator which doesn't contains items
-			/** This is returned by nodes not acting as containers */
-			Iterator():iter(0),next(false) {}
-			///Initializes iterator using pointer to IIntIter implementing iteration itself for specific node
-			/**
-			 * @param internalIter pointer to iterator.
-			 * @note Iterator can take up to 68 naturals (272 bytes on 32bit and 544bytes on 64bit). This
-			 * is enough space to store tree iterator for object-nodes.
-			 */
-			Iterator(const IIntIter *internalIter);
-			///Initializes iterator as copy of another iterator
-			Iterator(const Iterator &other);
-			///Destroyes iterator
-			~Iterator();
+		class KeyValue: public Value {
+		public:
+			ConstStrA key;
+			natural index;
 
-			///Retrieves next item from container
-			/**
-			 * @return next item
-			 */
-			const NodeInfo &getNext();
-			///Retrieves next item, but doesn't advance iterator
-			/**
-			 * @return next item
-			 */
-			const NodeInfo &peek() const;
-			///Retrieves whether there are items
-			/**
-			 * @retval true items follows
-			 * @retval false no more items
-			 * @note iterator caches state of this value, so it will not change when container is modified
-			 */
-			bool hasItems() const;
+			KeyValue(natural index, ConstStrA key,ConstValue value)
+				:Value(value),key(key),index(index) {}
 
-			///Searches for field from current position
-			/** Because list of fields are ordered, function returns false, when current field
-			 *  is after required field. Function returns true, when current field is equal to
-			 *  required field. Function can move iterator to required field when current field is
-			 *  before required field.
-			 *
-			 * @param fieldName Field to seek
-			 * @param foundField optional - name of field, where iterator stops
-			 * @retval true field found
-			 * @retval false field not found
-			 *
-			 * @note Function sets iterator to place to retrieve value using getNext()
-			 */
+			natural getIndex() const {return index;}
+			ConstStrA getStringKey() const {return key;}
+		};
 
-
-
-			const INode &getNextKC(ConstStrA fieldName);
-			bool isNextKey(ConstStrA fieldName) const;
-
-		protected:
-			mutable NodeInfo tmp;
-			mutable IIntIter *iter;
-			mutable natural buffer[76]; //should be enough
-			mutable bool next;
-
+		class Iterator: public ArrayIterator<KeyValue, StringCore<KeyValue> > {
+		public:
+			typedef ArrayIterator<KeyValue, StringCore<KeyValue> > Super;
+			Iterator(const Value &object);
 		};
 
 
@@ -368,7 +380,7 @@ namespace LightSpeed {
 			
 			///enables access in MT environment
 			/** All objects receives interlocked counters */
-			virtual INode* enableMTAccess() = 0;
+			virtual const INode* enableMTAccess() const = 0;
 			
 
 			virtual bool operator==(const INode &other) const = 0;
@@ -419,9 +431,10 @@ namespace LightSpeed {
 
 			///Adds new node directly from iterator result
 			INode *add(const KeyValue &kv) {
-				if (kv.getKeyType() == IKey::index) return add(kv.node);
-				else return add(kv.getStringKey(),kv.node);
+				if (getType() == ndArray) return add(kv);
+				else return add(kv.key,kv);
 			}
+
 
 			///Replaces value
 			/**
@@ -452,7 +465,7 @@ namespace LightSpeed {
 			 *
 			 * @param from source object
 			 */
-			INode *copy(const INode *from) {
+			INode *copy(INode *from) {
 				for (JSON::Iterator iter = from->getFwIter(); iter.hasItems();) add(iter.getNext());
 				return this;
 			}
@@ -480,7 +493,8 @@ namespace LightSpeed {
 			virtual INode *clear() = 0;
 
 			///Retrieves iterator for container nodes
-			virtual Iterator getFwIter() const = 0;
+			Iterator getFwIter() {return Iterator(this);}
+			ConstIterator getFwIter() const {return ConstIterator(this);}
 
 			ConstStrW operator()(ConstStrA name, ConstStrW defaultVal) const {
 				const INode *k = getVariable(name); return k?k->getString():defaultVal;
