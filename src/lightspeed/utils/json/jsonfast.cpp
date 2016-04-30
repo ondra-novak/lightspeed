@@ -159,7 +159,7 @@ bool FObject_t::enumEntries(const IEntryEnum& fn) const {
 
 INode* FObject_t::add(PNode nd) {
 	char buff[100];
-	_intr::numberToString(length(),buff+1,99,10);
+	::LightSpeed::_intr::numberToString(length(),buff+1,99,10);
 	buff[0] = '_';
 	return add(ConstStrA(buff),nd);
 }

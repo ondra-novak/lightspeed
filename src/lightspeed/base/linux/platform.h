@@ -9,5 +9,14 @@
 #define LIGHTSPEED_ENV_32BIT
 #endif
 
+#ifndef LIGHTSPEED_DEPRECATED
+#ifdef __GNUC__
+#define LIGHTSPEED_DEPRECATED __attribute__((deprecated))
+#else
+#define LIGHTSPEED_DEPRECATED
+#endif
+#endif
+
+
 #endif /*PLATFORM_H_*/
 

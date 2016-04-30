@@ -90,7 +90,8 @@ namespace LightSpeed {
 			ConstValue operator[](int i) const;
 			ConstValue operator[](natural i) const;
 
-	        operator const INode *() const {return safeGet();}
+			operator bool() const {return ptr != 0;}
+			operator const INode *() const {return ptr;}
 	        const INode *operator->() const {return safeGet();}
 
 	        bool isNull() const;
@@ -148,13 +149,14 @@ namespace LightSpeed {
 
 			INode *safeGetMutable() const {return const_cast<INode *>(Super::safeGet());}
 
-	        operator const INode *() const {return safeGet();}
-	        operator INode *() const {return safeGetMutable();}
+			operator bool() const {return ptr != 0;}
+	        operator INode *() const {return const_cast<INode *>(ptr);}
 	        INode *operator->() const {return safeGetMutable();}
+	        INode &operator *() const {return *safeGetMutable();}
 	        operator Pointer<INode>() const {return Pointer<INode>(safeGetMutable());}
 
 	        Value getMT() const {
-	        	RefCntPtr x = getMT();
+	        	RefCntPtr x = RefCntPtr::getMT();
 	        	return static_cast<Value &>(x);
 	        }
 	        INode *detach()  {return const_cast<INode *>(Super::detach());}
@@ -237,42 +239,64 @@ namespace LightSpeed {
 			Fn fn;
 		};
 		
+		namespace _intr {
+		class Key {
+		public:
+			Key (ConstStrA keyname, natural index):keyname(keyname),index(index) {}
+			ConstStrA getString() const {return keyname;}
+			natural getIndex() const {return index;}
+
+			//compatibility reason
+			const Key *operator->() const {return this;}
+		protected:
+			ConstStrA keyname;
+			natural index;
+		};
+		}
+
 		class ConstKeyValue: public ConstValue {
 		public:
-			ConstStrA key;
-			natural index;
+			_intr::Key key;
+			LIGHTSPEED_DEPRECATED const INode *node;
 
 			ConstKeyValue(natural index, ConstStrA key, ConstValue value)
-				:ConstValue(value),key(key),index(index) {}
+				:ConstValue(value),key(key,index),node(value) {}
 
-			natural getIndex() const {return index;}
-			ConstStrA getStringKey() const {return key;}
+			natural getIndex() const {return key.getIndex();}
+			ConstStrA getStringKey() const {return key.getString();}
+			const ConstValue &getValue() const {return *this;}
 		};
 
 		class ConstIterator: public ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > {
 		public:
 			typedef ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > Super;
 			ConstIterator(const ConstValue &object);
+			bool isNextKey(ConstStrA k) const {return peek().getStringKey() == k;}
 		};
 
 		class KeyValue: public Value {
 		public:
-			ConstStrA key;
-			natural index;
 
-			KeyValue(natural index, ConstStrA key,ConstValue value)
-				:Value(value),key(key),index(index) {}
+			_intr::Key key;
+			LIGHTSPEED_DEPRECATED INode *node;
 
-			natural getIndex() const {return index;}
-			ConstStrA getStringKey() const {return key;}
+			KeyValue(natural index, ConstStrA key,Value value)
+				:Value(value),key(key,index),node(value) {}
+
+			natural getIndex() const {return key.getIndex();}
+			ConstStrA getStringKey() const {return key.getString();}
+			const Value &getValue() const {return *this;}
 		};
 
 		class Iterator: public ArrayIterator<KeyValue, StringCore<KeyValue> > {
 		public:
 			typedef ArrayIterator<KeyValue, StringCore<KeyValue> > Super;
 			Iterator(const Value &object);
+			bool isNextKey(ConstStrA k) const {return peek().getStringKey() == k;}
 		};
 
+		///compatibility reason
+		typedef KeyValue NodeInfo;
 
 		///JSON is represented as tree, so this is one node of tree
 		/** Node can be Object, Array or any of leaf nodes, such a string, number, or null
@@ -432,7 +456,7 @@ namespace LightSpeed {
 			///Adds new node directly from iterator result
 			INode *add(const KeyValue &kv) {
 				if (getType() == ndArray) return add(kv);
-				else return add(kv.key,kv);
+				else return add(kv.getStringKey(),kv.getValue());
 			}
 
 

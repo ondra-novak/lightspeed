@@ -114,9 +114,9 @@ void Serializer<T>::serializeStringEscUTF(ConstStrA str) {
 template<typename T>
 void Serializer<T>::serializeObjectNode(const ConstKeyValue &n) {
 	if (escapeUTF8)
-		serializeStringEscUTF(n.key);
+		serializeStringEscUTF(n.getStringKey());
 	else
-		serializeString(n.key);
+		serializeString(n.getStringKey());
 
 	iter.write(':');
 	serialize(n);
