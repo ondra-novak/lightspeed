@@ -28,7 +28,7 @@ Serializer<T>::Serializer(IWriteIterator<char, T> &iter, bool escapeUTF8)
 template<typename T>
 void Serializer<T>::serializeArray(const INode *json) {
 	iter.write('[');
-	ConstIterator oiter = json->getFwIter();
+	ConstIterator oiter = json->getFwConstIter();
 	if (oiter.hasItems()) {
 		const ConstKeyValue &n = oiter.getNext();
 		serialize(n);
@@ -125,7 +125,7 @@ void Serializer<T>::serializeObjectNode(const ConstKeyValue &n) {
 template<typename T>
 void Serializer<T>::serializeObject(const INode *json) {
 	iter.write('{');
-	ConstIterator oiter = json->getFwIter();
+	ConstIterator oiter = json->getFwConstIter();
 	if (oiter.hasItems()) {
 		const ConstKeyValue &n = oiter.getNext();
 		serializeObjectNode(n);

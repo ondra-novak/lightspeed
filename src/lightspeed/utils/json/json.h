@@ -254,6 +254,9 @@ namespace LightSpeed {
 		};
 		}
 
+		///Const Item returned during iteration
+		/** It is extension of ConstValue. It contains name of key and index (for array) */
+
 		class ConstKeyValue: public ConstValue {
 		public:
 			_intr::Key key;
@@ -267,6 +270,14 @@ namespace LightSpeed {
 			const ConstValue &getValue() const {return *this;}
 		};
 
+		///Makes iteration through the const object or const array.
+		/** Iterator is always constructed as a snapshot. Once it is created, future
+		 * changes in the object will not affect the content of iterator. There is only
+		 * one exception. When an item is removed from the Object, its keyname stored in
+		 * the iterator becomes undefined. This is because keyname is stored as reference
+		 * to the container. It is recomended to erase items currently being processed or
+		 * already processed and never examine keyname of already removed items
+		 */
 		class ConstIterator: public ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > {
 		public:
 			typedef ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > Super;
@@ -518,7 +529,7 @@ namespace LightSpeed {
 
 			///Retrieves iterator for container nodes
 			Iterator getFwIter() {return Iterator(this);}
-			ConstIterator getFwIter() const {return ConstIterator(this);}
+			ConstIterator getFwConstIter() const {return ConstIterator(this);}
 
 			ConstStrW operator()(ConstStrA name, ConstStrW defaultVal) const {
 				const INode *k = getVariable(name); return k?k->getString():defaultVal;
