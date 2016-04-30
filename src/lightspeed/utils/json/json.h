@@ -91,6 +91,7 @@ namespace LightSpeed {
 		};
 
 		typedef Value PNode;
+		typedef Value ConstValue;
 
 		//Smart pointer to factory
 		/**Automatically tracks reference counts for factories allowing free unused factories as required */
@@ -191,6 +192,7 @@ namespace LightSpeed {
 		};
 
 		typedef KeyValue NodeInfo;
+		typedef KeyValue ConstKeyValue;
 
 		///Iterator through containers in JSON
 		/**
@@ -261,6 +263,8 @@ namespace LightSpeed {
 
 		};
 
+
+		typedef Iterator ConstIterator;
 
 		///JSON is represented as tree, so this is one node of tree
 		/** Node can be Object, Array or any of leaf nodes, such a string, number, or null
