@@ -80,10 +80,15 @@ void IOBuffer<bufferSize>::intFetch() const {
 }
 
 template<natural bufferSize>
+natural IOBuffer<bufferSize>::getWriteSpace() const {
+	return  ((wrbeg < rdpos && rdpos < rdend)?rdpos:bufferSize) - wrpos;
+}
+
+template<natural bufferSize>
 natural IOBuffer<bufferSize>::write(const void *buffer,  natural size) {
 	//calculate available space
 	//write buffer can be behind read buffer or beyond.
-	natural s = ((wrbeg < rdpos && rdpos < rdend)?rdpos:bufferSize) - wrpos;
+	natural s = getWriteSpace();
 	//if no space available
 	if (s == 0) {
 		//anything to flush?

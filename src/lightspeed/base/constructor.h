@@ -87,6 +87,22 @@ namespace LightSpeed {
 		const M &val3;
 	};
 
+	///Construct using three arguments
+	template<typename T, typename K, typename L, typename M, typename N>
+	class Constructor4: public Constructor<T,Constructor4<T,K,L,M,N> > {
+	public:
+		Constructor4(const K &val1,const L &val2,const M &val3,const N &val4)
+			:val1(val1),val2(val2),val3(val3),val4(val4) {}
+		T *implConstruct(void *where) const {
+			return new(where) T(val1,val2,val3,val4);
+		}
+	protected:
+		const K &val1;
+		const L &val2;
+		const M &val3;
+		const N &val4;
+	};
+
 
 	///Interface, which perform similar task as Constructor<T>, but using virtual binding
 	/**
