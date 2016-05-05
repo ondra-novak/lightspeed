@@ -186,6 +186,13 @@ namespace LightSpeed {
 		if (count > s) wrpos = wrbeg; else wrpos -= count;
 	}
 
+	///returns total bytes available for writing
+	/**
+	 * @return total bytes available for writing. Value 0 means, that next write causes to flush buffer
+	 * to the output. This can block the thread on I/O. You can use this function to test buffer before writing
+	 * to ensure, that writing will not block
+	 */
+	natural getWriteSpace() const;
 
 	protected:
 		///handle of stream 

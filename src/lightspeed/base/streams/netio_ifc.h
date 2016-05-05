@@ -290,7 +290,7 @@ namespace LightSpeed {
 		 */
 		virtual void setWaitHandler(WaitHandler *handler) = 0;
 
-		virtual WaitHandler *getWaitHandler() = 0;
+		virtual WaitHandler *getWaitHandler() const = 0;
 
 		///Sets default timeout for all waiting operations
 		/**
@@ -797,7 +797,7 @@ namespace LightSpeed {
 		virtual void setWaitHandler(INetworkResource::WaitHandler *handler) {
 			waitHandler = handler;
 		}
-		virtual INetworkResource::WaitHandler *getWaitHandler() {
+		virtual INetworkResource::WaitHandler *getWaitHandler() const {
 			return waitHandler;
 		}
 		virtual void setTimeout(natural time_in_ms) {
