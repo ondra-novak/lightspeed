@@ -362,7 +362,7 @@ public:
     : _tree (itr._tree)
   {
     _length = itr._length;
-    for (register short i = 0; i < _length; i++)
+    for ( short i = 0; i < _length; i++)
       _path[i] = itr._path[i];
     _index = itr._index;
   }
@@ -409,7 +409,7 @@ public:
       _index += path[_length]._indexInNode = found ? pos : pos+1;
       _length++;
       if (tmp_ptr->_isLeaf) break;
-      for (register long i = 0; i <= pos; i++)
+      for (long i = 0; i <= pos; i++)
       {
         BTreeNode<T,Compare>* p = tmp_ptr->_subtree[i];
         _index += p->_subtreeSize;
