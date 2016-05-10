@@ -116,7 +116,7 @@ namespace JSON {
 		virtual bool getBool() const {return true;}
 		virtual bool isNull() const {return false;}
 		virtual INode *getVariable(ConstStrW var) const;
-		virtual natural getEntryCount() const {return 0;}
+		virtual natural getEntryCount() const {return fields.length();}
 		virtual INode *getEntry(natural ) const {return 0;}
 		virtual bool enumEntries(const IEntryEnum &fn) const;
 

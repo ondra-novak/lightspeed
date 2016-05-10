@@ -282,7 +282,7 @@ namespace LightSpeed {
 		public:
 			typedef ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > Super;
 			ConstIterator(const ConstValue &object);
-			bool isNextKey(ConstStrA k) const {return peek().getStringKey() == k;}
+			bool isNextKey(ConstStrA k) const {return hasItems() && peek().getStringKey() == k;}
 			const JSON::INode &getNextKC(ConstStrA k) {return *getNext()[k];}
 		};
 
