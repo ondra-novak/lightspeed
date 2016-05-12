@@ -134,7 +134,6 @@ namespace LightSpeed {
 
 			Value() {}
 			Value(const Value &x):Super(x) {}
-			Value(const Super &x):Super(x) {}
 			Value(NullType x):Super(x) {}
 	        Value(INode *p):Super(p) {}
 
@@ -426,6 +425,25 @@ namespace LightSpeed {
 			///Creates copy of whole JSON tree using different factory
 			virtual INode *clone(PFactory factory) const = 0;
 
+			///Creates copy of while JSON keeping immutable values shared
+			/**
+			 * @param factory factory used to create new objects and arrays
+			 * @param depth specifies depth of copying. Object far then specified depth will be shared.
+			 * Note that you still get mutable version of whole tree, then you should avoid to modify
+			 * object deeper than specified depth. This option is included for better performance.
+			 * The value 0 means that only top-level object will be copied, objects at next level
+			 * will be shared.
+			 * @param mt_share specify trye to enforce MT sharing (pointers are switched to MT counting). MT
+			 *  sharing is set only for shared object, not for newly created ones. Note that if depth is
+			 *  in effect, this option still need to walk whole shared subtree to enable MT for every
+			 *  value inside of the subtree.
+			 * @return new JSON root node
+			 *
+			 * @note immutable values (such a leaves - strings, numbers, etc) are not copied. This
+			 * allows to make mutable version of json structure without posibility to modify original tree
+			 */
+			virtual Value copy(PFactory factory, natural depth = naturalNull, bool mt_share = false) const = 0;
+
 			virtual ~INode() {}
 			///Retrieves variable
 			/**
@@ -467,9 +485,9 @@ namespace LightSpeed {
 			virtual INode *add(ConstStrA name, Value newNode) = 0;
 
 			///Adds new node directly from iterator result
-			INode *add(const KeyValue &kv) {
+			INode *add(const ConstKeyValue &kv) {
 				if (getType() == ndArray) return add(kv);
-				else return add(kv.getStringKey(),kv.getValue());
+				else return add(kv.getStringKey(),Value(const_cast<INode *>(kv.getValue().get())));
 			}
 
 
@@ -502,8 +520,8 @@ namespace LightSpeed {
 			 *
 			 * @param from source object
 			 */
-			INode *copy(INode *from) {
-				for (JSON::Iterator iter = from->getFwIter(); iter.hasItems();) add(iter.getNext());
+			Value copy(const ConstValue &from) {
+				for (JSON::ConstIterator iter = from->getFwIter(); iter.hasItems();) add(iter.getNext());
 				return this;
 			}
 

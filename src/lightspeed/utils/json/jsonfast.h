@@ -76,6 +76,7 @@ namespace JSON {
 			return other.getType() == nodeType && other.getStringUtf8() == value;
 		}
 		virtual INode *clone(PFactory factory) const;
+
 		virtual INode &operator[](ConstStrW v) const;
 		virtual INode &operator[](ConstStrA v) const;
 		virtual INode &operator[](natural index) const;

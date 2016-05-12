@@ -39,6 +39,14 @@ PNode Builder::operator ()(NullType) const {
 	return factory->newNullNode();
 }
 
+Builder::Array Builder::array(ConstValue nd, natural depth, bool mt_share) const {
+	return Array(factory,nd->copy(factory,depth,mt_share));
+}
+Builder::Object Builder::object(ConstValue nd, natural depth, bool mt_share) const {
+	return Object(factory,nd->copy(factory,depth,mt_share));
+}
+
+
 }
 }
 

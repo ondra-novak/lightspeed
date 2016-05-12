@@ -933,7 +933,7 @@ bool ConstValue::empty() const {
 	return safeGet()->empty();
 }
 
-StringCore<ConstKeyValue>enumConst(const ConstValue &object) {
+static StringCore<ConstKeyValue>enumConst(const ConstValue &object) {
 	StringCore<ConstKeyValue> res;
 	StringCore<ConstKeyValue>::WriteIterator iter = res.createBufferIter(object.length());
 	class Filler: public IEntryEnum {
@@ -950,14 +950,14 @@ StringCore<ConstKeyValue>enumConst(const ConstValue &object) {
 	return res;
 }
 
-StringCore<KeyValue>enumConst(const Value &object) {
+static StringCore<KeyValue>enumMutable(const Value &object) {
 	StringCore<KeyValue> res;
 	StringCore<KeyValue>::WriteIterator iter = res.createBufferIter(object.length());
 	class Filler: public IEntryEnum {
 	public:
 		Filler(StringCore<KeyValue>::WriteIterator &iter):iter(iter) {}
 		virtual bool operator()(const INode *nd, ConstStrA key, natural index) const {
-			iter.write(KeyValue(index,key,ConstValue(nd)));
+			iter.write(KeyValue(index,key,Value(const_cast<INode *>(nd))));
 			return false;
 		}
 		StringCore<KeyValue>::WriteIterator &iter;
@@ -970,9 +970,49 @@ StringCore<KeyValue>enumConst(const Value &object) {
 ConstIterator::ConstIterator(const ConstValue& object):Super(enumConst(object)) {
 }
 
-Iterator::Iterator(const Value& object):Super(enumConst(object)) {
+Iterator::Iterator(const Value& object):Super(enumMutable(object)) {
 }
 
+Value AbstractNode_t::copy(PFactory factory, natural depth, bool mt_share) const {
+	if (getType() == ndObject) {
+		Value out = factory->object();
+		if (depth) {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x = ckv->copy(factory,depth-1,mt_share);
+				out->add(ckv.getStringKey(),x);
+			}
+		} else {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x (const_cast<INode *>((const INode *)ckv));
+				if (mt_share) x->RefCntObj::enableMTAccess();
+				out->add(ckv.getStringKey(),x);
+			}
+		}
+		return out;
+	} else if (getType() == ndArray) {
+		Value out = factory->array();
+		if (depth) {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x = ckv->copy(factory,depth-1,mt_share);
+				out->add(x);
+			}
+		} else {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x (const_cast<INode *>((const INode *)ckv));
+				if (mt_share) x->enableMTAccess();
+				out->add(x);
+			}
+		}
+		return out;
+	} else  {
+		if (mt_share) enableMTAccess();
+		return Value(const_cast<INode *>(static_cast<const INode *>(this)));
+	}
+}
 
 }
 

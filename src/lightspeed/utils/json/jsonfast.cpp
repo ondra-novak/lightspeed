@@ -193,6 +193,7 @@ INode* FObject_t::clone(PFactory factory) const {
 	return r.detach();
 }
 
+
 bool FObject_t::operator ==(const INode& other) const {
 	const FObject_t *k = dynamic_cast<const FObject_t *>(&other);
 	if (k == 0) return false;

@@ -90,8 +90,10 @@ public:
 	 * @note There is no function to create new array with appended PNode as Object supports. If you
 	 * with to do such operation, simply create empty array and append the PNode.
 	 */
-	Array array(PNode nd) const;
-	Object object(PNode nd) const;
+	Array array(Value nd) const;
+	Object object(Value nd) const;
+	Array array(ConstValue nd, natural depth=naturalNull, bool mt_share=false) const;
+	Object object(ConstValue nd, natural depth=naturalNull, bool mt_share=false) const;
 	///Creates empty array
 	Array operator[](Empty_t) const;
 

@@ -48,6 +48,8 @@ public:
 
 
 	bool isUtf8() const {return false;}
+	virtual Value copy(PFactory , natural , bool mt_share) const;
+
 
 
 };
