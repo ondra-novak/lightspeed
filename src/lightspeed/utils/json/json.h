@@ -128,9 +128,72 @@ namespace LightSpeed {
 
 	    };
 
-		class Value: public ConstValue {
-		public:
+		class Container: public ConstValue {
 			typedef ConstValue Super;
+		public:
+			///inicialize empty variable (it will hold nil = undefined)
+			Container() {}
+			///share container
+			Container(const Container &x):Super(x) {}
+			///try to make container mutable
+			/** Function will check, whether container is shared. It throws exception, when
+			 * this assertion fails
+			 * @param x constant container. After construction, variable is set to "undefined"
+			 */
+			explicit Container(ConstValue &x):Super(checkIsolation(x)) {x = nil;}
+			/// initialize to undefined value
+			Container(NullType x):Super(x) {}
+			/// use node to initialize container
+			/** Function will check, whether container is shared. It throws exception, when
+			 * this assertion fails
+			 * @param p container. After construction, variable is set to NULL
+			 */
+			explicit Container(const INode * &p):Super(checkIsolation(p)) {p = 0;}
+
+			Container(INode *p):Super(p) {}
+
+			///Set property of an object
+			/**
+			 * @param name property name
+			 * @param value property value
+			 * @return reference to container for chains
+			 * @note replaces existing property
+			 */
+			Container &set(ConstStrA name, const ConstValue &value);
+			///Add property to an object
+			/**
+			 * @param name property name
+			 * @param value property value
+			 * @return reference to container for chains
+			 * @note it will not replace existing node
+			 */
+			Container &add(ConstStrA name, const ConstValue &value);
+			///Set index of an array
+			/**
+			 * @param index index of an array
+			 * @param value new value at index
+			 * @return reference to container for chains
+			 */
+			Container &set(natural index, const ConstValue &value);
+			///Add new value to the array
+			/**
+			 * @param value new value
+			 * @return reference to container for chains
+			 */
+			Container &add(const ConstValue &value);
+			///Unset property
+			Container &unset(ConstStrA name);
+			///Erase value at index
+			Container &erase(natural index);
+			///Load data from other container, merges them with current values (replaces existing)
+			Container &load(const ConstValue &from);
+
+			static const INode *checkIsolation(const INode *ptr);
+		};
+
+		class Value: public Container {
+		public:
+			typedef Container Super;
 
 			Value() {}
 			Value(const Value &x):Super(x) {}
@@ -875,7 +938,6 @@ namespace LightSpeed {
 		extern LIGHTSPEED_EXPORT const char *strFalse;
 		extern LIGHTSPEED_EXPORT const char *strNull;
 		extern LIGHTSPEED_EXPORT const char *strDelete;
-
 
 
 	};

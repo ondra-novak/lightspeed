@@ -93,7 +93,7 @@ double strtod(ConstStrA string, natural *chrRead)
     double fraction, dblExp, *d;
     SafePtr p(string);
     const char *beg = p;
-    register int c;
+    int c;
     int exp = 0;		/* Exponent read from "EX" field. */
     int fracExp = 0;		/* Exponent that derives from the fractional
 				 * part.  Under normal circumstatnces, it is

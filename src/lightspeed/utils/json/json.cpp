@@ -1014,6 +1014,64 @@ Value AbstractNode_t::copy(PFactory factory, natural depth, bool mt_share) const
 	}
 }
 
+
+Container& Container::set(ConstStrA name, const ConstValue& value) {
+	const_cast<INode *>(ptr)->replace(name,static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::add(ConstStrA name, const ConstValue& value) {
+	const_cast<INode *>(ptr)->add(name,static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::set(natural index, const ConstValue& value) {
+	const_cast<INode *>(ptr)->replace(index,static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::add(const ConstValue& value) {
+	const_cast<INode *>(ptr)->add(static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::unset(ConstStrA name) {
+	const_cast<INode *>(ptr)->erase(name);
+	return *this;
+}
+
+Container& Container::erase(natural index) {
+	const_cast<INode *>(ptr)->erase(index);
+	return *this;
+}
+
+Container& Container::load(const ConstValue& from) {
+	class Loader: public IEntryEnum {
+	public:
+		Container &c;
+
+		virtual bool operator()(const INode *nd, ConstStrA key, natural) const  {
+			c.set(key, ConstValue(nd));
+			return false;
+		}
+		Loader(Container &c):c(c) {}
+	};
+	Loader l(*this);
+	from->enumEntries(l);
+	return *this;
+}
+
+const INode* Container::checkIsolation(const INode* ptr) {
+	if (ptr->isShared())
+		throw SharedValueException(THISLOCATION);
+	return ptr;
+}
+
+const char *SharedValueException::msgText = "Cannot make object mutable, it is shared.";
+void SharedValueException::message(ExceptionMsg &msg) const {
+	msg(msgText);
+}
+
 }
 
 }

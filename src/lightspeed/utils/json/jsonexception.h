@@ -36,5 +36,16 @@ namespace LightSpeed {
 
 		};
 
+		class SharedValueException: public Exception {
+		public:
+			LIGHTSPEED_EXCEPTIONFINAL;
+
+			static const char *msgText;
+			SharedValueException(const ProgramLocation &loc):Exception(loc) {}
+		protected:
+			void message(ExceptionMsg &msg) const;
+		};
+
+
 	}
 }
