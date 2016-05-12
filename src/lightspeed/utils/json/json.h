@@ -189,6 +189,8 @@ namespace LightSpeed {
 			Container &load(const ConstValue &from);
 
 			static const INode *checkIsolation(const INode *ptr);
+
+			Container &clear();
 		};
 
 		class Value: public Container {
@@ -223,6 +225,45 @@ namespace LightSpeed {
 	        }
 	        INode *detach()  {return const_cast<INode *>(Super::detach());}
 	        INode *get() const {return const_cast<INode *>(Super::get());}
+
+			///Set property of an object
+			/**
+			 * @param name property name
+			 * @param value property value
+			 * @return reference to container for chains
+			 * @note replaces existing property
+			 */
+			Value &set(ConstStrA name, const Value &value);
+			///Add property to an object
+			/**
+			 * @param name property name
+			 * @param value property value
+			 * @return reference to container for chains
+			 * @note it will not replace existing node
+			 */
+			Value &add(ConstStrA name, const Value &value);
+			///Set index of an array
+			/**
+			 * @param index index of an array
+			 * @param value new value at index
+			 * @return reference to container for chains
+			 */
+			Value &set(natural index, const Value &value);
+			///Add new value to the array
+			/**
+			 * @param value new value
+			 * @return reference to container for chains
+			 */
+			Value &add(const Value &value);
+			///Unset property
+			Value &unset(ConstStrA name);
+			///Erase value at index
+			Value &erase(natural index);
+			///Load data from other container, merges them with current values (replaces existing)
+			Value &load(const ConstValue &from);
+
+			Value &clear();
+
 
 #if __cplusplus >= 201103L
 			Value(Value &&other):Super(std::move(other)) {}

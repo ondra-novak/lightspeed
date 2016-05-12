@@ -43,7 +43,7 @@ bool Object::enumEntries(const IEntryEnum &fn) const {
 	return false;
 }
 
-void Object::insertField(ConstStrA name, PNode nd) {
+void Object::insertField(ConstStrA name, Value nd) {
 	Value v = isMTAccessEnabled()?nd.getMT():nd;
 
 	ConstStrA out;
@@ -58,7 +58,7 @@ natural Object::length() const {
 }
 
 
-INode *Object::add(PNode nd) {
+INode *Object::add(Value nd) {
 	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	natural l = fields.size();
@@ -67,7 +67,7 @@ INode *Object::add(PNode nd) {
 	return add(StringA(fmt.write()),nd);
 }
 
-INode *Object::add(ConstStrA name, PNode nd) {
+INode *Object::add(ConstStrA name, Value nd) {
 	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	insertField(name,nd);
@@ -75,7 +75,7 @@ INode *Object::add(ConstStrA name, PNode nd) {
 }
 
 INode *Object::clone(PFactory factory) const {
-	PNode r = factory->newClass();
+	Value r = factory->newClass();
 	for (FieldMap::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FieldNode *e = iter.getNext();
 		r->add(e->data.key,e->data.value->clone(factory));
@@ -190,7 +190,7 @@ bool Array::enumEntries(const IEntryEnum &fn) const {
 	return false;
 }
 
-INode *Array::add(PNode nd) {
+INode *Array::add(Value nd) {
 	if (nd == nil) throw InvalidParamException(THISLOCATION,0,"Argument has no value");
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	if (isMTAccessEnabled()) list.add(nd.getMT());
@@ -198,7 +198,7 @@ INode *Array::add(PNode nd) {
 	return this;
 }
 
-INode *Array::add(ConstStrA , PNode nd) {
+INode *Array::add(ConstStrA , Value nd) {
 	return add(nd);
 }
 
@@ -207,12 +207,12 @@ INode *Array::erase(natural index) {
 	return this;
 }
 
-void Array::internalAdd(PNode nd) {list.add(nd);}
+void Array::internalAdd(Value nd) {list.add(nd);}
 
 INode *Array::clone(PFactory factory) const {
-	PNode r = factory->newArray();
+	Value r = factory->newArray();
 	for (FieldList_t::Iterator iter = list.getFwIter();iter.hasItems();) {
-		const PNode &e = iter.getNext();
+		const Value &e = iter.getNext();
 		r->add(e->clone(factory));
 	}
 	return r.detach();
@@ -224,8 +224,8 @@ bool Array::operator==(const INode &other) const {
 	if (list.length() != k->list.length()) return false;
 	for (FieldList_t::Iterator iter = list.getFwIter(),iter2 =k->list.getFwIter();
 		iter.hasItems();) {
-			const PNode &e1 = iter.getNext();
-			const PNode &e2 = iter2.getNext();
+			const Value &e1 = iter.getNext();
+			const Value &e2 = iter2.getNext();
 			if (*e1 != *e2) return false;
 	}
 	return true;
@@ -237,7 +237,7 @@ const INode * Array::enableMTAccess() const
 {
 	RefCntObj::enableMTAccess();
 	for (FieldList_t::Iterator iter = list.getFwIter(); iter.hasItems();) {
-		const PNode &e = iter.getNext();
+		const Value &e = iter.getNext();
 		e.getMT();
 		e->enableMTAccess();
 	}
@@ -489,20 +489,20 @@ INode * AbstractNode_t::add( ConstStrA name, PNode newNode )
 
 
 
-PNode Factory::createObject() {return new Object;}
-PNode Factory::createNumber(natural v) {return new IntField(v);}
-PNode Factory::createNumber(integer v) {return new IntField(v);}
+Value Factory::createObject() {return new Object;}
+Value Factory::createNumber(natural v) {return new IntField(v);}
+Value Factory::createNumber(integer v) {return new IntField(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
 PNode Factory::createNumber(lnatural v) {return new IntField64(v);}
 PNode Factory::createNumber(linteger v) {return new IntField64(v);}
 #endif
-PNode Factory::createNumber(float v) {return new FloatField(v);}
-PNode Factory::createNumber(double v) {return new FloatField(v);}
-PNode Factory::createNumber(bool v) {return new Bool(v);}
-PNode Factory::createString(ConstStrW v) {return new TextField(v);}
-PNode Factory::createString(ConstStrA v) {return new TextFieldA(v);}
-PNode Factory::createArray(ConstStringT<Value> v) {return new Array(v);}
-PNode Factory::createArray(ConstStringT<INode *> v) {return new Array(v);}
+Value Factory::createNumber(float v) {return new FloatField(v);}
+Value Factory::createNumber(double v) {return new FloatField(v);}
+Value Factory::createNumber(bool v) {return new Bool(v);}
+Value Factory::createString(ConstStrW v) {return new TextField(v);}
+Value Factory::createString(ConstStrA v) {return new TextFieldA(v);}
+Value Factory::createArray(ConstStringT<Value> v) {return new Array(v);}
+Value Factory::createArray(ConstStringT<INode *> v) {return new Array(v);}
 
 
 
@@ -549,20 +549,20 @@ void FactoryCommon::toStream(const INode &nd, SeqFileOutput &stream) {
 
 
 
-LightSpeed::JSON::PNode Factory::fromString( ConstStrA text )
+Value Factory::fromString( ConstStrA text )
 {
 	ConstStrA::Iterator iter = text.getFwIter();
 	return parseStream(iter);
 }
 
 
-LightSpeed::JSON::PNode Factory::fromStream( SeqFileInput &stream )
+Value Factory::fromStream( SeqFileInput &stream )
 {
 	SeqTextInA in(stream);
 	return parseStream(in);
 
 }
-LightSpeed::JSON::PNode Factory::fromCharStream( IVtIterator<char> &stream )
+Value Factory::fromCharStream( IVtIterator<char> &stream )
 {
 	return parseStream(stream);
 			
@@ -612,7 +612,7 @@ protected:
 	IFactory *fact;
 };
 
-LightSpeed::JSON::PNode FactoryCommon::merge( const INode &base, const INode &change )
+Value FactoryCommon::merge( const INode &base, const INode &change )
 {
 
 	const Object *clsbase = dynamic_cast<const Object *>(&base);
@@ -625,9 +625,9 @@ LightSpeed::JSON::PNode FactoryCommon::merge( const INode &base, const INode &ch
 	
 }
 
-LightSpeed::JSON::PNode FactoryCommon::mergeClasses( const Object * clschange, const Object * clsbase )
+Value FactoryCommon::mergeClasses( const Object * clschange, const Object * clsbase )
 {
-	PNode nwnode = this->newClass();
+	Value nwnode = this->newClass();
 	Object *newcls = static_cast<Object *>(nwnode.get());
 	MergeClassDropOld_t mgd(newcls,clschange, this);
 	MergeClassAddNew_t mga(newcls,this);
@@ -637,50 +637,44 @@ LightSpeed::JSON::PNode FactoryCommon::mergeClasses( const Object * clschange, c
 }
 
 
-PNode PFactory::array()
+Value PFactory::array()
 {
 	return (*this)->array();
 }
 
 
-PNode  PFactory::object()
+Value  PFactory::object()
 {
 	return (*this)->object();
 }
 
 
 
-LightSpeed::JSON::PNode PNode::operator[]( ConstStrA name ) const
+Value Value::operator[]( ConstStrA name ) const
 {
-	PNode ret = (*this)->getVariable(name);
-	if (ret == nil) throw JSON::RequiredFieldException(THISLOCATION, name);
-	return ret;
+	return Value(safeGet()->getPtr(name));
 }
 
 
-LightSpeed::JSON::PNode PNode::operator[]( const char *name ) const
+Value Value::operator[]( const char *name ) const
 {
-	PNode ret = (*this)->getVariable(name);
-	if (ret == nil) throw JSON::RequiredFieldException(THISLOCATION, name);
-	return ret;
+	return Value(safeGet()->getPtr(ConstStrA(name)));
 }
 
-LightSpeed::JSON::PNode PNode::operator[]( int pos ) const
+Value Value::operator[]( int pos ) const
 {
 	if (pos < 0 || pos >= (int)(*this)->getEntryCount()) {
 		throwRangeException_To<natural>(THISLOCATION,(*this)->getEntryCount(),pos);
 	}
-	PNode ret = (*this)->getEntry(pos);
-	return ret;
+	return Value(safeGet()->getPtr(pos));
 }
 
-LightSpeed::JSON::PNode PNode::operator[]( natural pos ) const
+Value Value::operator[]( natural pos ) const
 {
 	if (pos >= (*this)->getEntryCount()) {
 		throwRangeException_To(THISLOCATION,(*this)->getEntryCount(),pos);
 	}
-	PNode ret = (*this)->getEntry(pos);
-	return ret;
+	return Value(safeGet()->getPtr(pos));
 }
 
 
@@ -929,6 +923,7 @@ natural ConstValue::length() const {
 	return safeGet()->length();
 }
 
+
 bool ConstValue::empty() const {
 	return safeGet()->empty();
 }
@@ -1016,32 +1011,32 @@ Value AbstractNode_t::copy(PFactory factory, natural depth, bool mt_share) const
 
 
 Container& Container::set(ConstStrA name, const ConstValue& value) {
-	const_cast<INode *>(ptr)->replace(name,static_cast<const Value &>(value));
+	const_cast<INode *>(safeGet())->replace(name,static_cast<const Value &>(value));
 	return *this;
 }
 
 Container& Container::add(ConstStrA name, const ConstValue& value) {
-	const_cast<INode *>(ptr)->add(name,static_cast<const Value &>(value));
+	const_cast<INode *>(safeGet())->add(name,static_cast<const Value &>(value));
 	return *this;
 }
 
 Container& Container::set(natural index, const ConstValue& value) {
-	const_cast<INode *>(ptr)->replace(index,static_cast<const Value &>(value));
+	const_cast<INode *>(safeGet())->replace(index,static_cast<const Value &>(value));
 	return *this;
 }
 
 Container& Container::add(const ConstValue& value) {
-	const_cast<INode *>(ptr)->add(static_cast<const Value &>(value));
+	const_cast<INode *>(safeGet())->add(static_cast<const Value &>(value));
 	return *this;
 }
 
 Container& Container::unset(ConstStrA name) {
-	const_cast<INode *>(ptr)->erase(name);
+	const_cast<INode *>(safeGet())->erase(name);
 	return *this;
 }
 
 Container& Container::erase(natural index) {
-	const_cast<INode *>(ptr)->erase(index);
+	const_cast<INode *>(safeGet())->erase(index);
 	return *this;
 }
 
@@ -1070,6 +1065,44 @@ const INode* Container::checkIsolation(const INode* ptr) {
 const char *SharedValueException::msgText = "Cannot make object mutable, it is shared.";
 void SharedValueException::message(ExceptionMsg &msg) const {
 	msg(msgText);
+}
+
+Value& Value::set(ConstStrA name, const Value& value) {
+	safeGetMutable()->replace(name,value);return *this;
+}
+
+Value& Value::add(ConstStrA name, const Value& value) {
+	safeGetMutable()->add(name,value);return *this;
+}
+
+Value& Value::set(natural index, const Value& value) {
+	safeGetMutable()->replace(index,value);return *this;
+}
+
+Value& Value::add(const Value& value) {
+	safeGetMutable()->add(value);return *this;
+}
+
+Value& Value::unset(ConstStrA name) {
+	Container::unset(name);return *this;
+}
+
+Value& Value::erase(natural index) {
+	Container::erase(index);return *this;
+}
+
+Value& Value::load(const ConstValue& from) {
+	Container::load(from);return *this;
+}
+
+Container& Container::clear() {
+	const_cast<INode *>(safeGet())->clear();
+	return *this;
+}
+
+Value& Value::clear() {
+	Container::clear();
+	return *this;
 }
 
 }
