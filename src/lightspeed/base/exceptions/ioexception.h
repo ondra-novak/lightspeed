@@ -1,5 +1,6 @@
 #ifndef LIGHTSPEED_EXCEPTIONS_IOEXCEPTION_H_
 #define LIGHTSPEED_EXCEPTIONS_IOEXCEPTION_H_
+#include "./exception.h"
 
 
 
