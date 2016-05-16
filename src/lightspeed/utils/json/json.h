@@ -765,6 +765,14 @@ namespace LightSpeed {
 			Value newValue(std::nullptr_t) {return newValue(null);}
 #endif
 
+			virtual Container newValue(ConstStringT<ConstValue> v) {
+				return newValue(ConstStringT<Value>(static_cast<const Value *>(v.data()),v.length()));
+			}
+			virtual Container newValue(ConstStringT<Container> v) {
+				return newValue(ConstStringT<Value>(static_cast<const Value *>(v.data()),v.length()));
+			}
+
+
 			///Serialize custom value (undefined upper)
 			template<typename T>
 			Value newCustomValue(const T &x) {
