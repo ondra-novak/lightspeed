@@ -757,18 +757,20 @@ namespace LightSpeed {
 			virtual IRuntimeAlloc *getAllocator() const = 0;
 
 			///to keep templates to work
-			Value newValue(Value v) {return v;}
-			
+			Value newValue(Value v)  {return v;}
+
+			Value newValue(ConstValue v, natural depth= naturalNull, bool mt_share = false)  {return v->copy(this,depth,mt_share);}
+
 			virtual Value newValue(NullType) = 0;
 
 #if __cplusplus >= 201103L
 			Value newValue(std::nullptr_t) {return newValue(null);}
 #endif
 
-			virtual Container newValue(ConstStringT<ConstValue> v) {
+			Container newValue(ConstStringT<ConstValue> v) {
 				return newValue(ConstStringT<Value>(static_cast<const Value *>(v.data()),v.length()));
 			}
-			virtual Container newValue(ConstStringT<Container> v) {
+			Container newValue(ConstStringT<Container> v) {
 				return newValue(ConstStringT<Value>(static_cast<const Value *>(v.data()),v.length()));
 			}
 
@@ -973,12 +975,14 @@ namespace LightSpeed {
 					ConvHelper<ConstStrA,
 					ConvHelper<ConstStrW,
 					ConvHelper<ConstStringT<JSON::Value>,
+					ConvHelper<ConstStringT<JSON::Container>,
+					ConvHelper<ConstStringT<JSON::ConstValue>,
 					ConvHelper<ConstStringT<JSON::INode *>,
 					ConvHelper<bool,Empty>
 #ifdef LIGHTSPEED_HAS_LONG_TYPES					
 					> > 
 #endif				
-					> > > > > > > >				Conv;
+					> > > > > > > > > >				Conv;
 
 			return Conv::conv(val,*this);
 		}

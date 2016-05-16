@@ -65,10 +65,14 @@ public:
 	template<typename T>
 	Object operator()(ConstStrA name, const T &value) const;
 	///Creates empty object
-	PNode operator()(NullType) const;
+	Value operator()(NullType) const;
+
+
 
 	template<typename T>
-	PNode operator()(const T &val) const;
+	Value operator()(const T &val) const;
+	Container operator()(const ConstStringT<Container> &val) const;
+	Container operator()(const ConstStringT<ConstValue> &val) const;
 
 	template<typename T>
 	Array operator,(const T &x) const {return operator<<(x);}

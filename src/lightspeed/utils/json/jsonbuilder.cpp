@@ -34,11 +34,11 @@ Builder::Array Builder::operator [](Empty_t ) const {
 	return Array(factory,factory->newArray());
 }
 
-Builder::Array LightSpeed::JSON::Builder::array() const {
+Builder::Array Builder::array() const {
 	return Array(factory,factory->newArray());
 }
 
-Builder::Object LightSpeed::JSON::Builder::object() const {
+Builder::Object Builder::object() const {
 	return Object(factory,factory->newObject());
 }
 
@@ -67,6 +67,14 @@ Builder::CArray Builder::Array::operator <<(const ConstValue& x) {
 	CArray obj(factory,*this);
 	obj << x;
 	return obj;
+}
+
+Container Builder::operator ()(const ConstStringT<Container>& val) const {
+	return factory->newValue(val);
+}
+
+Container Builder::operator ()(const ConstStringT<ConstValue>& val) const {
+	return factory->newValue(val);
 }
 
 
