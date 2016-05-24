@@ -29,7 +29,7 @@ namespace LightSpeed {
 		void push(const Constructor<T, I> &c) {items.add(c);heap.push();}
 
 		const T &top() const { return items[0]; }
-		T &top() { return items[0]; }
+		T &top() { return items(0); }
 		void pop() { heap.pop(); items.trunc(heap.getSize()); }
 		void clear() {heap.clear();items.clear();}
 		bool empty() const {return items.empty();}
