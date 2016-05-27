@@ -62,7 +62,7 @@ namespace LightSpeed {
 
 		virtual ~IOBuffer() {try {
 				autoflush = nil;
-				flush();
+				intFlush(); //CHANGED by Bredy - perform only internal flush, flushing target is on responsibility of parent object
 			} catch (...) {
 
 			}

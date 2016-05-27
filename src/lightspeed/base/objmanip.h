@@ -155,7 +155,7 @@ namespace LightSpeed {
 			T *k,*l;
 		public:
 			natural q;  //< set this variable for every constructed item. Set to naturalNull to commit
-			SwapRollback(T *k, T *l):q(0),k(k),l(l) {}
+			SwapRollback(T *k, T *l):k(k),l(l),q(0) {}
 			~SwapRollback() {
 				if (q + 1) {
 					ObjManip<T>::swap(k,l,q);

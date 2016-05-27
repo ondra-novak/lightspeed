@@ -39,7 +39,7 @@ public:
 		right->left = this;
 	}
 
-	NonPodObject(int number, bool central):number(number),left(this),right(this) {
+	NonPodObject(int number, bool ):number(number),left(this),right(this) {
 		magix = 0x123456;
 	}
 

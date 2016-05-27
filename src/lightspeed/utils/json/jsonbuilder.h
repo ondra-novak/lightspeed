@@ -147,8 +147,15 @@ public:
 
 	};
 
+	typedef Object CObject;
+	typedef Array CArray;
+
+
 	public:
 		PFactory factory;
+
+
+
 
 protected:
 	template<typename T>

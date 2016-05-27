@@ -103,7 +103,10 @@ namespace LightSpeed {
     FilterWrite<WrIterator, Filter>::~FilterWrite() {
     	try {
     		//try flush
-    		flush();
+    		//flush(); - DO NOT FLUSH COMPLETE - just ensure, that all data are written
+        	flt.flush();
+        	flushCycle();
+
     	} catch (...) {
     	
     	}    
