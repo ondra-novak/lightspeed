@@ -1105,6 +1105,155 @@ Value& Value::clear() {
 	return *this;
 }
 
+const Path Path::root(Path::root,"<root>");
+
+ConstValue Path::findValue(const ConstValue& root) const {
+	if (isRoot()) return root;
+	ConstValue v = parent.findValue(root);
+	if (v != null)
+		return isIndex()?v[getIndex()]:v[getKey()];
+	else
+		return null;
+}
+
+Value Path::findValue(const Value& root) const {
+	if (isRoot()) return root;
+	Value v = parent.findValue(root);
+	if (v != null)
+		return isIndex()?v[getIndex()]:v[getKey()];
+	else
+		return null;
+
+}
+
+ConstValue Path::findContainer(const ConstValue& root) const {
+	if (isRoot()) return null;
+	return parent.findValue(root);
+}
+
+Value Path::findContainer( const Value& root) const {
+	if (isRoot()) return null;
+	return parent.findValue(root);
+}
+
+Path *Path::copy() const {
+	return Path::copy(StdAlloc::getInstance());
+}
+
+Path *Path::copy(IRuntimeAlloc &alloc) const {
+	//do not perform copy of root element
+	if (isRoot()) return const_cast<Path *>(this);
+	//calculate required size - first include pointer to allocator
+	natural reqSize = sizeof(IRuntimeAlloc *);
+	//calculate length
+	natural len=0;
+	for (const Path *p = this; p != &root; p = &p->parent) {
+		//reserve space for element
+		reqSize +=sizeof(Path);
+		//if it is key, then reserve space for name
+		if (p->isKey()) reqSize+=p->index;
+		//increase count of elemenets
+		len++;
+	}
+	IRuntimeAlloc *owner;
+	//allocate memory, return owner of memory
+	void *buff = alloc.alloc(reqSize,owner);
+	IRuntimeAlloc **a = reinterpret_cast<IRuntimeAlloc **>(buff);
+	//store allocator
+	*a = owner;
+	//get pointer to first item
+	Path *start = reinterpret_cast<Path *>(a+1);
+	//get pointer to string buffer
+	char *strbuff = reinterpret_cast<char *>(start+len);
+	//perform recursive copy
+	return copyRecurse(start,strbuff);
+}
+
+Path *Path::copyRecurse(Path * trg, char  *strBuff) const {
+	//stop on root
+	if (isRoot()) return const_cast<Path *>(this);
+	//if it is key
+	if (isKey()) {
+		//pick first unused byte in string buffer
+		char *c = strBuff;
+		//copy name to buffer
+		memcpy(strBuff, keyName,index);
+		//advence pointer in buffer
+		strBuff+=index;
+		//copy rest of path to retrieve new pointer
+		Path *out = copyRecurse(trg+1,strBuff);
+		//construct path item at give position, use returned pointer as parent
+		//and use text from string buffer as name
+		return new((void *)trg) Path(*out, ConstStrA(c, index));
+	} else {
+		//if it is index, just construct rest of path
+		Path *out = copyRecurse(trg+1,strBuff);
+		//copy rest of path to retrieve new pointer
+
+		return new((void *)trg) Path(*out, index);
+	}
+}
+
+void Path::operator delete(void *ptr) {
+	//delete operator is used instead of destructor
+	//because object is POD type, it has no destructor
+	//destructor is called when need to delete object
+	//because object is always allocated by copy()
+	//we can nout perform cleanup of whole path
+
+	//do nothing with root
+	if (ptr == &root) return;
+
+	//retrieve allocator
+	IRuntimeAlloc **a = reinterpret_cast<IRuntimeAlloc **>(ptr);
+	IRuntimeAlloc *alc = *(a-1);
+
+	//calculate reqSize
+	natural reqSize = sizeof(IRuntimeAlloc *);
+
+	for (const Path *p = reinterpret_cast<Path *>(ptr); ptr != &root; p = &p->parent) {
+		//reserve space for element
+		reqSize+=sizeof(Path);
+		//if it is key, then reserve space for name
+		if (p->isKey()) reqSize+=p->getKey().length();
+	}
+	//deallocate memory
+	alc->dealloc(a,reqSize);
+
+}
+void *Path::operator new(size_t , void *p) {
+	return p;
+}
+void Path::operator delete (void *, void *) {
+
+}
+
+CompareResult Path::compare(const Path &other) const {
+	if (isRoot()) return other.isRoot()?cmpResultEqual:cmpResultLess;
+	if (other.isRoot()) return cmpResultGreater;
+	CompareResult z = parent.compare(other.parent);
+	if (z == cmpResultEqual) {
+		if (isIndex()) {
+			if (other.isIndex()) {
+				if (getIndex() <  other.getIndex()) return cmpResultLess;
+				else if (getIndex() > other.getIndex()) return cmpResultGreater;
+				else return cmpResultEqual;
+			} else {
+				return cmpResultLess;
+			}
+		} else if (other.isKey()) {
+			return getKey().compare(other.getKey());
+		} else {
+			return cmpResultGreater;
+		}
+	} else {
+		return z;
+	}
+}
+
+
+
+
 }
 
 }

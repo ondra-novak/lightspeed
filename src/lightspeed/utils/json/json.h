@@ -993,11 +993,153 @@ namespace LightSpeed {
 		extern LIGHTSPEED_EXPORT const char *strDelete;
 
 
+
+
+
+	///Defines path in JSON document
+	/** You can define path as set of keys ordered from specified key to the root
+	 *
+	 * Every path has its root element. The parent of the root is always root itself. You can test
+	 * whether the current element is root using the function isRoot()
+	 *
+	 */
+	class Path: public Comparable<Path> {
+
+	public:
+		///Always the root element
+		static const Path root;
+
+		///Construct path relative to other element
+		/**
+		 *
+		 * @param parent reference to parent path. If you need to construct relative to root, use Path::root as reference
+		 * @param key name of key
+		 */
+		Path(const Path &parent, ConstStrA key):keyName(key.data()),index(key.length()),parent(parent) {}
+
+		///Construct path relative to other element in an array
+		/**
+		 * @param parent reference to parent path. If you need to construct relative to root, use Path::root as reference
+		 * @param index index of item in array
+		 */
+		Path(const Path &parent, natural index):keyName(0), index(index),parent(parent) {}
+
+
+		///Retrieves key value
+		/**
+		 * @return key value. If element is index, returns empty string
+		 */
+		ConstStrA getKey() const {return keyName?ConstStrA():ConstStrA(keyName,index);}
+		///Retrieves index value
+		/**
+		 * @return index value. if element is key, result is an undetermined number
+		 */
+		natural getIndex() const {return index;}
+
+
+		///Determines, whether current element is an index
+		bool isIndex() const {return keyName == 0;}
+		///Determines, whether current element is a key
+		bool isKey() const {return keyName != 0;}
+
+		///returns true, if current element is root elemmenet
+		bool isRoot() const {return this == &root;}
+
+		///Returns lenhth of the path
+		/**
+		 * @return length of the path. Note that function has linear complexity
+		 */
+		natural length() const {return isRoot()?0:parent.length()+1;}
+
+		///Allocates extra memory and copies path into it
+		/**
+		 * @return pointer to copied path. If you no longer needed the object, use operator delete to
+		 * destroy object
+		 *
+		 * @note you cannot call new Path, because this function would create copy of topmost
+		 * element. Operator new is disabled, you should always call copy() to allocate copy
+		 * of the path.
+		 */
+		Path *copy() const;
+		///Allocates extra memory and copies path into it
+		/**
+		 * @param alloc reference to allocator to be used to allocate memory
+		 * @return pointer to copied path. If you no longer needed the object, use operator delete to
+		 * destroy object
+		 *
+		 * @note you cannot call new Path, because this function would create copy of topmost
+		 * element. Operator new is disabled, you should always call copy() to allocate copy
+		 * of the path.
+		 */
+		Path *copy(IRuntimeAlloc &alloc) const;
+
+
+		///Finds a value referred by the current path
+		/**
+		 * @param root root object where to start
+		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
+		 */
+		ConstValue findValue(const ConstValue &root) const;
+		///Finds a value referred by the current path
+		/**
+		 * @param root root object where to start
+		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
+		 *
+		 * @note the function returns root argument for the root
+		 */
+		Value findValue(const Value &root) const;
+		///Finds a container that refers current value
+		/**
+		 * @param root root object where to start
+		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
+		 *
+		 * @note the function returns null for the root
+		 *
+		 */
+		ConstValue findContainer(const ConstValue &root) const;
+		///Finds a value referred by the current path
+		/**
+		 * @param root root object where to start
+		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
+		 *
+		 * @note the function returns null for the root
+		 *
+		 */
+		Value findContainer(const Value &root) const;
+
+		///handles deletion
+		void operator delete(void *p);
+		void *operator new(size_t sz, void *p);
+		void operator delete (void *ptr, void *p);
+
+		///Compare two paths,
+		/** Indexes are ordered before keys */
+		CompareResult compare(const Path &other) const;
+
+		~Path() {}
+	private:
+
+		friend class ComparableLessAndEqual<Path>;
+		///name of key;
+		const char *keyName;
+		///index of value (used as keyname when keyName is not null)
+		natural index;
+		///Reference to parent path
+		const Path &parent;
+
+		void *operator new(size_t sz);
+		Path *copyRecurse(Path * trg, char  *strBuff) const;
+
+
 	};
 
 
 
 
+
+};
 };
 
+
 #include "jsonbuilder.h"
+
