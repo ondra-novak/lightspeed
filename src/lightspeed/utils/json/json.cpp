@@ -419,19 +419,6 @@ bool Null::operator==(const INode &other) const {
 	else return true;
 }
 
-INode *Delete::clone(PFactory factory) const {
-	return factory->newDeleteNode().detach();
-}
-
-bool Delete::operator==(const INode &other) const {
-	const Delete *t = dynamic_cast<const Delete *>(&other);
-	if (t == 0) return false;
-	else return true;
-}
-
-ErrorMessageException Delete::accessError(const ProgramLocation &loc) const {
-	return ErrorMessageException(loc,"Member is deleted");
-}
 
 INode *Bool::clone(PFactory factory) const {
 	return factory->newValue(b).detach();
@@ -567,75 +554,6 @@ Value Factory::fromCharStream( IVtIterator<char> &stream )
 	return parseStream(stream);
 			
 }
-/* creates new JSON class, merges subclasses and
-   skips items presented in changes JSON class, because
-   it expects that they will be added by MergeClassAddNew_t
-   */
-class MergeClassDropOld_t: public IEntryEnum {
-public:
-	virtual bool operator()(const INode *nd, ConstStrA key, natural ) const {
-		const INode *chgnd = changes->getVariable(key);
-		if (chgnd) {
-			if (chgnd->getType() == ndObject && nd->getType() == ndObject) {
-				newcls->add(key,fact->mergeClasses(
-					static_cast<const Object *>(chgnd),
-					static_cast<const Object *>(nd)));
-			}
-		} else {
-			newcls->add(key,nd->clone(fact));
-		}
-		return false;
-	}
-
-	MergeClassDropOld_t(Object *newcls, const Object *changes, FactoryCommon *fact)
-		:newcls(newcls),changes(changes),fact(fact) {}
-protected:
-	Object *newcls;
-	const Object *changes;
-	FactoryCommon *fact;
-};
-
-/* Adds new items into class, not removing already existing */
-class MergeClassAddNew_t: public IEntryEnum {
-public:
-	virtual bool operator()(const INode *nd, ConstStrA key, natural ) const {
-		NodeType ndt = nd->getType();
-		if (newcls->getVariable(key) == 0 && ndt != ndDelete) {
-			newcls->add(key,nd->clone(fact));
-		}
-		return false;
-	}
-	MergeClassAddNew_t(Object *newcls, IFactory *fact)
-		:newcls(newcls),fact(fact) {}
-protected:
-	Object *newcls;
-	IFactory *fact;
-};
-
-Value FactoryCommon::merge( const INode &base, const INode &change )
-{
-
-	const Object *clsbase = dynamic_cast<const Object *>(&base);
-	const Object *clschange = dynamic_cast<const Object *>(&change);
-	if (NULL != clsbase && NULL != clschange) {
-		return mergeClasses(clschange, clsbase);
-	} else {
-		return change.clone(this);
-	}
-	
-}
-
-Value FactoryCommon::mergeClasses( const Object * clschange, const Object * clsbase )
-{
-	Value nwnode = this->newClass();
-	Object *newcls = static_cast<Object *>(nwnode.get());
-	MergeClassDropOld_t mgd(newcls,clschange, this);
-	MergeClassAddNew_t mga(newcls,this);
-	clsbase->enumEntries(mgd);
-	clschange->enumEntries(mga);
-	return nwnode;
-}
-
 
 Value PFactory::array()
 {
@@ -790,10 +708,6 @@ Value FactoryCommon::newValue(NullType) {
 	return sharedNull;
 }
 
-Value FactoryCommon::newDeleteNode() {
-	if (sharedDelete == nil) sharedDelete.setIfNullDeleteOtherwiseAtomic(new Delete);
-	return sharedDelete;
-}
 
 INode *EmptyString::clone(PFactory f) const {
 	return f->newValue(ConstStrA());

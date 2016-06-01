@@ -113,8 +113,6 @@ public:
 
 	virtual Value newValue(NullType);
 
-	virtual Value newDeleteNode();
-	virtual PNode merge(const INode &base, const INode &change);
 
 	using IFactory::newValue;
 

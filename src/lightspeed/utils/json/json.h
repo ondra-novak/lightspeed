@@ -791,20 +791,6 @@ namespace LightSpeed {
 			 * @note factory can use one NULL node for all required NULLs
 			 */
 			Value newNullNode() {return newValue(null);}
-			///Creates new DELETE node
-			/**
-			 * @note factory can use one NULL node for all required DELETEs
-			 */
-			virtual Value newDeleteNode() = 0;
-			///Merges two JSON trees
-			/** Function merges only objects not arrays. Fields which contains DELETE-node
-			 * will be removed. New fields in change-tree with names matching fields in base-tree will
-			 * overwrite base-tree fields with new content
-			 * @param base base tree
-			 * @param change change tree (changes)
-			 * @return result of merge
-			 */
-			virtual Value merge(const INode &base, const INode &change) = 0;
 			///Create copy of the factory
 			virtual IFactory *clone() = 0;
 

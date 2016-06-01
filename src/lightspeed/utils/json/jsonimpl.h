@@ -324,25 +324,6 @@ public:
 	static Null *getNull();
 
 };
-class Delete: public LeafNode {
-public:
-	virtual NodeType getType() const {return ndDelete;}
-	virtual ConstStrW getString() const {throw accessError(THISLOCATION);}
-	virtual integer getInt() const {throw accessError(THISLOCATION);}
-	virtual linteger getLongInt() const {throw accessError(THISLOCATION);}
-	virtual double getFloat() const {throw accessError(THISLOCATION);}
-	virtual bool getBool() const {throw accessError(THISLOCATION);}
-	virtual bool isNull() const {throw accessError(THISLOCATION);}
-
-	virtual INode *clone(PFactory factory) const;
-
-	virtual bool operator==(const INode &other) const;
-
-	ErrorMessageException accessError(const ProgramLocation &loc) const;
-
-	static Delete *getDelete();
-
-};
 
 
 
