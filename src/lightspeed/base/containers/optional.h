@@ -178,6 +178,15 @@ namespace LightSpeed {
 			return &get();
 		}
 
+		const T &value() const {
+			if (!_x) throwNullPointerException(THISLOCATION);
+			return get();
+		}
+		T &value() {
+			if (!_x) throwNullPointerException(THISLOCATION);
+			return get();
+		}
+
 
 	protected:
 		byte buffer[sizeof(T)];
