@@ -15,6 +15,7 @@
 #pragma once
 
 
+#include <string>
 #include "../../base/memory/refcntifc.h"
 #include "../../base/containers/arrayIterator.h"
 #include "../../base/containers/stringBase.h"
@@ -713,6 +714,49 @@ namespace LightSpeed {
 		class TypeToNodeDefinition;
 
 
+		template<typename Type>
+		struct FactoryHlpNewValueType {
+			typedef typename MIf<MIsConvertible<Type, NullType>::value,Value,
+					typename MIf<MIsConvertible<Type, Container>::value,Container,
+					 typename MIf<MIsConvertible<Type, ConstValue>::value, ConstValue,
+					 typename MIf<MIsConvertible<Type, INode *>::value, INode *,
+					 typename MIf<MIsConvertible<Type, const INode *>::value, const INode *,
+					 Value>::T >::T >::T >::T>::T T;
+
+			T create(const PFactory &f, const T &val) const;
+
+		};
+
+
+		template<typename F>
+		class FactoryHelper: public Invokable<F> {
+		public:
+
+			Value newValue(unsigned int v)  {return this->_invoke().newValue((natural)v);}
+			Value newValue(int v)  {return this->_invoke().newValue((integer)v);}
+			Value newValue(unsigned short v)  {return this->_invoke().newValue((natural)v);}
+			Value newValue(short v)  {return this->_invoke().newValue((integer)v);}
+			Value newValue(unsigned long v)  {return this->_invoke().newValue((lnatural)v);}
+			Value newValue(long v)  {return this->_invoke().newValue((linteger)v);}
+			Value newValue(unsigned long long v)  {return this->_invoke().newValue((lnatural)v);}
+			Value newValue(long long v)  {return this->_invoke().newValue((linteger)v);}
+			Value newValue(float v)  {return this->_invoke().newValue((double)v);}
+			Value newValue(double v)  {return this->_invoke().newValue((double)v);}
+			Value newValue(const char *v)  {return this->_invoke().newValue(ConstStrA(v));}
+			Value newValue(const wchar_t *v)  {return this->_invoke().newValue(ConstStrW(v));}
+			Value newValue(std::string &v)  {return this->_invoke().newValue(ConstStrA(v.data(),v.length()));}
+			Value newValue(std::wstring &v)  {return this->_invoke().newValue(ConstStrW(v.data(),v.length()));}
+				#if __cplusplus >= 201103L
+							Value newValue(std::nullptr_t) {return this->_invoke().newValue(null);}
+				#endif
+			static const Value &newValue(const Value &v) {return v;}
+			static const ConstValue &newValue(const ConstValue &v) {return v;}
+			static const Container &newValue(const Container &v) {return v;}
+			static const INode *newValue(const INode *v) {return v;}
+			static INode *newValue(INode *v) {return v;}
+
+		};
+
 		///Factory is responsible to create JSON node
 		/** You should not create nodes directly, instead of use factory which can
 		 * contain separate memory managment for nodes making creation of JSON very fast
@@ -721,9 +765,10 @@ namespace LightSpeed {
 		 * destroy JSON structure complette, then destroy factory. This doesn't apply to
 		 * factory created by method create() without arguments
 		 */
-		class IFactory: public RefCntObj, public IInterface {
+		class IFactory: public RefCntObj, public IInterface, public FactoryHelper<IFactory> {
 		public:
 
+			using FactoryHelper<IFactory>::newValue;
 
 			///Create object (obsolete)
 			virtual Value newClass() = 0;
@@ -756,16 +801,8 @@ namespace LightSpeed {
 			///Retrieves allocator used to allocate nodes
 			virtual IRuntimeAlloc *getAllocator() const = 0;
 
-			///to keep templates to work
-			Value newValue(Value v)  {return v;}
 
-			Value newValue(ConstValue v, natural depth= naturalNull, bool mt_share = false)  {return v->copy(this,depth,mt_share);}
 
-			virtual Value newValue(NullType) = 0;
-
-#if __cplusplus >= 201103L
-			Value newValue(std::nullptr_t) {return newValue(null);}
-#endif
 
 			Container newValue(ConstStringT<ConstValue> v) {
 				return newValue(ConstStringT<Value>(static_cast<const Value *>(v.data()),v.length()));
@@ -781,10 +818,10 @@ namespace LightSpeed {
 				TypeToNodeDefinition<T> def(this);
 				return def(x);
 			}
-
+/*
 			template<typename T>
 			Value newValue(const T &val);
-
+*/
 
 			///Creates new NULL node
 			/**
@@ -843,7 +880,7 @@ namespace LightSpeed {
 			virtual Value fromCharStream( IVtIterator<char> &iter) = 0;
 
 			template<typename T>
-			Value operator()(const T &v) {return newValue(v);}
+			typename FactoryHlpNewValueType<T>::T operator()(const T &v) {return newValue(v);}
 
 			///Creates JSON string
 			Value array() {return newArray();}
@@ -947,7 +984,7 @@ namespace LightSpeed {
 				return f.newCustomValue(x);
 			}
 		};
-
+/*
 		template<typename T>
 		Value IFactory::newValue(const T &val) {
 			typedef ConvHelper<integer,
@@ -971,7 +1008,7 @@ namespace LightSpeed {
 					> > > > > > > > > >				Conv;
 
 			return Conv::conv(val,*this);
-		}
+		}*/
 
 		extern LIGHTSPEED_EXPORT const char *strTrue;
 		extern LIGHTSPEED_EXPORT const char *strFalse;
@@ -1119,6 +1156,11 @@ namespace LightSpeed {
 
 	};
 
+
+	template<typename Type>
+	typename FactoryHlpNewValueType<Type>::T FactoryHlpNewValueType<Type>::create(const PFactory &f, const T &val) const {
+		return f->newValue(val);
+	}
 
 
 

@@ -64,13 +64,15 @@ public:
 	 */
 	template<typename T>
 	Object operator()(ConstStrA name, const T &value) const;
+	CObject operator()(ConstStrA name, const ConstValue &value) const;
+	CObject operator()(ConstStrA name, const Container &value) const;
 	///Creates empty object
 	Value operator()(NullType) const;
 
 
 
 	template<typename T>
-	Value operator()(const T &val) const;
+	typename FactoryHlpNewValueType<T>::T operator()(const T &val) const;
 	Container operator()(const ConstStringT<Container> &val) const;
 	Container operator()(const ConstStringT<ConstValue> &val) const;
 
@@ -87,6 +89,10 @@ public:
 	 */
 	template<typename T>
 	Array operator<<(const T &x) const;
+	CArray operator<<(const Container &x) const;
+	CArray operator<<(const ConstValue &x) const;
+
+
 	///Attachs builder to existing array
 	/**
 	 * @param nd array stored as node. Function creates builder, so you are able to append new values
@@ -132,17 +138,20 @@ public:
 		Object(const PFactory &factory):Common(factory,factory->newObject()) {}
 
 		template<typename T>
-		Object &operator()(ConstStrA name, const T &value);
-		Object &operator()(ConstStrA name, NullType n) {
-			set(name, n, MFalse());return *this;
-		};
+		Object &operator()(ConstStrA name, const T &value) {
+			set(name,factory->newValue(value));
+			return *this;
+		}
+		Object &operator()(ConstStrA name, NullType n) {set(name, factory->newValue(n));return *this;};
 		CObject operator()(ConstStrA name, const ConstValue &n);
 		CObject operator()(ConstStrA name, const Container &n);
+		CObject operator()(ConstStrA name, const CObject &n) {
+				return operator()(name, static_cast<const Container &>(n));
+		}
+		CObject operator()(ConstStrA name, const CArray &n) {
+				return operator()(name, static_cast<const Container &>(n));
+		}
 	protected:
-		template<typename T>
-		void set(ConstStrA name, const T &item, MTrue ) {Common::set(name, item);}
-		template<typename T>
-		void set(ConstStrA name, const T &item, MFalse ) {Common::set(name, factory->newValue(item));}
 	};
 
 	class CObject: public CCommon {
@@ -151,13 +160,12 @@ public:
 		CObject(const PFactory &factory, const Container &nd):CCommon(factory,nd) {}
 
 		template<typename T>
-		CObject &operator()(ConstStrA name, const T &value);
-		CObject &operator()(ConstStrA name, NullType n) {set(name, n, MFalse());return *this;};
+		CObject &operator()(ConstStrA name, const T &value) {
+			set(name,factory->newValue(value));
+			return *this;
+		}
+		CObject &operator()(ConstStrA name, NullType n) {set(name, n);return *this;};
 	protected:
-		template<typename T>
-		void set(ConstStrA name, const T &item, MTrue ) {CCommon::set(name, item);}
-		template<typename T>
-		void set(ConstStrA name, const T &item, MFalse ) {CCommon::set(name, factory->newValue(item));}
 	};
 
 	class Array: public Common {
@@ -169,14 +177,13 @@ public:
 		template<typename T>
 		Array &operator,(const T &x) {return operator<<(x);}
 		template<typename T>
-		Array &operator<<(const T &x);
-		Array &operator<<(NullType n) {append(n,MFalse()); return *this;}
+		Array &operator<<(const T &x) {add(factory->newValue(x));return *this;}
+		Array &operator<<(NullType n) {add(factory->newValue(n)); return *this;}
 		CArray operator<<(const ConstValue &x);
+		CArray operator<<(const Container &x);
+		CArray operator<<(const CArray &x) {return operator<<(static_cast<const Container &>(x));}
+		CArray operator<<(const CObject &x) {return operator<<(static_cast<const Container &>(x));}
 	protected:
-		template<typename T>
-		void append(const T &item, MTrue ) {Common::add(item);}
-		template<typename T>
-		void append(const T &item, MFalse ) {Common::add(factory->newValue(item));}
 
 	};
 
@@ -188,13 +195,9 @@ public:
 		template<typename T>
 		CArray &operator,(const T &x) {return operator<<(x);}
 		template<typename T>
-		CArray &operator<<(const T &x);
-		CArray &operator<<(NullType n) {append(n,MFalse()); return *this;}
+		CArray &operator<<(const T &x) {add(factory->newValue(x)); return *this;}
+		CArray &operator<<(NullType n) {add(factory->newValue(n)); return *this;}
 	protected:
-		template<typename T>
-		void append(const T &item, MTrue ) {CCommon::add(item);}
-		template<typename T>
-		void append(const T &item, MFalse ) {CCommon::add(factory->newValue(item));}
 
 	};
 
@@ -202,17 +205,7 @@ public:
 		PFactory factory;
 
 protected:
-	template<typename T>
-	JSON::PNode convVal(const T &t, MTrue) const { return t; }
-	template<typename T>
-	JSON::PNode convVal(const T &t, MFalse) const { return factory->newValue(t); }
 };
-
-template<typename T>
-JSON::PNode LightSpeed::JSON::Builder::operator()(const T &val) const
-{
-	return convVal(val, typename MIsConvertible<T, PNode>::MValue());
-}
 
 
 template<typename T>
@@ -223,34 +216,18 @@ inline Builder::Object Builder::operator ()(ConstStrA name, const T& value) cons
 }
 
 template<typename T>
+inline typename FactoryHlpNewValueType<T>::T  Builder::operator ()(const T& value) const {
+	return factory->newValue(value);
+}
+
+
+template<typename T>
 inline Builder::Array Builder::operator <<(const T&value) const {
 	Array nd(factory);
 	nd<<value;
 	return nd;
 }
 
-template<typename T>
-inline Builder::Object &Builder::Object::operator ()(ConstStrA name, const T& value) {
-	set(name, value,typename MIsConvertible<T,const Value &>::MValue());
-	return *this;
-}
-template<typename T>
-inline Builder::CObject &Builder::CObject::operator ()(ConstStrA name, const T& value) {
-	set(name, value,typename MIsConvertible<T,const ConstValue &>::MValue());
-	return *this;
-}
-
-template<typename T>
-inline Builder::Array &Builder::Array::operator <<(const T& value) {
-	append(value,typename MIsConvertible<T,const PNode &>::MValue());
-	return *this;
-}
-
-template<typename T>
-inline Builder::CArray &Builder::CArray::operator <<(const T& value) {
-	append(value,typename MIsConvertible<T,const PNode &>::MValue());
-	return *this;
-}
 
 }
 }

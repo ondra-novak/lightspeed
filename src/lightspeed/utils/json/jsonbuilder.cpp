@@ -76,6 +76,12 @@ Builder::CArray Builder::Array::operator <<(const ConstValue& x) {
 	return obj;
 }
 
+Builder::CArray Builder::Array::operator <<(const Container& x) {
+	CArray obj(factory,*this);
+	obj << x;
+	return obj;
+}
+
 
 Container Builder::operator ()(const ConstStringT<Container>& val) const {
 	return factory->newValue(val);
@@ -86,6 +92,27 @@ Container Builder::operator ()(const ConstStringT<ConstValue>& val) const {
 }
 
 
-}
+
+Builder::CObject Builder::operator ()(ConstStrA name,const ConstValue& value) const {
+	Object obj(factory);
+	return obj(name,value);
 }
 
+Builder::CObject Builder::operator ()(ConstStrA name,const Container& value) const {
+	Object obj(factory);
+	return obj(name,value);
+}
+
+Builder::CArray Builder::operator <<(const Container& x) const {
+	Array obj(factory);
+	return obj << x;
+
+}
+
+Builder::CArray Builder::operator <<(const ConstValue& x) const {
+	Array obj(factory);
+	return obj << x;
+}
+
+}
+}
