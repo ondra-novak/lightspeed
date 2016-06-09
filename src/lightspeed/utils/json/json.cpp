@@ -965,9 +965,26 @@ Container& Container::load(const ConstValue& from) {
 		}
 		Loader(Container &c):c(c) {}
 	};
-	Loader l(*this);
-	from->enumEntries(l);
-	return *this;
+	class ArrayLoader: public IEntryEnum {
+	public:
+		Container &c;
+
+		virtual bool operator()(const INode *nd, ConstStrA, natural) const  {
+			c.add(ConstValue(nd));
+			return false;
+		}
+		ArrayLoader(Container &c):c(c) {}
+	};
+	if ((*this)->isObject()) {
+		Loader l(*this);
+		from->enumEntries(l);
+		return *this;
+	} else {
+		ArrayLoader l(*this);
+		from->enumEntries(l);
+		return *this;
+
+	}
 }
 
 const INode* Container::checkIsolation(const INode* ptr) {

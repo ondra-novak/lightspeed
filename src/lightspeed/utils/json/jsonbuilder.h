@@ -133,8 +133,11 @@ public:
 
 		template<typename T>
 		Object &operator()(ConstStrA name, const T &value);
-		Object &operator()(ConstStrA name, NullType n) {set(name, n, MFalse());return *this;};
+		Object &operator()(ConstStrA name, NullType n) {
+			set(name, n, MFalse());return *this;
+		};
 		CObject operator()(ConstStrA name, const ConstValue &n);
+		CObject operator()(ConstStrA name, const Container &n);
 	protected:
 		template<typename T>
 		void set(ConstStrA name, const T &item, MTrue ) {Common::set(name, item);}
@@ -228,12 +231,12 @@ inline Builder::Array Builder::operator <<(const T&value) const {
 
 template<typename T>
 inline Builder::Object &Builder::Object::operator ()(ConstStrA name, const T& value) {
-	set(name, value,typename MIsConvertible<T,const PNode &>::MValue());
+	set(name, value,typename MIsConvertible<T,const Value &>::MValue());
 	return *this;
 }
 template<typename T>
 inline Builder::CObject &Builder::CObject::operator ()(ConstStrA name, const T& value) {
-	set(name, value,typename MIsConvertible<T,const PNode &>::MValue());
+	set(name, value,typename MIsConvertible<T,const ConstValue &>::MValue());
 	return *this;
 }
 
