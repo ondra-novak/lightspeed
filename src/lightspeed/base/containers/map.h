@@ -180,9 +180,9 @@ namespace LightSpeed {
 		 * @param found used to store state, whether key has been found
 		 * @return iterator that refers the found item
 		 */
-		Iterator seek(const Key &key, bool *found = 0) const {
+		Iterator seek(const Key &key, bool *found = 0, Direction::Type dir = Direction::forward) const {
 			const KeyValue &e = reinterpret_cast<const KeyValue &>(key);
-			return tree.seek(e,found);
+			return tree.seek(e,found,dir);
 		}
 
 		///removes all items
