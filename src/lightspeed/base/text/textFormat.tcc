@@ -483,6 +483,14 @@ namespace _intr {
 
 }
 
+template<typename T, typename Alloc >
+template<typename X>
+TextFormat<T,Alloc> &TextFormat<T, Alloc>::operator <<(IIterator<T, X> *iter) {
+	while (iter->hasItems()) buff.add(iter->getNext());
+	paramList.add(buff.length());
+	return *this;
+
+}
 
 
 template<typename T, typename Alloc>

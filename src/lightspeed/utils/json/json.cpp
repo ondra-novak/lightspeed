@@ -1183,6 +1183,15 @@ CompareResult Path::compare(const Path &other) const {
 }
 
 
+Value getConstant(Constant c) {
+	switch (c) {
+	case constFalse: return Factory().newValue(false); break;
+	case constTrue: return Factory().newValue(true); break;
+	case constNull: return Factory().newValue(null); break;
+	case constZero: return Factory().newValue(0); break;
+	case constEmptyStr: return Factory().newValue(ConstStrA()); break;
+	}
+}
 
 
 }

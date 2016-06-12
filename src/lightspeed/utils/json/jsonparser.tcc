@@ -215,7 +215,7 @@ PNode Parser<T>::parseValue(char firstChar) {
 
 	bool isFloat = false;
 
-	while (c != ',' && c != ']' && c != '}' && c != 0) {
+	while (c != ',' && c != ']' && c != '}' && c != 0 && !isspace(c)) {
 		if (c == '.' || c == 'E' || c == 'e') isFloat = true;
 		strBuff.add(c);
 		iter.skip();

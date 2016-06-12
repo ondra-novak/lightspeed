@@ -1052,7 +1052,7 @@ namespace LightSpeed {
 		/**
 		 * @return key value. If element is index, returns empty string
 		 */
-		ConstStrA getKey() const {return keyName?ConstStrA():ConstStrA(keyName,index);}
+		ConstStrA getKey() const {return keyName?ConstStrA(keyName,index):ConstStrA();}
 		///Retrieves index value
 		/**
 		 * @return index value. if element is key, result is an undetermined number
@@ -1155,6 +1155,16 @@ namespace LightSpeed {
 
 
 	};
+
+	enum Constant {
+		constNull,
+		constTrue,
+		constFalse,
+		constZero,
+		constEmptyStr
+	};
+
+	Value getConstant(Constant);
 
 
 	template<typename Type>
