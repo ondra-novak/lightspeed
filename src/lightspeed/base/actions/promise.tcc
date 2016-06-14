@@ -2,6 +2,7 @@
 
 #include "promise.h"
 
+#include "../../mt/atomic.h"
 
 #include "../containers/deque.tcc"
 #include "../containers/autoArray.tcc"
@@ -755,6 +756,28 @@ IPromiseControl::State Future<T>::getState() const throw ()
 {
 	if (future == nil) return IPromiseControl::stateNotResolved;
 	return future->getState();
+}
+
+template<typename T>
+bool Future<T>::Value::isLastReference() const {
+	return (readAcquire(&this->counter) == readAcquire(&this->resultRefCnt)+1);
+}
+
+template<typename T>
+FutureAutoCancel<T>::FutureAutoCancel(const Future<T> &f):Future<T>(f) {
+}
+
+template<typename T>
+FutureAutoCancel<T>::~FutureAutoCancel() {
+
+	if (this->future != null) {
+		if (this->future->isLastReference()) {
+			if (IPromiseControl::stateResolving == this->cancel()) {
+				wait();
+			}
+		}
+	}
+
 }
 
 }

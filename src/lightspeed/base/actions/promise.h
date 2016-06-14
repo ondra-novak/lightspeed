@@ -622,7 +622,8 @@ protected:
 		virtual void wait(const Timeout &tm) const;
 		virtual Value *getValue() { return this; }
 
-
+		///Returns true, if future has last Future reference (Promise referes are not counted)
+		bool isLastReference() const;
 
 	protected:
 		mutable FastLock lock;
@@ -863,6 +864,26 @@ public:
 	template<typename Fn, typename Arg>
 	void callAndResolve(Fn fn, Arg arg) throw();
 
+};
+
+///Future which cancels itself when it is destroyed
+/** You should use this class instead of Future if you need to cancel it when all references
+ * has been removed. If last reference is Future, then the future is not canceled.
+ *
+ * You can convert Future to FutureAutoCancel. Then you should destroy Future variable
+ * and store only FutureAutoCancel variables.
+ *
+ *
+ * Future is canceled when count of references is euqal to count of promises.
+ * Future must not be already resolved (similar to cancel())
+ *
+ */
+
+template<typename T>
+class FutureAutoCancel: public Future<T>{
+public:
+	~FutureAutoCancel();
+	FutureAutoCancel(const Future<T> &f);
 };
 
 }
