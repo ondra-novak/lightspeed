@@ -798,6 +798,8 @@ namespace LightSpeed {
 			virtual Value newValue(ConstStringT<JSON::Value> v) = 0;
 			///Creates JSON array
 			virtual Value newValue(ConstStringT<JSON::INode *> v) = 0;
+			///Creates JSON array
+			Value newValue(NullType);
 			///Retrieves allocator used to allocate nodes
 			virtual IRuntimeAlloc *getAllocator() const = 0;
 
@@ -1166,6 +1168,7 @@ namespace LightSpeed {
 
 	Value getConstant(Constant);
 
+	inline Value IFactory::newValue(NullType) {return getConstant(constNull);}
 
 	template<typename Type>
 	typename FactoryHlpNewValueType<Type>::T FactoryHlpNewValueType<Type>::create(const PFactory &f, const T &val) const {
