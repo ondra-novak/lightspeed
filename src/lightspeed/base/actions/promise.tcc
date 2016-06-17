@@ -345,7 +345,7 @@ Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 			delete this;
 		}
 		virtual void resolve(const PException &oe) throw() {
-			//deleted exception handler - error in reject is probihited
+			//deleted exception handler - error in reject is prohibited
 			rptr.resolve(rfn(oe));
 			delete this;
 		}
@@ -356,6 +356,31 @@ Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 	Future<T> p(future->alloc);
 	addObserver(new(future->alloc) X(resolveFn,rejectFn,p.getPromise()));
 	return p;
+
+}
+
+template<typename T>
+template<typename Fn, typename RFn>
+Future<T> Future<T>::thenCall(Fn resolveFn, RFn rejectFn) {
+	if (future == nil) init();
+
+	class X :public IObserver, public DynObject {
+	public:
+		X(Fn fn,RFn rfn):fn(fn),rfn(rfn) {}
+		virtual void resolve(const T &result) throw() {
+			fn(result);
+			delete this;
+		}
+		virtual void resolve(const PException &oe) throw() {
+			rfn(oe);
+			delete this;
+		}
+
+	protected:
+		Fn fn; RFn rfn;
+	};
+	addObserver(new(future->alloc) X(resolveFn,rejectFn));
+	return *this;
 
 }
 
@@ -600,9 +625,15 @@ Future<void> Future<void>::thenCall(Fn fn) {
 	return Future<Empty>::thenCall(EmptyCallVoid<Fn>(fn));
 }
 
+
 template<typename Fn, typename RFn>
 Future<void> Future<void>::then(Fn resolveFn, RFn rejectFn){
 	return Future<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+}
+
+template<typename Fn, typename RFn>
+Future<void> Future<void>::thenCall(Fn resolveFn, RFn rejectFn){
+	return Future<Empty>::thenCall(EmptyCallVoid<Fn>(resolveFn),rejectFn);
 }
 
 template<typename T>

@@ -8,6 +8,7 @@
 #include "../../mt/exceptions/timeoutException.h"
 #include "../../mt/fastlock.h"
 #include "../containers/deque.h"
+#include "../meta/emptyClass.h"
 
 namespace LightSpeed {
 
@@ -319,6 +320,23 @@ public:
 	template<typename Fn, typename RFn>
 	Future then(Fn resolveFn, RFn rejectFn);
 
+
+	///Define what happens when promise is resolved
+	/**
+     * @param resolveFn Function to call once promise is resolved
+	 * @param rejectFn Function to call once promise is rejected. There are
+	 * similar rules as for resolveFn
+	 *
+	 * @return Reference to current promise. Functions doesn't create new instance of Future,
+	 * because return values from the functions are ignored.
+	 * 	 *
+	 * @note - Technical note - Functions are called in the context of thread
+	 *  doing resolution. If you need to call function in another context, you
+	 *  have to execute function through the IExecutor.
+	 */
+	template<typename Fn, typename RFn>
+	Future thenCall(Fn resolveFn, RFn rejectFn);
+
 	///Specifies what happens, when promise is rejected
 	/**
      * @param fn Function to call once promise is rejected
@@ -426,6 +444,11 @@ public:
 	 * affects all currently registered observers.
 	 *
 	 * @param exception exception to use for cancellation.
+	 * @note Calling the cancel() inside resolution handler can cause, that rest of
+	 * handlers (in the list) will be canceled. This can cause that future will
+	 * be resolved twice in situation when then+onException is used and when then() calls
+	 * 'cancel' (exception will thrown to the onException).
+	 *
 	 */
 	IPromiseControl::State cancel(const Exception &exception) throw();
 
@@ -718,6 +741,8 @@ public:
 	Future thenCall(Fn fn);
 	template<typename Fn, typename RFn>
 	Future then(Fn resolveFn, RFn rejectFn);
+	template<typename Fn, typename RFn>
+	Future thenCall(Fn resolveFn, RFn rejectFn);
 
 	///attach another promise object to current promise
 	/**
