@@ -1061,6 +1061,8 @@ namespace LightSpeed {
 		 */
 		natural getIndex() const {return index;}
 
+		///Retrieves parent path
+		const Path &getParent() const {return parent;}
 
 		///Determines, whether current element is an index
 		bool isIndex() const {return keyName == 0;}
