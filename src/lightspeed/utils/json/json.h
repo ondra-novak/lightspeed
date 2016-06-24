@@ -408,7 +408,7 @@ namespace LightSpeed {
 		public:
 			typedef ArrayIterator<KeyValue, StringCore<KeyValue> > Super;
 			Iterator(const Value &object);
-			bool isNextKey(ConstStrA k) const {return peek().getStringKey() == k;}
+			bool isNextKey(ConstStrA k) const {return hasItems() && peek().getStringKey() == k;}
 			JSON::INode &getNextKC(ConstStrA k) {return *getNext()[k];}
 		};
 
