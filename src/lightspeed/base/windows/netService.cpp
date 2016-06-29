@@ -84,7 +84,10 @@ void INetworkServices::setIOServices(INetworkServices *newServices)
 
 PNetworkEventListener WindowsNetService::createEventListener()
 {
-	return new WinNetworkEventListener;
+	WinNetworkEventListener *x = new WinNetworkEventListener;
+	x->enableMTAccess();
+	return x;
+
 }
 
 

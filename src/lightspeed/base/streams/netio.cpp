@@ -50,57 +50,57 @@ namespace LightSpeed {
 		natural limitWaiting /*= 30000*/,
 		natural streamTimeout /* = naturalNull */,
 		StreamOpenMode::Type mode /*= StreamOpenMode::useAddress*/)
+	:PNetworkStreamSource(INetworkServices::getNetServices().createStreamSource(
+			address.getHandle(), mode, limitConnections, limitWaiting, streamTimeout))
 	{
-		handle = INetworkServices::getNetServices().createStreamSource(
-			address.getHandle(), mode, limitConnections, limitWaiting, streamTimeout);
 	}
 	NetworkStreamSource::NetworkStreamSource(
 		natural port, natural limitConnections /*= 1*/,
 		natural limitWaiting /*= 30000*/,
 		natural streamTimeout /* = naturalNull */,
 		bool localhost /*=false*/)
-	{
-		handle = INetworkServices::getNetServices().createStreamSource(
+	:PNetworkStreamSource(
+		INetworkServices::getNetServices().createStreamSource(
 			NetworkAddress::ipLocal(port, !localhost).getHandle(),
 			StreamOpenMode::passive,
 			limitConnections,
-			limitWaiting, streamTimeout);
-	}
+			limitWaiting, streamTimeout))
+	{}
 
 	bool NetworkStreamSource::hasItems() const
 	{
 		stream = nil;
-		return handle->hasItems();
+		return this->ptr->hasItems();
 	}
 
 
 	const PNetworkStream &NetworkStreamSource::getNext()
 	{
 		stream = nil;
-		return (stream = handle->getNext());
+		return (stream = this->ptr->getNext());
 	}
 
 
 	NetworkAddress NetworkStreamSource::getLocalAddress() const
 	{
 		stream = nil;
-		return handle->getLocalAddr();
+		return this->ptr->getLocalAddr();
 	}
 
 	NetworkAddress NetworkStreamSource::getRemoteAddress() const
 	{
 		stream = nil;
-		return handle->getPeerAddr();
+		return this->ptr->getPeerAddr();
 	}
 
 	void NetworkStreamSource::wait() {
 		stream = nil;
-		handle->wait();
+		this->ptr->wait();
 	}
 
 	bool NetworkStreamSource::wait(natural timeoutms) {
 		stream = nil;
-		return handle->wait(handle->getDefaultWait(), timeoutms) != 0;
+		return this->ptr->wait(this->ptr->getDefaultWait(), timeoutms) != 0;
 	}
 
 

@@ -77,7 +77,7 @@ public:
 	 */
 	void stop();
 
-	NetworkEventListener getEventListener();
+	PNetworkEventListener getEventListener();
 
 	bool isRunning();
 
@@ -189,7 +189,7 @@ protected:
 
 	IExecutor *executor;
 	AllocPointer<ParallelExecutor> internalExecutor;
-	NetworkEventListener eventListener;
+	PNetworkEventListener eventListener;
 	NetworkStreamSource mother;
 	AutoArray<SharedPtr<OtherPortAccept> > otherPorts;
 	ConnectionList connList;

@@ -76,10 +76,34 @@ namespace LightSpeed {
 		 */
 		virtual void set(const Request &request) = 0;
 
-		void add(INetworkResource *rsrc, ISleepingObject *observer, natural waitFor, natural timeout_ms,ISleepingObject *reqNotify = 0) {
-			set(Request(rsrc,observer,waitFor,timeout_ms,reqNotify));
-		}
+		///Adds network resource to listener for monitoring
+		/**
+		 *
+		 * @param rsrc network resource to monitor
+		 * @param observer pointer to observer, which will be notified when event occurs
+		 * @param waitFor combination of flags INetworkResource::waitForXXXX. Default value will be
+		 *           replaced by the property "defaultWait" from the resource
+		 * @param timeout_ms timeout in miliseconds, default value is forever
+		 * @param reqNotify specify pointer of an observer which will be notified once the
+		 *  request is complete because it is processed asynchronously. Use 0 if you don't need this
+		 *
+		 *
+		 *   @note monitoring is one shot only. If you need to continue monitoring, re-add
+		 *   the resource after you processed the event
+		 *
+		 *   @note resource+observer is used as key to a resource table. There can be multiple
+		 *   observers per single resource
+		 */
+		void add(INetworkResource *rsrc, ISleepingObject *observer, natural waitFor = 0, natural timeout_ms = naturalNull,ISleepingObject *reqNotify = 0);
 
+		///Removes network resource from the listener
+		/**
+		 * @param rsrc resource to remove
+		 * @param observer pointer to observer which is waiting for the event. Pointer
+		 * must match the pointer used for function add()
+		 * @param reqNotify specify pointer of an observer which will be notified once the
+		 *  request is complete because it is processed asynchronously. Use 0 if you don't need this
+		 */
 		void remove(INetworkResource *rsrc, ISleepingObject *observer, ISleepingObject *reqNotify = 0) {
 			set(Request(rsrc,observer,0,naturalNull,reqNotify));
 		}
@@ -818,5 +842,12 @@ namespace LightSpeed {
 		natural defTimeout;
 	};
 
+
+
+	inline void INetworkEventListener::add(INetworkResource *rsrc, ISleepingObject *observer, natural waitFor , natural timeout_ms ,ISleepingObject *reqNotify )
+	 {
+				if (waitFor == 0) waitFor = rsrc->getDefaultWait();
+				set(Request(rsrc,observer,waitFor,timeout_ms,reqNotify));
+			}
 
 }

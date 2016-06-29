@@ -95,11 +95,11 @@ namespace LightSpeed {
 	   connection is not ready yet.
 	 */
 	class NetworkStreamSource: public IteratorBase<PNetworkStream,
-								NetworkStreamSource> {
+								NetworkStreamSource>, public PNetworkStreamSource {
 	
 	public:
 
-		NetworkStreamSource(PNetworkStreamSource ss):handle(ss) {}
+		NetworkStreamSource(PNetworkStreamSource ss):PNetworkStreamSource(ss) {}
 		/// PNetworkStreamSource
 		/** 
 		 * @param address Address specifies location, where create connection
@@ -172,10 +172,10 @@ namespace LightSpeed {
 		 */
 		NetworkAddress getRemoteAddress() const;
 
-		PNetworkStreamSource getHandle() const {return handle;}
+		PNetworkStreamSource getHandle() const {return *this;}
 
 		bool equalTo(const NetworkStreamSource &other) const {
-			return handle == other.handle;
+			return this->ptr == other.ptr;
 		}
 
 		///waits for new connection
@@ -199,7 +199,6 @@ namespace LightSpeed {
 
 	protected:
 
-		PNetworkStreamSource handle;
 		mutable PNetworkStream stream;
 
 	};
@@ -263,7 +262,7 @@ namespace LightSpeed {
 	 * and send notifications on change of state.
 	 *
 	 */
-	class NetworkEventListener {
+	 class NetworkEventListener  {
 	public:
 
 		///watch for input data
@@ -378,7 +377,7 @@ namespace LightSpeed {
 
 		PNetworkEventListener impl;
 
-	};
+	} LIGHTSPEED_DEPRECATED;
 
 
 	class NetworkWaitingObject: public ISleepingObject,
