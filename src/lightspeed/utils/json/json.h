@@ -1101,38 +1101,6 @@ namespace LightSpeed {
 		Path *copy(IRuntimeAlloc &alloc) const;
 
 
-		///Finds a value referred by the current path
-		/**
-		 * @param root root object where to start
-		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
-		 */
-		ConstValue findValue(const ConstValue &root) const;
-		///Finds a value referred by the current path
-		/**
-		 * @param root root object where to start
-		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
-		 *
-		 * @note the function returns root argument for the root
-		 */
-		Value findValue(const Value &root) const;
-		///Finds a container that refers current value
-		/**
-		 * @param root root object where to start
-		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
-		 *
-		 * @note the function returns null for the root
-		 *
-		 */
-		ConstValue findContainer(const ConstValue &root) const;
-		///Finds a value referred by the current path
-		/**
-		 * @param root root object where to start
-		 * @return value at given path. Function returns 'null' if value doesn't exists (or any part of the path)
-		 *
-		 * @note the function returns null for the root
-		 *
-		 */
-		Value findContainer(const Value &root) const;
 
 		///handles deletion
 		void operator delete(void *p);
@@ -1142,6 +1110,9 @@ namespace LightSpeed {
 		///Compare two paths,
 		/** Indexes are ordered before keys */
 		CompareResult compare(const Path &other) const;
+
+		ConstValue operator()(const ConstValue &value) const;
+		Value operator()(const Value &value) const;
 
 		~Path() {}
 	private:

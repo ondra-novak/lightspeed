@@ -1038,33 +1038,23 @@ Value& Value::clear() {
 
 const Path Path::root(Path::root,"<root>");
 
-ConstValue Path::findValue(const ConstValue& root) const {
+ConstValue Path::operator()(const ConstValue& root) const {
 	if (isRoot()) return root;
-	ConstValue v = parent.findValue(root);
+	ConstValue v = parent.operator()(root);
 	if (v != null)
 		return isIndex()?v[getIndex()]:v[getKey()];
 	else
 		return null;
 }
 
-Value Path::findValue(const Value& root) const {
+Value Path::operator()(const Value& root) const {
 	if (isRoot()) return root;
-	Value v = parent.findValue(root);
+	Value v = parent.operator()(root);
 	if (v != null)
 		return isIndex()?v[getIndex()]:v[getKey()];
 	else
 		return null;
 
-}
-
-ConstValue Path::findContainer(const ConstValue& root) const {
-	if (isRoot()) return null;
-	return parent.findValue(root);
-}
-
-Value Path::findContainer( const Value& root) const {
-	if (isRoot()) return null;
-	return parent.findValue(root);
 }
 
 Path *Path::copy() const {
