@@ -33,6 +33,8 @@ namespace LightSpeed {
 
 		natural length() const {return deque.length();}
 
+		void swap(Queue &other) { deque.swap(other.deque);}
+
 
 	protected:
 		Deque<T> deque;
