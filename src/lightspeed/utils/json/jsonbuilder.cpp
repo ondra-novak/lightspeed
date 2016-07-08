@@ -91,6 +91,14 @@ Container Builder::operator ()(const ConstStringT<ConstValue>& val) const {
 	return factory->newValue(val);
 }
 
+Builder::Object Builder::Object::operator/(ConstStrA pathItem) {
+	Value v = (*this)[pathItem];
+	if (v == null) {
+		v = factory->object();
+		(*this)(pathItem,v);
+	}
+	return Object(factory,v);
+}
 
 
 Builder::CObject Builder::operator ()(ConstStrA name,const ConstValue& value) const {

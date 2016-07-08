@@ -519,6 +519,19 @@ namespace LightSpeed {
 			 */			 
 			virtual bool enumEntries(const IEntryEnum &fn) const = 0;
 			
+			///Calls function for each item
+			/**
+			 * @param fn function to call
+			 * @retval true enumeration stopped because function returned true
+			 * @retval false enumeration was not stopped because function returned false on all items
+			 *
+			 * @note you should avoid to modify object that is being enumerated.
+			 */
+			template<typename Fn>
+			bool forEach(const Fn &fn) const {
+				return enumEntries(IEntryEnum::lambda(fn));
+			}
+
 			///enables access in MT environment
 			/** All objects receives interlocked counters */
 			virtual const INode* enableMTAccess() const = 0;

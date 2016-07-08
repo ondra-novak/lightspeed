@@ -142,6 +142,14 @@ public:
 			set(name,factory->newValue(value));
 			return *this;
 		}
+		///creates or access the subobject of given name
+		/**
+		 * @code
+		 * (obj/"aaa"/"bbb")("xxx",true)("yyy",100) -> {"aaa":{"bbb":{"xxx":true, "yyy":100}}}
+		 * @param name name of key to create subobject
+		 * @return subobject
+		 */
+		Object operator/(ConstStrA name);
 		Object &operator()(ConstStrA name, NullType n) {set(name, factory->newValue(n));return *this;};
 		CObject operator()(ConstStrA name, const ConstValue &n);
 		CObject operator()(ConstStrA name, const Container &n);
