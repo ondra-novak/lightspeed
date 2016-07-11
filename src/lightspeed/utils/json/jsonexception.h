@@ -36,6 +36,21 @@ namespace LightSpeed {
 
 		};
 
+		class SerializeError_t: public Exception {
+		public:
+			LIGHTSPEED_EXCEPTIONFINAL;
+
+			SerializeError_t(const ProgramLocation &loc, String nearStr):
+				Exception(loc),nearStr(nearStr) {}
+			~SerializeError_t() throw() {}
+			const String &getNearStr() const {return nearStr;}
+		protected:
+			String nearStr;
+
+			virtual void message(ExceptionMsg &msg) const;
+
+		};
+
 		class SharedValueException: public Exception {
 		public:
 			LIGHTSPEED_EXCEPTIONFINAL;

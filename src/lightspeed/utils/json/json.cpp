@@ -436,6 +436,11 @@ void ParseError_t::message( ExceptionMsg &msg ) const
 	msg("JSON parser error at: %1") << nearStr;
 }
 
+void SerializeError_t::message( ExceptionMsg &msg ) const
+{
+	msg("JSON serializer error at: %1") << nearStr;
+}
+
 
 void RequiredFieldException::message( ExceptionMsg &msg ) const
 {
