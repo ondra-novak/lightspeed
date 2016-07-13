@@ -44,7 +44,6 @@ namespace LightSpeed {
 	public:
 
 
-
 		///Creates thread and calls function
 		/**
 		 * @param fn function to call inside the thread
@@ -82,6 +81,15 @@ namespace LightSpeed {
 		 */
 		void start(const IThreadFunction &fn);
 
+
+		///starts the new thread
+		/** For C++11 you can use run operator to easy declare the 'thread's body' */
+		template<typename Fn>
+		void operator >> (const Fn &fn)  {
+			start(ThreadFunction::create(fn));
+		}
+
+
 		///Creates thread and calls function - you can specify stack size
 		/**
 		 * @param fn function to call inside the thread
@@ -89,6 +97,16 @@ namespace LightSpeed {
 		 */
 		void start(const IThreadFunction &fn, natural stackSize);
 
+		///Defines stack size for newly created thread
+		/** Default value is 0, which means, that stack size will be determined by the OS. You
+		 * can specify new stack size. Value is normalized in the length of the word. On 32bit platform
+		 * final stack size will calculate by multiplying the number by factor 4. On 64bit platform,
+		 * the factor is 8. However this value is still a hint, the OS can finally choose different
+		 * stack size.
+		 *
+		 * @param stackSize size of stack in words (to get bytes, multiply by the word length)
+		 */
+		void setDefaultStackSize(natural stackSize);
 
 		///Attaches object to the current thread
 		/**
@@ -342,6 +360,8 @@ namespace LightSpeed {
 
 		///thread's id
 		ThreadId id;
+
+		natural defaultStackSize;
 
 		Thread(const Thread &other);
 		Thread &operator=(const Thread &other);

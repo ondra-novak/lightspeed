@@ -64,7 +64,7 @@ public:
 
 	///adjust max thread count
 	/**
-	 * Function can be called anytime and can be used to adjust actual count of threads.
+	 * Function can be called any-time and can be used to adjust current count of threads.
 	 * Final count will be reached later. If more threads is requested, new threads will
 	 * be started with new tasks. You can speedup this process calling function spawnThreads.
 	 * If less threads is requested, function directs all extra threads to finish its work
@@ -79,25 +79,39 @@ public:
 
 	///Starts threads
 	/** By default, threads are started when task is not executed after `newThreadTimeout`
-	 * miliseconds. This field can be zero, which causes, that new thread is started right
+	 * Milliseconds. This field can be zero, which causes, that new thread is started right
 	 * when there is no idle thread in time of executing task. This still take a small
-	 * piece of time needed to create and start thread. If you know, that there will  be
-	 * a lot of work, you can spawn extra threads before executing tasks.
+	 * piece of time needed to create and start the thread. If you know, that there will  be
+	 * a lot of work, you can spawn extra threads before executing the tasks.
 	 * @param count specifies count of threads to spawn, Default value means that maximum
 	 * possible threads (specified by maxThread) will be spawn.
 	 */
 	void spawnThreads(natural count = naturalNull);
 
-	///Returns actual thread count
+	///Returns current thread count
 	natural getThreadCount() const;
 
-	///sets new wait timeout
+
+	///Specifies how long there will be waiting before operation fails with exception TimeoutException
+	/**
+	 * @param tm if value is naturalNull, the executor will wait infinite time for idle thread.
+	 */
 	void setWaitTimeout(natural tm);
 
 	///sets new thread creation timeout
+	/** If zero set, the new thread is created everytime the idle count is zero. If any number
+	 * above zero is specified, the number defines count of milliseconds to wait before new
+	 * thread is created.
+	 * @param tm
+	 */
 	void setNewThreadTimeout(natural tm);
 
-	///sets new idle timeout
+	///Sets count of miliseconds before idle thread is terminated
+	/**
+	 * @param tm you can specify naturalNull (default) and idle threads will never terminated (unless
+	 * the executor destruction and stopAll function).
+	 *
+	 */
 	void setIdleTimeout(natural tm);
 
 	natural getWaitTimeout() const;

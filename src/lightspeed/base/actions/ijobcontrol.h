@@ -27,12 +27,10 @@ public:
 	 *
 	 * @param fn function to execute.
 	 *
-	 * Job must be in "not running" state. Executing already running job can cause exception. Note that especially executors
-	 * can report "running state" (through isRunning) and execute can be still available that because executors can
-	 * handle multiple jobs at time.
+	 * If job is in running state, function can block until job is complete. Executors can block
+	 * when count of  running jobs reaches the maximum.
 	 */
 	virtual void execute(const IJobFunction &fn) = 0;
-
 
 
 	///Orders job to finish.
@@ -63,47 +61,25 @@ public:
 	 */
 	virtual bool isRunning() const = 0;
 
+	///For C++11 declares "run operator".
+	/**
+	 * @code
+	 * executor >> [=](){ ... block ... };
+	 * @endcode
+	 *
+	 * The code above is equivalent to call execute() with "block" as an argument. Operator >> is
+	 * used as 'run operator' (because >> can be meant as 'run')
+	 *
+	 * You can say 'let executor runs the block'
+	 *
+	 * @param fn a function probably a lambda function
+	 */
+	template<typename Fn>
+	void operator >> (const Fn fn) {
+		execute(Action::create(fn));
+	}
 
 	virtual ~IJobControl() {}
-
-	template<typename Fn> class AsActionImpl;
-
-
-	///Creates object that acts as function which executes other function on current executor
-	/**
-	 * @param fn function to execute. Function can request zero or one argument. It expects, that caller
-	 * have to known, how many arguments and which type function requires.
-	 *
-	 * @return object that acts as function. If this object is called as a function, fn is executed through
-	 * the executor.
-	 *
-	 * @note executor must not be destroyed before function is called
-	 */
-	template<typename Fn> AsActionImpl<Fn> asAction(const Fn &fn) {return AsActionImpl<Fn>(this,fn);}
-
-
-	///implementation of asMessage function
-	template<typename Fn>
-	class AsActionImpl {
-	public:
-		AsActionImpl(IJobControl *cntr, const Fn &fn):cntr(cntr),fn(fn) {}
-
-		void operator()() const {
-			cntr->execute(Action::create(fn));
-		}
-
-		template<typename Arg>
-		const Arg &operator()(const Arg &arg) const {
-			cntr->execute(Action::create(fn,arg));
-			return arg;
-		}
-
-
-	protected:
-		IJobControl *cntr;
-		Fn fn;
-	};
-
 
 
 };

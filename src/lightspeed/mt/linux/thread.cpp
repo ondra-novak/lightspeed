@@ -276,15 +276,15 @@ void ThreadContext::handleCleanup()
 }
 
 
-Thread::Thread():threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil) {
+Thread::Thread():threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil),defaultStackSize(0) {
 
 }
 
-Thread::Thread(const IThreadFunction &fn):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil)  {
+Thread::Thread(const IThreadFunction &fn):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil),defaultStackSize(0)  {
 	start(fn);
 }
 
-Thread::Thread(const IThreadFunction &fn, natural stackSize):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil)  {
+Thread::Thread(const IThreadFunction &fn, natural stackSize):threadContext(0),joinObject(Gate::stateOpen),flags(0),id(nil),defaultStackSize(0)  {
 	start(fn,stackSize);
 }
 
@@ -311,7 +311,7 @@ Thread::~Thread() try {
 }
 
 void Thread::start(const IThreadFunction &fn) {
-	start(fn,0);
+	start(fn,defaultStackSize);
 }
 
 void Thread::start(const IThreadFunction &fn, natural stackSize) {
