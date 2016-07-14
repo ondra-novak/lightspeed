@@ -111,7 +111,7 @@ namespace LightSpeed {
 
 		ProcessContext(IRuntimeAlloc *alloc):
 			hProcess(0),cmdLine(CmdLineAlloc(alloc)),envStr(CmdLineAlloc(alloc)),noArgs(true)
-			,extraFlags(0) {}
+			,extraFlags(0) {enableMTAccess();}
 
 		static ProcessContext &getCtx(IProcessContext &ctx) {
 			return static_cast<ProcessContext &>(ctx);

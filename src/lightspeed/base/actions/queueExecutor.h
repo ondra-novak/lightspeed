@@ -9,8 +9,8 @@
 #define LIGHTSPEED_BASE_ACTIONS_QUEUEEXECUTOR_H_
 #include "../containers/queue.h"
 #include "executor.h"
-#include "../../mt/syncPt.h"
 #include "../../mt/gate.h"
+#include "../../mt/semaphore.h"
 #include "../memory/sharedPtr.h"
 
 namespace LightSpeed {
@@ -87,13 +87,17 @@ protected:
 	///queue of messages
 	Queue<SharedPtr<IExecAction> > queue;
 	///point where all threads waiting for a new action
-	SyncPt syncPt;
+	Semaphore semaphore;
 	///count of running messages
 	natural runningMessages;
 	///count of serving threads
 	natural threadsIn;
 	///true if finish is signaled (someone may wait on the gate)
 	bool finishFlag;
+
+	virtual void wakeThread();
+
+	class Server;
 
 
 

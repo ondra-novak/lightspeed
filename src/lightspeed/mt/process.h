@@ -8,7 +8,6 @@
 #ifndef LIGHTSPEED_MT_PROCESS_H_
 #define LIGHTSPEED_MT_PROCESS_H_
 
-#include "mtRefCntPtr.h"
 #include "../base/streams/fileio.h"
 #include "timeout.h"
 #include "../base/containers/map.h"
@@ -38,7 +37,7 @@ namespace LightSpeed {
 	typedef Map<ConstStrW, ConstStrW, ProcessEnvKeyCompare> ProcessEnv;
 
 	///Smart pointer to process context
-	typedef MTRefCntPtr<IProcessContext> PProcessContext;
+	typedef RefCntPtr<IProcessContext> PProcessContext;
 
 
 	///Creates and control process

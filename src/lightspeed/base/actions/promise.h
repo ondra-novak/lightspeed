@@ -512,7 +512,7 @@ public:
 	/**
 	 * Function is static so you have to call it using:
 	 * @code
-	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x,&tranform_fn);
+	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x,&transform_fn);
 	 * @endcode
 	 * ... where promise_x is original promise and Y is a new type. Function will use
 	 * function to convert value to the new type.
@@ -610,6 +610,14 @@ public:
 
 	};
 
+	enum Convert {convert};
+
+	template<typename Y>
+	class ConvertCall {
+	public:
+		ConvertCall(Future &owner):owner(owner) {}
+		Future &owner;
+	};
 
 protected:
 
@@ -890,6 +898,11 @@ public:
 	void callAndResolve(Fn fn, Arg arg) throw();
 
 };
+
+template<typename T, typename Fn>
+Future<T> operator >> (Future<T> f, const Fn &fn) {
+	return f.then(fn);
+}
 
 ///Future which cancels itself when it is destroyed
 /** You should use this class instead of Future if you need to cancel it when all references
