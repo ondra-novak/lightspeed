@@ -10,6 +10,11 @@
 #include "../containers/deque.h"
 #include "../meta/emptyClass.h"
 
+#if __cplusplus >= 201103L
+#include <type_traits>
+#include <functional>
+#endif
+
 namespace LightSpeed {
 
 
@@ -197,6 +202,7 @@ public:
 	class IObserver;
 	class Resolution;
 	friend class Promise<T>;
+	typedef T Type;
 
 
 	///Construct empty future object
@@ -610,14 +616,10 @@ public:
 
 	};
 
-	enum Convert {convert};
-
-	template<typename Y>
-	class ConvertCall {
-	public:
-		ConvertCall(Future &owner):owner(owner) {}
-		Future &owner;
-	};
+	IRuntimeAlloc &getAllocator() {
+		if (future == nil) init();
+		return future->alloc;
+	}
 
 protected:
 
@@ -899,11 +901,6 @@ public:
 
 };
 
-template<typename T, typename Fn>
-Future<T> operator >> (Future<T> f, const Fn &fn) {
-	return f.then(fn);
-}
-
 ///Future which cancels itself when it is destroyed
 /** You should use this class instead of Future if you need to cancel it when all references
  * has been removed. If last reference is Future, then the future is not canceled.
@@ -924,5 +921,45 @@ public:
 	FutureAutoCancel(const Future<T> &f);
 };
 
+
+
+namespace _intr {
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** General rule, T convert to Future<T> */
+template<typename T> struct DetermineFutureType {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** Future<T> convert to Future<T> */
+template<typename T> struct DetermineFutureType<Future<T> > {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** const T & convert to Future<T> */
+template<typename T> struct DetermineFutureType<const T &> {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** Constructor<T, Impl> to Future<T> */
+template<typename T, typename Impl> struct DetermineFutureType<Constructor<T,Impl> > {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** IConstructor<IConstructor<T> to Future<T> */
+template<typename T> struct DetermineFutureType<IConstructor<T> > {typedef Future<T> Type;};
+
+template<typename T> struct CatchTheFuture { CatchTheFuture(const Future<T> &fut):fut(fut) {}  Future<T> fut;};
+
+}
+
+#if __cplusplus >= 201103L
+
+template<typename T, typename Fn>
+auto operator >> (Future<T> f, const Fn &fn)
+     -> typename _intr::DetermineFutureType<typename std::result_of<Fn>::type>::Type;
+
+template<typename T, typename Fn>
+Future<T> operator >> (const _intr::CatchTheFuture<T> &f, const Fn &fn);
+
+enum TypeFutureCatch {
+	future_catch
+};
+
+template<typename T>
+_intr::CatchTheFuture<T> operator >> (Future<T> f, TypeFutureCatch) {return _intr::CatchTheFuture<T>(f);}
+
+#endif
 }
 

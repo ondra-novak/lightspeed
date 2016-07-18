@@ -808,8 +808,62 @@ FutureAutoCancel<T>::~FutureAutoCancel() {
 			}
 		}
 	}
+}
+
+namespace _intr {
+
+template<typename From, typename To, typename Fn>
+class FnResolveObserver: public Future<From>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const Fn &fn, const Promise<To> &p):fn(fn),p(p) {}
+	virtual void resolve(const From &result) throw() {
+		p.callAndResolve(fn, result);
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.reject(e);
+		delete this;
+	}
+protected:
+	Fn fn;
+	Promise<To> p;
+};
+
+template<typename To, typename Fn>
+class FnResolveObserver<void, To, Fn>: public Future<void>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const Fn &fn, const Promise<To> &p):fn(fn),p(p) {}
+	virtual void resolve() throw() {
+		p.callAndResolve();
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.reject(e);
+		delete this;
+	}
+protected:
+	Fn fn;
+	Promise<To> p;
+};
 
 }
+
+#if __cplusplus >= 201103L
+
+template<typename T, typename Fn>
+auto operator >> (Future<T> f, const Fn &fn) -> typename _intr::DetermineFutureType<decltype(fn)>::Type {
+	IRuntimeAlloc &alloc = f.getAllocator();
+	typedef typename _intr::DetermineFutureType<decltype(fn)>::Type FutT;
+	typedef typename FutT::Type ToType;
+	typedef T FromType;
+	typename _intr::DetermineFutureType<typename std::result_of<Fn>::type>::Type p(alloc);
+	f.addObserver(new(alloc) _intr::FnResolveObserver<FromType,ToType, Fn>(fn,p.getPromise()));
+}
+template<typename T, typename Fn>
+Future<T> operator >> (const _intr::CatchTheFuture<T> &f, const Fn &fn) {
+	return f.fut.onException(fn);
+}
+#endif
 
 }
 
