@@ -723,6 +723,9 @@ template<>
 class Future<void>: public Future<Empty> {
 public:
 
+	typedef void Type;
+
+
 	Future() {}
 	Future(const Future<Empty> &e):Future<Empty>(e) {}
 
@@ -809,6 +812,7 @@ public:
 	~Promise();
 
 	using  Future<T>::Resolution::resolve;
+
 
 
 	virtual void resolve(const T &result) throw() {
@@ -899,6 +903,8 @@ public:
 	template<typename Fn, typename Arg>
 	void callAndResolve(Fn fn, Arg arg) throw();
 
+
+
 };
 
 ///Future which cancels itself when it is destroyed
@@ -922,6 +928,8 @@ public:
 };
 
 
+#if __cplusplus >= 201103L
+
 
 namespace _intr {
 ///Determines type of future depend on type given (from return type of the function - C++11)
@@ -942,23 +950,22 @@ template<typename T> struct DetermineFutureType<IConstructor<T> > {typedef Futur
 
 template<typename T> struct CatchTheFuture { CatchTheFuture(const Future<T> &fut):fut(fut) {}  Future<T> fut;};
 
+template<typename T, typename Fn> struct DetermineFutureHandlerRetVal {
+	typedef typename std::result_of<Fn(T)>::type type;
+};
+
+template<typename Fn> struct DetermineFutureHandlerRetVal<void, Fn> {
+	typedef typename std::result_of<Fn()>::type type;
+};
+
 }
 
-#if __cplusplus >= 201103L
-
-template<typename T, typename Fn>
+template<typename T, typename Fn, typename Args>
 auto operator >> (Future<T> f, const Fn &fn)
-     -> typename _intr::DetermineFutureType<typename std::result_of<Fn>::type>::Type;
+     -> typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type;
 
 template<typename T, typename Fn>
 Future<T> operator >> (const _intr::CatchTheFuture<T> &f, const Fn &fn);
-
-enum TypeFutureCatch {
-	future_catch
-};
-
-template<typename T>
-_intr::CatchTheFuture<T> operator >> (Future<T> f, TypeFutureCatch) {return _intr::CatchTheFuture<T>(f);}
 
 #endif
 }

@@ -846,18 +846,22 @@ protected:
 	Promise<To> p;
 };
 
+
 }
 
 #if __cplusplus >= 201103L
 
+
 template<typename T, typename Fn>
-auto operator >> (Future<T> f, const Fn &fn) -> typename _intr::DetermineFutureType<decltype(fn)>::Type {
+auto operator >> (Future<T> f, const Fn &fn)
+	-> typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type {
 	IRuntimeAlloc &alloc = f.getAllocator();
-	typedef typename _intr::DetermineFutureType<decltype(fn)>::Type FutT;
+	typedef typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type FutT;
 	typedef typename FutT::Type ToType;
 	typedef T FromType;
-	typename _intr::DetermineFutureType<typename std::result_of<Fn>::type>::Type p(alloc);
+	FutT p(alloc);
 	f.addObserver(new(alloc) _intr::FnResolveObserver<FromType,ToType, Fn>(fn,p.getPromise()));
+	return p;
 }
 template<typename T, typename Fn>
 Future<T> operator >> (const _intr::CatchTheFuture<T> &f, const Fn &fn) {
