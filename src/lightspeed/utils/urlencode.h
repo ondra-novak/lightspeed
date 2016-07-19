@@ -9,11 +9,43 @@
 #define LIGHTSPEED_UTILS_URLENCODE_H_
 
 #include "../base/iter/iteratorFilter.h"
+#include "../base/iter/iterConv.h"
 
 #pragma once
 
 
 namespace LightSpeed {
+
+
+class UrlEncodeConvert: public ConverterBase<char, char, UrlEncodeConvert> {
+public:
+
+	const char &getNext();
+	const char &peek() const;
+	void write(const char &x);
+
+protected:
+	char buff[3];
+	byte maxread;
+	byte readpos;
+
+};
+
+
+class UrlDecodeConvert: public ConverterBase<char, char, UrlDecodeConvert> {
+public:
+	UrlDecodeConvert();
+	const char &getNext();
+	const char &peek() const;
+	void write(const char &x);
+
+protected:
+	char buff[3];
+	byte wrpos;
+
+};
+
+// ----------- obsolete code --------------
 
 class UrlEncoder: public IteratorFilterBase<char, char, UrlEncoder > {
 public:

@@ -11,7 +11,7 @@ namespace LightSpeed {
 
 
 	static void setupScanner(ScanTextW &txtin) {
-		txtin.nxChain().enableSkipInvalidChars(true); //skip invalid characters - all is treat as UTF-8 but document can be in different encoding
+		txtin.nxChain().getConverter().enableSkipInvalidChars(true); //skip invalid characters - all is treat as UTF-8 but document can be in different encoding
 	}
 
 	static void setupScanner(ScanTextWW &) {

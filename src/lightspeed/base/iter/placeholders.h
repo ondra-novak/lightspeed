@@ -7,6 +7,7 @@
 
 namespace LightSpeed {
 
+	template<typename T, typename Table> class PlaceholderConvert;
 	///implements table to replacing variable by values in the PlaceholderFilter
 	template<typename T>
 	class IPlaceholders {
@@ -33,7 +34,7 @@ namespace LightSpeed {
 		const IPlaceholders<T> *nx;
 	};
 
-	template<typename T, typename Table = IPlaceholders<T>, typename Allocator = StaticAlloc<32> >
+	template<typename T, typename Table = IPlaceholders<T>, typename Allocator = SmallAlloc<32> >
 	class PlaceholderFilter: public IteratorFilterBase<T,T,PlaceholderFilter<T,Table,Allocator> > {
 		enum State {
 			empty,
@@ -101,12 +102,68 @@ namespace LightSpeed {
 	protected:
 		State state;
 		const T *chrout;
-		AutoArray<T, SmallAlloc<32> > varSpace;
+		AutoArray<T, Allocator > varSpace;
 		const Table &table;
 		ConstStringT<T> outText;
 
+		friend class PlaceholderConvert<T,Table>;
 	};
 
+	template<typename T, typename Table = IPlaceholders<T> >
+	class PlaceholderConvert: public ConverterBase<T,T,PlaceholderConvert<T,Table> > {
+
+	public:
+
+		typedef ConverterBase<T,T,PlaceholderConvert<T,Table> > Super;
+		typedef PlaceholderFilter<T,Table> Placeholder;
+
+
+
+
+		PlaceholderConvert(const Table &table):pls(table) {}
+
+		const T &getNext() {
+			switch (pls.state) {
+			case Placeholder::charin: pls.state = pls.empty;
+								updateState();
+								return *pls.chrout;
+			case Placeholder::blockin: {
+							const T *out = pls.outText.data();
+							pls.outText = pls.outText.offset(1);
+							if (pls.outText.empty()) pls.state = pls.empty;
+							updateState();
+							return *out;
+						  }
+			default: throwIteratorNoMoreItems(THISLOCATION,typeid(PlaceholderConvert));
+			}
+
+			throw;
+		}
+		const T &peek() const {
+			switch (this->state) {
+				case Placeholder::charin:return *pls.chrout;
+				case Placeholder::blockin:return  *pls.outText.data();
+				default: throwIteratorNoMoreItems(THISLOCATION,typeid(PlaceholderConvert));
+			}
+			throw;
+		}
+		void write(const T &item) {
+			pls.input(item);
+			updateState();
+		}
+
+
+
+
+	protected:
+		Placeholder pls;
+		T chr;
+		void updateState() {
+			Super::hasItems = pls.hasItems();
+			Super::needItems = pls.needItems();
+		}
+
+	};
 
 
 

@@ -1,5 +1,8 @@
 #pragma once
+#include "../containers/autoArray.h"
 #include "../iter/iteratorFilter.h"
+#include "../iter/iterConv.h"
+#include "../memory/smallAlloc.h"
 #include "stringBase.h"
 
 namespace LightSpeed {
@@ -45,4 +48,13 @@ namespace LightSpeed {
 	}
 
 
+	template<typename In, typename Out, typename Conv>
+	StringCore<Out> convertString(const IConverter<In,Out,Conv> &conv, ConstStringT<In> input) {
+		static const natural preallocBuffer = sizeof(Out)>=64?8:512/sizeof(Out);
+		AutoArrayStream<Out, SmallAlloc<preallocBuffer> > outbuff;
+		Conv convImpl = conv.getImpl();
+		convImpl.blockWrite(input, outbuff, true);
+		convImpl.flushToIter(outbuff);
+		return StringCore<Out>(ConstStringT<Out>(outbuff.getArray()));
+	}
 }

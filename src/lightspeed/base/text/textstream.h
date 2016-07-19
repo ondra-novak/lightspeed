@@ -7,10 +7,20 @@
 #include "../memory/smallAlloc.h"
 #include "../streams/fileio.h"
 #include "textLineReader.h"
+#include "../iter/iterConv.h"
+#include "../iter/iterConvBytes.h"
 
 namespace LightSpeed {
+
+
+	typedef ConvertReadIter<BytesToCharsConvert, SeqFileInput> SeqTextInA;
+	typedef ConvertWriteIter<CharsToBytesConvert, SeqFileOutput> SeqTextOutA;
+	typedef ConvertReadChain<Utf8ToWideConvert, SeqTextInA> SeqTextInW;
+	typedef ConvertWriteChain<WideToUtf8Convert, SeqTextOutA> SeqTextOutW;
+	typedef ConvertReadIter<BytesToWideCharsConvert, SeqFileInput> SeqTextInWW;
+	typedef ConvertWriteIter<WideCharsToBytesConvert, SeqFileOutput> SeqTextOutWW;
 	
-	typedef Filter<TypeConversionFilter<byte,char> > ByteToCharFilter;
+/*	typedef Filter<TypeConversionFilter<byte,char> > ByteToCharFilter;
 	typedef Filter<TypeConversionFilter<char,byte> > CharToByteFilter;	
 
 	///convert output byte stream to output ansi stream
@@ -25,7 +35,7 @@ namespace LightSpeed {
 	typedef FltChain<SeqFileOutput, Filter<WideToBytes>::Read<SeqFileOutput> > SeqTextOutWW;
 	///convert input byte stream to input wide-char stream (UCS-2)
 	typedef FltChain<SeqFileInput, Filter<BytesToWide>::Read<SeqFileInput> > SeqTextInWW;
-
+*/
 	typedef TextOut<SeqTextOutA, SmallAlloc<256> > PrintTextA;
 	typedef TextOut<SeqTextOutW, SmallAlloc<256> > PrintTextW;
 	typedef TextIn<SeqTextInA, SmallAlloc<256> > ScanTextA;

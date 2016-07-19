@@ -117,7 +117,20 @@ namespace LightSpeed {
         typedef const Type &T;        
     };
     
-    
-	
+    template<typename Type>
+    struct AddReference{
+    	typedef Type &T;
+    };
+
+    template<typename Type>
+    struct AddReference<Type &>{
+    	typedef Type &T;
+    };
+
+    template<typename Type>
+    struct AddReference<const Type &>{
+    	typedef const Type &T;
+    };
+
 
  }
