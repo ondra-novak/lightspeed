@@ -928,6 +928,12 @@ public:
 };
 
 
+namespace _intr {
+
+template<typename Fn>
+struct FutureCatch {Fn fn;	FutureCatch(const Fn &fn):fn(fn) {} };
+
+}
 #if __cplusplus >= 201103L
 
 
@@ -948,7 +954,6 @@ template<typename T, typename Impl> struct DetermineFutureType<Constructor<T,Imp
 /** IConstructor<IConstructor<T> to Future<T> */
 template<typename T> struct DetermineFutureType<IConstructor<T> > {typedef Future<T> Type;};
 
-template<typename T> struct CatchTheFuture { CatchTheFuture(const Future<T> &fut):fut(fut) {}  Future<T> fut;};
 
 template<typename T, typename Fn> struct DetermineFutureHandlerRetVal {
 	typedef typename std::result_of<Fn(T)>::type type;
@@ -958,14 +963,20 @@ template<typename Fn> struct DetermineFutureHandlerRetVal<void, Fn> {
 	typedef typename std::result_of<Fn()>::type type;
 };
 
+template<typename Fn> struct DetermineFutureHandlerRetVal<void, FutureCatch<Fn> > {
+	typedef void type;
+};
+
 }
 
 template<typename T, typename Fn, typename Args>
 auto operator >> (Future<T> f, const Fn &fn)
      -> typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type;
 
-template<typename T, typename Fn>
-Future<T> operator >> (const _intr::CatchTheFuture<T> &f, const Fn &fn);
+
+
+template<typename Fn>
+_intr::FutureCatch<Fn> futureCatch(const Fn &fn) {return _intr::FutureCatch<Fn>(fn);}
 
 #endif
 }

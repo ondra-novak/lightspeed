@@ -834,7 +834,7 @@ class FnResolveObserver<void, To, Fn>: public Future<void>::IObserver, public Dy
 public:
 	FnResolveObserver(const Fn &fn, const Promise<To> &p):fn(fn),p(p) {}
 	virtual void resolve() throw() {
-		p.callAndResolve();
+		p.callAndResolve(fn);
 		delete this;
 	}
 	virtual void resolve(const PException &e) throw() {
@@ -846,6 +846,40 @@ protected:
 	Promise<To> p;
 };
 
+template<typename T, typename Fn>
+class FnResolveObserver<T,T,FutureCatch<Fn> >: public Future<T>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const FutureCatch<Fn> &fn, const Promise<T> &p):fn(fn),p(p) {}
+	virtual void resolve(const T &result) throw() {
+		p.resolve(result);
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.callAndResolve(fn.fn, e);
+		delete this;
+	}
+protected:
+	FutureCatch<Fn> fn;
+	Promise<T> p;
+};
+
+
+template<typename Fn>
+class FnResolveObserver<void,void,FutureCatch<Fn> >: public Future<void>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const FutureCatch<Fn> &fn, const Promise<void> &p):fn(fn),p(p) {}
+	virtual void resolve() throw() {
+		p.resolve();
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.callAndResolve(fn.fn, e);
+		delete this;
+	}
+protected:
+	FutureCatch<Fn> fn;
+	Promise<void> p;
+};
 
 }
 
@@ -863,10 +897,7 @@ auto operator >> (Future<T> f, const Fn &fn)
 	f.addObserver(new(alloc) _intr::FnResolveObserver<FromType,ToType, Fn>(fn,p.getPromise()));
 	return p;
 }
-template<typename T, typename Fn>
-Future<T> operator >> (const _intr::CatchTheFuture<T> &f, const Fn &fn) {
-	return f.fut.onException(fn);
-}
+
 #endif
 
 }
