@@ -19,6 +19,7 @@ namespace LightSpeed {
 
 
 class Variant;
+template<typename X, typename Y> class CombinedFuture;
 
 
 IRuntimeAlloc *getPromiseAlocator();
@@ -547,14 +548,55 @@ public:
 	 *
 	 * @param a first future
 	 * @param b second future
-	 * @return
+	 * @return Future which will resolve with result of the first resolved future. Because it can
+	 * be various types, result is stored into Variant type
+	 *
+	 * @note Result of Future<void> is stored as instance of the Void class
+	 *
 	 */
 	template<typename Y>
 	Future<Variant> operator||(const Future<Y> &b);
 
+	///Returns future, which becomes resolved once one of the futures is resolved
+	/** Function returns future which is resolved by a result of the fastest future from the
+	 * specified couple. Operator can be chained with other futures and its working the same manner.
+	 *
+	 * @param b second future
+	 * @return Future which will resolve with result of the first resolved future. Because both
+	 * futures are same type, result is also same type
+	 *
+	 */
+
+	Future<T> operator||(const Future &b);
+
+
+	///Returns future, which becomes resolved once both of the futures are resolved
+	/**
+	 * @param b second future
+	 * @return Future, which will resolve with pair
+	 */
 	template<typename Y>
 	Future<std::pair<T,Y> > operator&& (const Future<Y> &b);
 
+	///Combines futures allows to define operation on it
+	/**
+	 * @code
+	 * Future<A> fa=...;
+	 * Future<B> fb=...;
+	 * Future<C> fc = (fa + fb) >> [](A a, B b){ return C(a,b);};
+	 * @endcode
+	 *
+	 * Works similar as operator &&, however it combines results of futures and allows to call
+	 * function on both results. Operator+ always require to have run operator >> which defines
+	 * operation to combine results.
+	 *
+	 * @param b other future
+	 * @return stub containing both futures which is ready to perform run operator
+	 *
+	 * @note function is available for C++11 and older
+	 */
+	template<typename Y>
+	CombinedFuture<T,Y> operator+(const Future<Y> &b);
 
 
 	///Allows create much flexible observers than classical "then" or "onException"
@@ -998,5 +1040,6 @@ _intr::FutureCatch<Fn> futureCatch(const Fn &fn) {return _intr::FutureCatch<Fn>(
 
 #endif
 
+}
 
 
