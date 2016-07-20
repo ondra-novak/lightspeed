@@ -617,23 +617,23 @@ Future<T> Future<T>::thenWake(ISleepingObject &sleep, natural resolveReason, nat
 
 template<typename Fn>
 Future<void> Future<void>::then(Fn fn) {
-	return Future<Empty>::then(EmptyCallVoid<Fn>(fn));
+	return Future<Void>::then(EmptyCallVoid<Fn>(fn));
 }
 
 template<typename Fn>
 Future<void> Future<void>::thenCall(Fn fn) {
-	return Future<Empty>::thenCall(EmptyCallVoid<Fn>(fn));
+	return Future<Void>::thenCall(EmptyCallVoid<Fn>(fn));
 }
 
 
 template<typename Fn, typename RFn>
 Future<void> Future<void>::then(Fn resolveFn, RFn rejectFn){
-	return Future<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+	return Future<Void>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
 }
 
 template<typename Fn, typename RFn>
 Future<void> Future<void>::thenCall(Fn resolveFn, RFn rejectFn){
-	return Future<Empty>::thenCall(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+	return Future<Void>::thenCall(EmptyCallVoid<Fn>(resolveFn),rejectFn);
 }
 
 template<typename T>

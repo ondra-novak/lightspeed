@@ -18,6 +18,8 @@
 namespace LightSpeed {
 
 
+class Variant;
+
 
 IRuntimeAlloc *getPromiseAlocator();
 
@@ -539,6 +541,22 @@ public:
 	PPromiseControl getControlInterface();
 
 
+	///Returns future, which becomes resolved once one of the futures is resolved
+	/** Function returns future which is resolved by a result of the fastest future from the
+	 * specified couple. Operator can be chained with other futures and its working the same manner.
+	 *
+	 * @param a first future
+	 * @param b second future
+	 * @return
+	 */
+	template<typename Y>
+	Future<Variant> operator||(const Future<Y> &b);
+
+	template<typename Y>
+	Future<std::pair<T,Y> > operator&& (const Future<Y> &b);
+
+
+
 	///Allows create much flexible observers than classical "then" or "onException"
 	/** Observer is object, that receives result or rejection reason once the promise is resolved
 	 * You can create observer by implementing this interface. You have to implement methods
@@ -699,35 +717,35 @@ protected:
  * type should accept observer functions without arguments and they should not expect return value of the
  * observer function. Also resolve promise should be called without arguments.
  *
- * Specialization uses Promise<Empty> where Empty is special empty class. During lifetime of
- * the promise, the Empty instance is carried through, but it should not leave the promise object out.
+ * Specialization uses Promise<Void> where Void is special empty class. During lifetime of
+ * the promise, the Void instance is carried through, but it should not leave the promise object out.
  *
  * Functions then() and thenCall() accepts observers without argument. Conversion to observer with
- * "the Empty" argument is done by the internal function EmptyCallVoid. This function shallows
+ * "the Void" argument is done by the internal function EmptyCallVoid. This function shallows
  * the observer function and calls it without argument. It also doesn't expect return value.
  *
  * To resolve Promise<void> you should construct PromiseResolution<void>. This object
- * contains simple function resolve() without argument. Function internally constructs Empty instance
+ * contains simple function resolve() without argument. Function internally constructs Void instance
  * and uses it to process whole observer chain.
  *
- * Promise<void> can be anytime converted to Promise<Empty> and vice versa.
+ * Promise<void> can be anytime converted to Promise<Void> and vice versa.
  *
  *
- * It is possible to receive value of the promise, but you will receive an instance of the Empty class
+ * It is possible to receive value of the promise, but you will receive an instance of the Void class
  *
  * Function wait() doesn't return value, but still can throw an exception in case, that promise
  * is rejected.
  *
  */
 template<>
-class Future<void>: public Future<Empty> {
+class Future<void>: public Future<Void> {
 public:
 
 	typedef void Type;
 
 
 	Future() {}
-	Future(const Future<Empty> &e):Future<Empty>(e) {}
+	Future(const Future<Void> &e):Future<Void>(e) {}
 
 
 	template<typename Fn>
@@ -735,13 +753,13 @@ public:
 	public:
 		Fn fn;
 		EmptyCallVoid(Fn fn):fn(fn) {}
-		const Empty &operator()(const Empty &x) const {fn();return x;}
+		const Void &operator()(const Void &x) const {fn();return x;}
 
 	};
 
-	class IObserver : public Future<Empty>::IObserver {
+	class IObserver : public Future<Void>::IObserver {
 	public:
-		virtual void resolve(const Empty &) throw() {
+		virtual void resolve(const Void &) throw() {
 			resolve();
 		}
 		virtual void resolve() throw() = 0;
@@ -783,7 +801,7 @@ public:
 	 * @exception TimeoutException timeout elapsed before resolution
 	 * @exception any promise has been rejected with an exception.
 	 */
-	void wait(const Timeout &tm) {Future<Empty>::wait(tm);}
+	void wait(const Timeout &tm) {Future<Void>::wait(tm);}
 
 	Promise<void> getPromise();
 
@@ -887,14 +905,14 @@ protected:
 
 
 template<>
-class Promise<void> : public Promise<Empty> {
+class Promise<void> : public Promise<Void> {
 public:
-	typedef Promise<Empty> Super;
+	typedef Promise<Void> Super;
 	Promise(const Super &other) :Super(other) {}
 	Promise(const Future<void> &future) : Super(future) {}
 	using Super::resolve;
 	virtual void resolve() throw() {
-		Empty x;
+		Void x;
 		Super::resolve(x);
 	}
 
@@ -979,5 +997,6 @@ template<typename Fn>
 _intr::FutureCatch<Fn> futureCatch(const Fn &fn) {return _intr::FutureCatch<Fn>(fn);}
 
 #endif
-}
+
+
 

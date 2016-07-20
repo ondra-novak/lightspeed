@@ -9,14 +9,14 @@ namespace LightSpeed {
 	template class Promise<void>;
 
 Future<void> Future<void>::then(const Promise<void> &resolution) {
-	return Future<Empty>::then(static_cast<const Promise<Empty> &>(resolution));
+	return Future<Void>::then(static_cast<const Promise<Void> &>(resolution));
 }
 	
 
 
 Promise<void> Future<void>::getPromise()
 {
-	return Future<Empty>::getPromise();
+	return Future<Void>::getPromise();
 }
 
 IRuntimeAlloc * getPromiseAlocator()

@@ -47,6 +47,10 @@ namespace LightSpeed
 
     };
 
+    ///For easier identification when used in templates when Void is used instead void as value
+    typedef Empty Void;
+
+
 } // namespace LightSpeed
 
 
