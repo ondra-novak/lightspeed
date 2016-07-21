@@ -965,100 +965,105 @@ Future<T> Future<T>::operator||(const Future &b) {
 	return v;
 }
 
+namespace _intr {
+//Activates resolution, when both futures are resolved
+/* It also contains temporary stored results
+ * and also contains object observing the promises
+ *
+ * Ref counter tracks of references, everytime promise is resolved, reference is decreased
+ */
+template<typename T, typename Y>
+class FutureAllAktivator: public DynObject, public RefCntObj {
+public:
+
+	//result 1
+	Optional<T> v1;
+	//result 2
+	Optional<Y> v2;
+	//result promise
+	Promise<std::pair<T,Y> > result;
+
+
+
+
+	//called to check whether both are resolved
+	void tryResolve() {
+
+		if (v1 != null && v2 != null) {
+			//resolve pair
+			result.resolve(std::pair<T,Y>(v1,v2));
+		}
+	}
+
+	void reject(const PException &e) {
+		//reject whole promise
+		result.reject(e);
+	}
+
+	typedef RefCntPtr<FutureAllAktivator> PAktivator;
+
+	class ReceiverX: public Future<T>::IObserver {
+	public:
+		PAktivator owner;
+
+		ReceiverX(const PAktivator &owner):owner(owner.getMT()) {}
+		virtual void resolve(const T &v) throw() {
+			//store result
+			owner->v1 = v;
+			// try to resolve
+			owner->tryResolve();
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+		virtual void resolve(const PException &e) throw() {
+			//reject
+			owner->reject(e);
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+	};
+
+	class ReceiverY: public Future<Y>::IObserver {
+	public:
+		PAktivator owner;
+
+		ReceiverY(const PAktivator &owner):owner(owner.getMT()) {}
+		virtual void resolve(const Y &v) throw() {
+			//store result
+			owner.v2 = v;
+			// try to resolve
+			owner.tryResolve();
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+		virtual void resolve(const PException &e) throw() {
+			//reject
+			owner.reject(e);
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+	};
+
+	ReceiverX recvX;
+	ReceiverY recvY;
+
+	FutureAllAktivator(const Promise<std::pair<T,Y> > &result)
+		:result(result),recvX(*this),recvY(*this) {}
+
+
+};
+
+}
+
 template<typename T>
 template<typename Y>
 Future<std::pair<T,Y> > Future<T>::operator&& (const Future<Y> &b) {
 
-	//Activates resolution, when both futures are resolved
-	/* It also contains temporary stored results
-	 * and also contains object observing the promises
-	 *
-	 * Ref counter tracks of references, everytime promise is resolved, reference is decreased
-	 */
-	class Aktivator: public DynObject, public RefCntObj {
-	public:
-
-		//result 1
-		Optional<T> v1;
-		//result 2
-		Optional<Y> v2;
-		//result promise
-		Promise<std::pair<T,Y> > result;
-
-
-
-
-		//called to check whether both are resolved
-		void tryResolve() {
-
-			if (v1 != null && v2 != null) {
-				//resolve pair
-				result.resolve(std::pair<T,Y>(v1,v2));
-			}
-		}
-
-		void reject(const PException &e) {
-			//reject whole promise
-			result.reject(e);
-		}
-
-		typedef RefCntPtr<Aktivator> PAktivator;
-
-		class ReceiverX: public Future<T>::IObserver {
-		public:
-			PAktivator owner;
-
-			ReceiverX(const PAktivator &owner):owner(owner.getMT()) {}
-			virtual void resolve(const T &v) throw() {
-				//store result
-				owner->v1 = v;
-				// try to resolve
-				owner->tryResolve();
-				// set pointer to NULL (decrease counter)
-				owner = null;
-			}
-			virtual void resolve(const PException &e) throw() {
-				//reject
-				owner->reject(e);
-				// set pointer to NULL (decrease counter)
-				owner = null;
-			}
-		};
-
-		class ReceiverY: public Future<Y>::IObserver {
-		public:
-			PAktivator owner;
-
-			ReceiverY(const PAktivator &owner):owner(owner.getMT()) {}
-			virtual void resolve(const Y &v) throw() {
-				//store result
-				owner.v2 = v;
-				// try to resolve
-				owner.tryResolve();
-				// set pointer to NULL (decrease counter)
-				owner = null;
-			}
-			virtual void resolve(const PException &e) throw() {
-				//reject
-				owner.reject(e);
-				// set pointer to NULL (decrease counter)
-				owner = null;
-			}
-		};
-
-		ReceiverX recvX;
-		ReceiverY recvY;
-
-		Aktivator(const Promise<std::pair<T,Y> > &result)
-			:result(result),recvX(*this),recvY(*this) {}
-
-
-	};
 
 	IRuntimeAlloc &alloc = getAllocator();
 	Future<std::pair<T,Y> > res(alloc);
 	Promise<std::pair<T,Y> > p = res.getPromise();
-	Aktivator *akt = new(alloc) Aktivator(p);
+	_intr::FutureAllAktivator<T,Y> *akt = new(alloc) _intr::FutureAllAktivator<T,Y>(p);
 	try {
 		this->addObserver(&akt->recvX);
 		b.addObserver(&akt->recvY);

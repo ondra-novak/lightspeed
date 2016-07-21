@@ -277,12 +277,13 @@ protected:
 };
 
 template<typename Converter, typename SrcIter, bool implicitFlush = true>
-class ConvertReadChain: public ConvertReadIter<Converter, SrcIter> {
+class ConvertReadChain: public ConvertReadIter<Converter, typename OriginT<SrcIter>::T &> {
 public:
 
 	typedef typename OriginT<SrcIter>::T::BaseIter BaseIter;
 
-	ConvertReadChain(typename FastParam<BaseIter>::T iter):ConvertReadIter<Converter, SrcIter>(curiter),curiter(iter) {}
+	ConvertReadChain(typename FastParam<BaseIter>::T iter):ConvertReadIter<Converter, typename OriginT<SrcIter>::T &>(curiter),curiter(iter) {}
+	ConvertReadChain(const ConvertReadChain &other):ConvertReadIter<Converter, typename OriginT<SrcIter>::T &>(curiter),curiter(other.curiter) {}
 
 protected:
 	SrcIter curiter;
@@ -290,12 +291,13 @@ protected:
 };
 
 template<typename Converter, typename TrgIter, bool implicitFlush=true>
-class ConvertWriteChain: public ConvertWriteIter<Converter, TrgIter, implicitFlush> {
+class ConvertWriteChain: public ConvertWriteIter<Converter, typename OriginT<TrgIter>::T &, implicitFlush> {
 public:
 
 	typedef typename OriginT<TrgIter>::T::BaseIter BaseIter;
 
-	ConvertWriteChain(typename FastParam<BaseIter>::T iter):ConvertWriteIter<Converter, TrgIter>(curiter),curiter(iter) {}
+	ConvertWriteChain(typename FastParam<BaseIter>::T iter):ConvertWriteIter<Converter,  typename OriginT<TrgIter>::T &>(curiter),curiter(iter) {}
+	ConvertWriteChain(const ConvertWriteChain &other):ConvertWriteIter<Converter,  typename OriginT<TrgIter>::T &>(curiter),curiter(other.curiter) {}
 
 protected:
 	TrgIter curiter;
