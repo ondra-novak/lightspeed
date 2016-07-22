@@ -61,6 +61,7 @@ public:
 	 */
 	virtual bool isRunning() const = 0;
 
+
 	///For C++11 declares "run operator".
 	/**
 	 * @code
@@ -80,7 +81,6 @@ public:
 	}
 
 	virtual ~IJobControl() {}
-
 
 };
 
