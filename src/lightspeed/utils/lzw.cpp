@@ -7,13 +7,14 @@
 
 #include "lzw.tcc"
 
+#include <map>
 #include "../base/containers/autoArray.tcc"
 #include "../base/exceptions/errorMessageException.h"
 namespace LightSpeed {
 
 
 LZWpCompress::LZWpCompress(natural maxBits)
-:LZWCompressBase<LZWpCompress>(maxBits),optimizeStart((1<<maxBits)-5),optimizeCode((1<<maxBits)-1)
+:LZWCompressBase<LZWpCompress>(maxBits)
 {
 }
 
@@ -26,10 +27,13 @@ void LZWpCompress::optimizeDictionary() {
 	std::map<ChainCode, ChainCode> codeMap;
 	std::map<ChainCode, natural> revMap;
 
+	natural stopCode = nextChainCode - (lzwpDictSpace+1);
+
 	//generate list of new codes and assign it to choosen chains
-	for(DictTable::iterator iter = dictTable.begin(); iter != dictTable.end() ;++iter) {
-		if (iter->second.marked()) {
-			revMap.insert(std::make_pair(iter->second.code,iter->first));
+	for(Dictionary::Iterator iter = dictTable.getFwIter(); iter.hasItems();) {
+		const Dictionary::Iterator::ItemT &itm = iter.getNext();
+		if (itm.second->marked() && itm.second->code < stopCode) {
+			revMap.insert(std::make_pair(itm.second->code,itm.first << 8 | itm.second->ifbyte));
 		}
 	}
 
@@ -42,6 +46,7 @@ void LZWpCompress::optimizeDictionary() {
 		byte bout = (byte)(iter->second & 0xFF);
 		ChainCode prevCode = (ChainCode)(iter->second >> 8);
 		ChainCode newCode = nextChainCode++;
+
 		increaseBits(newCode);
 
 		if (prevCode >= firstChainCode) {
@@ -52,8 +57,7 @@ void LZWpCompress::optimizeDictionary() {
 			prevCode = newPrevCode->second;
 		}
 
-		natural packedCode = prevCode << 8 | bout;
-		dictTable.insert(std::make_pair(packedCode,newCode));
+		dictTable.addCode(prevCode,bout,newCode);
 		codeMap.insert(std::make_pair(iter->first, newCode));
 	}
 
@@ -117,11 +121,12 @@ void LZWpDecompress::optimizeDictionary() {
 
 	this->codeBits = 9;
 	ChainCode curCode(this->dict.length()+firstChainCode);
+	natural maxDict = this->dict.length()-lzwpDictSpace;
 	optTable.resize(curCode,0);
 	ChainCode nextCode(firstChainCode);
 
 
-	for(natural i = 0; i < dict.length();i++) {
+	for(natural i = 0; i < maxDict;i++) {
 		const CodeInfo &nfo = dict[i];
 		if (nfo.marked) {
 			byte bout = nfo.outByte;
@@ -162,5 +167,102 @@ template class LZWCompressBase<LZWCompress>;
 template class LZWCompressBase<LZWpCompress>;
 template class LZWDecompressBase<LZWDecompress>;
 template class LZWDecompressBase<LZWpDecompress>;
+
+const LZWCommonDefs::ChainCode* LZWCommonDefs::DictItem::findCode(byte b) const {
+	if (b == ifbyte) return &code;
+	DictItem *p = nextItem;
+	while (p != 0) {
+		if (p->ifbyte == b) return &p->code;
+		p = p->nextItem;
+	}
+	return 0;
+}
+
+const LZWCommonDefs::ChainCode* LZWCommonDefs::DictItem::findCodeAndMark(byte b) {
+	if (b == ifbyte) {
+		track = true;
+		return &code;
+	}
+	DictItem *p = nextItem;
+	while (p != 0) {
+		if (p->ifbyte == b) {
+			p->track = true;
+			return &p->code;
+		}
+		p = p->nextItem;
+	}
+	return 0;
+}
+
+const LZWCommonDefs::ChainCode* LZWCommonDefs::Dictionary::findCode(ChainCode prevCode,byte b) const {
+	if (prevCode < codeList.length() && codeList[prevCode]!=null) {
+		return codeList[prevCode]->findCode(b);
+	} else {
+		return 0;
+	}
+}
+
+const LZWCommonDefs::ChainCode* LZWCommonDefs::Dictionary::findCodeAndMark(ChainCode prevCode,byte b)  {
+	if (prevCode < codeList.length() && codeList[prevCode]!=null) {
+		return codeList.mutableAt(prevCode)->findCodeAndMark(b);
+	} else {
+		return 0;
+	}
+}
+
+void LZWCommonDefs::Dictionary::addCode(ChainCode prevCode, byte b, ChainCode nextCode) {
+	if (prevCode >= codeList.length()) codeList.resize(prevCode+1);
+	PItem itm = new(allocator) DictItem(b,nextCode,codeList[prevCode]);
+	codeList.set(prevCode, itm);
+}
+
+void LZWCommonDefs::Dictionary::clear() {
+	codeList.clear();
+}
+
+LZWCommonDefs::Dictionary::Iterator LZWCommonDefs::Dictionary::getFwIter() const {
+	return Iterator(codeList);
+
+}
+
+LZWCommonDefs::Dictionary::Iterator::Iterator(ConstStringT<PItem> items)
+	:items(items)
+{
+	nextItem.first = naturalNull;
+	nextItem.second = 0;
+	fetch();
+}
+
+bool LZWCommonDefs::Dictionary::Iterator::hasItems() const {
+	return (nextItem.first < items.length());
+}
+
+const LZWCommonDefs::Dictionary::Iterator::ItemT& LZWCommonDefs::Dictionary::Iterator::peek() const {
+	outItem = nextItem;
+	return outItem;
+}
+
+const LZWCommonDefs::Dictionary::Iterator::ItemT& LZWCommonDefs::Dictionary::Iterator::getNext() {
+	outItem = nextItem;
+	fetch();
+	return outItem;
+
+}
+
+void LZWCommonDefs::Dictionary::Iterator::fetch() {
+	if (nextItem.second != 0) {
+		nextItem.second = nextItem.second->nextItem;
+	}
+	if (nextItem.second == 0) {
+		nextItem.first++;
+		while (nextItem.first < items.length() && items[nextItem.first] == null) {
+			nextItem.first++;
+		}
+		if (nextItem.first < items.length()) {
+			nextItem.second = items[nextItem.first];
+		}
+	}
+}
+
 
 }

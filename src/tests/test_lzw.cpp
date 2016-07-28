@@ -50,7 +50,7 @@ defineTest test_lzwLargeFile("lzw.largeFile","34113",[](PrintTextA &out) {
 	out("%1") << (deconv == srcFile?conv.length():0);
 });
 
-defineTest test_lzwpLargeFile("lzw.lzwp-largeFile","28929",[](PrintTextA &out) {
+defineTest test_lzwpLargeFile("lzw.lzwp-largeFile","28879",[](PrintTextA &out) {
 
 	ConstBin srcFile(test_data_json, test_data_json_length);
 
@@ -60,7 +60,7 @@ defineTest test_lzwpLargeFile("lzw.lzwp-largeFile","28929",[](PrintTextA &out) {
 	out("%1") << (deconv == srcFile?conv.length():0);
 });
 
-defineTest test_lzwpZeroTest("lzw.lzwp-zerotest","7854",[](PrintTextA &out) {
+defineTest test_lzwpZeroTest("lzw.lzwp-zerotest","6670",[](PrintTextA &out) {
 
 	natural count=10*1024*1024;
 	AutoArrayStream<byte> compressed;
@@ -90,7 +90,21 @@ defineTest test_lzwpZeroTest("lzw.lzwp-zerotest","7854",[](PrintTextA &out) {
 	out("%1") << compressed.length();
 });
 
+/*
+defineTest test_lzwpZeroTestHalf("lzw.lzwp-zerotesthalf","1",[](PrintTextA &out) {
 
+	natural count=10*1024*1024;
+	AutoArrayStream<byte> compressed;
+	{
+		ConvertWriteIter<LZWpCompress, AutoArrayStream<byte> &> compress(LZWpCompress(12),compressed);
+
+		for (natural i = 0; i < count; i++)
+			compress.write(0);
+
+		compress.flush();
+	}
+	out("%1") << 1;
+});*/
 }
 
 

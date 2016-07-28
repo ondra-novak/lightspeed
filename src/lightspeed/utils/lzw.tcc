@@ -63,14 +63,11 @@ void LZWCompressBase<Impl>::increaseBits(ChainCode newCode) {
 
 template<typename Impl>
 void LZWCompressBase<Impl>::write(const byte& b) {
-	//calculate packed code
-	//packed code is <curChainCode> | <byte>.
-	natural packedCode = curChainCode << 8 | b;
 	//packed code is used as lookup to the map.
 	//if exists, value is next chain code
-	typename DictTable::iterator itr = this->dictTable.find(packedCode);
+	const ChainCode *fcd = this->dictTable.findCodeAndMark(curChainCode,b);
 	//found?
-	if (itr == dictTable.end()) {
+	if (fcd == 0) {
 		//if not, chceck, whether curChainCodee is natural null
 		if (curChainCode == nullChainCode) {
 			//this can happen on first write. Make current byte as curChainCode
@@ -83,7 +80,7 @@ void LZWCompressBase<Impl>::write(const byte& b) {
 			//introduce new chain code
 			natural newCode = nextChainCode++;
 			//insert chain code to the table with current packed code as key
-			dictTable.insert(std::make_pair(packedCode,newCode));
+			dictTable.addCode(curChainCode,b,newCode);
 			//check, whether newCode is out of value able to encode by codeBits
 			increaseBits(newCode);
 			if (newCode == maxChainCode) {
@@ -94,8 +91,7 @@ void LZWCompressBase<Impl>::write(const byte& b) {
 		}
 	} else {
 		//if chainCode found, use it as current for next round
-		curChainCode = itr->second;
-		itr->second.mark();
+		curChainCode = *fcd;
 	}
 }
 
@@ -106,16 +102,18 @@ void LZWCompressBase<Impl>::flush() {
 	if (curChainCode != nullChainCode) {
 		//write it
 		writeCode(curChainCode);
-		//simulate increasing of the nextChainCode
+		//simulate increasing of the nextChainCode - because decoder expects next chain code
 		natural newCode = nextChainCode++;
-		//
 		increaseBits(newCode);
+		//write endData
 		writeClearCode(endData);
+		//pad buffer with zeroes
 		outbuff.padzeroes();
+		//reset current chain code
+		curChainCode = nullChainCode;
 	}
 	this->needItems = true;
 	this->eolb = true;
-	dictTable.clear();
 }
 
 template<typename Impl>
@@ -162,10 +160,14 @@ void LZWDecompressBase<Impl>::write(const byte& b) {
 		if (code == clearCode) {
 			this->getImpl().onClearCode();
 		} else if (code == endData) {
-			clearDict();
+			//reset inbits = we know, that they are used as padding
 			inbits = 0;
+			//reset accumulator
 			accum = 0;
+			//signal logical end
 			this->eolb = true;
+			//reset previous code, this allows to start new stream with same dictionary
+			prevCode=null;
 		} else {
 			ChainCode nextCode(dict.length()+firstChainCode);
 			if (code < 256) {

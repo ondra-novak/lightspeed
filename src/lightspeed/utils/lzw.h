@@ -8,7 +8,8 @@
 #ifndef LIGHTSPEED_UTILS_LZW_H_
 #define LIGHTSPEED_UTILS_LZW_H_
 #include "../base/iter/iterConv.h"
-#include <map>
+#include "../base/containers/autoArray.h"
+#include "../base/memory/clusterAlloc.h"
 namespace LightSpeed {
 
 
@@ -16,12 +17,80 @@ class LZWCommonDefs {
 public:
 	typedef Bin::natural16 ChainCode;
 
+	///Code used to clear (lzw) or optimize (lzwp) dictionary
 	static const ChainCode clearCode=256;
+	///Code used to finalize stream
+	/** It is always padded by zero bits. It also means, that current state must be cleared
+	 *  but not current dictionary.
+	 */
 	static const ChainCode endData=257;
+	///First code available for dictionary
 	static const ChainCode firstChainCode = 258;
+	///Code used for not-assigned variable (null)
 	static const ChainCode nullChainCode=ChainCode(-1);
+	///max allowed bits for chain-code
 	static const natural maxAllowedBits=15;
+	///initial coding bit length
 	static const natural initialBits=9;
+	///count of items in dictionary always left after optimization for dictionary expansion
+	static const natural lzwpDictSpace=32;
+
+
+	class DictItem: public RefCntObj, public DynObject {
+	public:
+		RefCntPtr<DictItem> nextItem;
+		ChainCode code;
+		byte ifbyte;
+		bool track;
+
+		DictItem(byte ifbyte,ChainCode code,RefCntPtr<DictItem> nextItem)
+			:nextItem(nextItem),code(code),ifbyte(ifbyte),track(false) {}
+
+		const ChainCode *findCode(byte b) const;
+		const ChainCode *findCodeAndMark(byte b);
+		void mark() {track = true;}
+		bool marked() {return track;}
+
+
+	};
+
+	class Dictionary {
+	public:
+
+		const ChainCode *findCode(ChainCode prevCode, byte b) const;
+		const ChainCode *findCodeAndMark(ChainCode prevCode, byte b);
+		void addCode(ChainCode prevCode, byte b, ChainCode nextCode);
+		void clear();
+
+
+
+
+	protected:
+		typedef RefCntPtr<DictItem> PItem;
+		ClusterAlloc allocator;
+		AutoArray<PItem> codeList;
+	public:
+		class Iterator: public IteratorBase<std::pair<natural, DictItem *>, Iterator> {
+		public:
+			typedef std::pair<natural, DictItem *> ItemT;
+
+			Iterator(ConstStringT<PItem> items);
+
+			bool hasItems() const;
+			const ItemT &peek() const;
+			const ItemT &getNext();
+
+
+		protected:
+			ConstStringT<PItem> items;
+			mutable ItemT outItem;
+			ItemT nextItem;
+			void fetch();
+		};
+
+		Iterator getFwIter() const;
+
+	};
 
 };
 
@@ -58,10 +127,8 @@ protected:
 
 	};
 
-	//the map cointais: packed code (chain+byte), and next chain code
-	typedef std::map<natural, ChainCodeTrace> DictTable;
 
-	DictTable dictTable;
+	Dictionary dictTable;
 	///next chain code available to open
 	ChainCode nextChainCode;
 	///currently opened chain code
@@ -176,8 +243,6 @@ protected:
 	void onClearCode();
 
 	void optimizeDictionary();
-	ChainCode optimizeStart;
-	ChainCode optimizeCode;
 
 };
 
