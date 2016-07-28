@@ -22,6 +22,7 @@ public:
 	static const ChainCode nullChainCode=ChainCode(-1);
 	static const natural maxAllowedBits=15;
 	static const natural initialBits=9;
+
 };
 
 ///simple stream compressor
@@ -31,12 +32,13 @@ public:
  * control the data flow on byte resolution.
  *
  */
-class LZWCompress: public ConverterBase<byte, byte, LZWCompress>, public LZWCommonDefs {
+template<typename Impl>
+class LZWCompressBase: public ConverterBase<byte, byte, Impl>, public LZWCommonDefs {
 public:
 
 
 
-	LZWCompress(natural maxBits = maxAllowedBits);
+	LZWCompressBase(natural maxBits = 12);
 	const byte &getNext() ;
 	const byte &peek() const;
 	void write(const byte &b);
@@ -44,14 +46,22 @@ public:
 
 protected:
 
-	static natural packCode(natural chainCode, byte nextByte);
+
+	struct ChainCodeTrace {
+		ChainCode code;
+		bool trace;
+
+		ChainCodeTrace(ChainCode code):code(code),trace(false) {}
+		operator ChainCode() const {return code;}
+		void mark() {trace=true;}
+		bool marked() const {return trace;}
+
+	};
 
 	//the map cointais: packed code (chain+byte), and next chain code
-	typedef std::map<natural, natural> DictTable;
+	typedef std::map<natural, ChainCodeTrace> DictTable;
 
 	DictTable dictTable;
-	///accumulator contains
-	natural accumulator;
 	///next chain code available to open
 	ChainCode nextChainCode;
 	///currently opened chain code
@@ -62,24 +72,41 @@ protected:
 	natural codeBits;
 	///when this code is created, full or clear is performed
 	ChainCode maxChainCode;
-	///code used for partial clean of dictionary. It should be maxChainCode+2
-	/** stream decoded by unsupported decompressor will report this code as error */
-	ChainCode partialClearCode;
 
-	mutable byte outbyte;
+	class OutBuff {
+	public:
+		byte outbuff[16];
+		byte wrpos;
+		byte rdpos;
+		byte wrbits;
+		byte accum;
+
+		OutBuff();
+		const byte &getNext();
+		const byte &peek();
+		void write(ChainCode code, byte bits);
+		bool hasItems() const;
+		void padzeroes();
+
+
+	};
+
+	mutable OutBuff outbuff;
 
 
 	void writeCode(ChainCode code);
 	void writeClearCode(ChainCode code);
 	void increaseBits(ChainCode newCode);
+
+	//allows to write own handler of clear code - for example if you want to prune dictionary, not clear
+	void onClearCode();
 };
 
-class LZWDecompress: public ConverterBase<byte, byte, LZWDecompress>, public LZWCommonDefs {
+template<typename Impl>
+class LZWDecompressBase: public ConverterBase<byte, byte, Impl>, public LZWCommonDefs {
 public:
 
-
-
-	LZWDecompress();
+	LZWDecompressBase();
 	const byte &getNext() ;
 	const byte &peek() const;
 	void write(const byte &b);
@@ -90,9 +117,11 @@ protected:
 	struct CodeInfo {
 		byte outByte;
 		natural prevCode;
+		mutable bool marked;
 
 		CodeInfo(byte outByte,natural prevCode)
-			:outByte(outByte),prevCode(prevCode) {}
+			:outByte(outByte),prevCode(prevCode),marked(false) {}
+		void mark() const {marked = true;}
 	};
 
 	typedef AutoArray<CodeInfo> DictTable;
@@ -111,9 +140,58 @@ protected:
 
 	bool appendBits(byte bits, ChainCode &codeOut);
 	void clearDict();
+
+	///called when unknown code detected
+	/** default implementation will throw an exception. However extension can benefit from it */
+	void onUnknownCode(ChainCode code);
+	//allows to write own handler of clear code - for example if you want to prune dictionary, not clear
+	void onClearCode();
+
 };
 
+class LZWCompress: public LZWCompressBase<LZWCompress> {
+public:
+	LZWCompress(natural maxBits = 12):LZWCompressBase<LZWCompress>(maxBits) {}
+protected:
+	void onClearCode();
+	friend class LZWCompressBase<LZWCompress>;
 
+};
+
+class LZWDecompress: public LZWDecompressBase<LZWDecompress> {
+public:
+protected:
+	void onClearCode();
+	friend class LZWDecompressBase<LZWDecompress>;
+};
+
+class LZWpCompress: public LZWCompressBase<LZWpCompress> {
+public:
+	LZWpCompress(natural maxBits = 12);
+	friend class LZWCompressBase<LZWpCompress>;
+
+
+protected:
+
+	void onClearCode();
+
+	void optimizeDictionary();
+	ChainCode optimizeStart;
+	ChainCode optimizeCode;
+
+};
+
+class LZWpDecompress: public LZWDecompressBase<LZWpDecompress> {
+public:
+
+
+protected:
+	friend class LZWDecompressBase<LZWpDecompress>;
+
+	void onClearCode();
+	void optimizeDictionary();
+
+};
 
 }
 

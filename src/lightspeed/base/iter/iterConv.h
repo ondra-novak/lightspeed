@@ -104,8 +104,18 @@ public:
 	bool hasItems() const {
 		//if convertor has items, return true
 		if (conv.hasItems) return true;
-		//if source stream has items, return true
-		if (srcIter.hasItems()) return true;
+		//if convertor reports end of logical block, return false;
+		if (conv.eolb) return false;
+		//if source stream has items
+		while (srcIter.hasItems()) {
+			//we don't know until we will feed convertor with some items
+			ConvertReadIter *cthis = const_cast<ConvertReadIter *>(this);
+			cthis->conv.write(cthis->srcIter.getNext());
+			//if convertor has items, return true
+			if (conv.hasItems) return true;
+			//if convertor reports end of logical block, return false;
+			if (conv.eolb) return false;
+		}
 		//if not, call flush to finish conversion (we need to const cast here, because there is no other place how to handle this)
 		if (implicitFlush) const_cast<ConvertReadIter *>(this)->conv.flush();
 		//if there are items after flush, continue returning true, otherwise return false

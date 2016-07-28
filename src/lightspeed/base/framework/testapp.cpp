@@ -1,4 +1,7 @@
 #include "testapp.h"
+
+#include <time.h>
+
 #include "../streams/memfile.h"
 #include "../exceptions/stdexception.h"
 #include "../containers/constStr.h"
@@ -139,8 +142,13 @@ namespace LightSpeed {
 		bufout.flush();
 
 		try {
+			clock_t cstart = clock();
 			x->runTest();
-			print("OK\n"); bufout.flush();
+			clock_t cend = clock();
+
+
+			print("OK (%{ 9}1 ms) \n") << setPrecision(3) << ((cend - cstart) / (CLOCKS_PER_SEC / 1000.0));
+			bufout.flush();
 			return true;
 		}
 		catch (const TestApp::FailedTest &e) {
