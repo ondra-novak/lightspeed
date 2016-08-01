@@ -1186,6 +1186,7 @@ Value getConstant(Constant c) {
 	case constZero: return Factory().newValue(0); break;
 	case constEmptyStr: return Factory().newValue(ConstStrA()); break;
 	}
+	throw; //should never reached
 }
 
 

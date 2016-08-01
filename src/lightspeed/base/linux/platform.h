@@ -17,6 +17,11 @@
 #endif
 #endif
 
+#if __cplusplus >= 201103L
+#define LIGHTSPEED_ENABLE_CPP11
+#endif
+
+
 
 #endif /*PLATFORM_H_*/
 

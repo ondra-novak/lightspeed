@@ -13,6 +13,7 @@
 #include "../../base/memory/smallAlloc.h"
 #include "../../base/text/textFormat.h"
 #include "../../base/countof.h"
+#include "../../base/containers/map.tcc"
 
 
 namespace LightSpeed {

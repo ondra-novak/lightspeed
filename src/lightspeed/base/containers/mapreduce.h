@@ -51,7 +51,7 @@ public:
 		ReducedResult rres;
 		///constructor
 		KeyValue(const Key &key, const Value &value):key(key),value(value) {}
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 		KeyValue(Key &&key, Value &&value):key(std::move(key)),value(std::move(value)) {}
 		KeyValue(KeyValue &&x):key(std::move(x.key)),value(std::move(x.value)) {}
 		KeyValue(const KeyValue &x):key(x.key),value(x.value) {}

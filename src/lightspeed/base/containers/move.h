@@ -43,7 +43,7 @@ enum MoveConstruct {
 	class MoveObject: public MoveObject_Copy {
 	public:
 
-#if __cplusplus > 199711L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 		static T *doMove(T *oldAddr, void *newAddr) {
 	        T *res = new(newAddr) T(std::move(*oldAddr));
 	        oldAddr->~T();

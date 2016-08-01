@@ -72,7 +72,7 @@ inline atomicValue lockExchange(volatile atomic &subj, atomicValue value) {
 }
 template<typename T>
 inline T *lockCompareExchangePtr( T *volatile *subj, T * comparand, T * value) {
-	return (T *)InterlockedCompareExchangePointer((volatile PVOID *)subj,value,comparand);
+	return (T *)InterlockedCompareExchangePointer((volatile PVOID *)subj,(PVOID)value,(PVOID)comparand);
 }
 template<typename T>
 inline T *lockExchangePtr( T *volatile *subj,  T * value) {

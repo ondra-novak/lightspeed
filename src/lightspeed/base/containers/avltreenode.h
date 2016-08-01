@@ -47,7 +47,7 @@ public:
 	AvlTreeNode(const T &val):left(0),right(0),balance(0),dirty(true),data(val) {
 	}
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 	AvlTreeNode(T &&val):left(0),right(0),balance(0),dirty(true),data(std::move(val)) {
 	}
 #endif

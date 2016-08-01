@@ -62,6 +62,12 @@ void LZWCompressBase<Impl>::increaseBits(ChainCode newCode) {
 }
 
 template<typename Impl>
+void LZWCompressBase<Impl>::onClearCode()
+{
+	throwUnsupportedFeature(THISLOCATION, this, "onClearCode is undefined");
+}
+
+template<typename Impl>
 void LZWCompressBase<Impl>::write(const byte& b) {
 	//packed code is used as lookup to the map.
 	//if exists, value is next chain code
@@ -174,7 +180,7 @@ void LZWDecompressBase<Impl>::write(const byte& b) {
 				outbytes.clear();
 				outbytes.add((byte)code);
 				if (prevCode != nullChainCode) {
-					dict.add(CodeInfo(code,prevCode));
+					dict.add(CodeInfo((byte)code,prevCode));
 				}
 			} else if (code == nextCode) {
 				if (prevCode == nullChainCode) {
@@ -291,6 +297,12 @@ void LZWCompressBase<Impl>::OutBuff::padzeroes() {
 template<typename Impl>
 void LZWDecompressBase<Impl>::onUnknownCode(ChainCode) {
 	throw ErrorMessageException(THISLOCATION, "LZW: Unexpected opcode - probably corrupted stram or new version" );
+}
+
+template<typename Impl>
+void LZWDecompressBase<Impl>::onClearCode()
+{
+	throwUnsupportedFeature(THISLOCATION, this, "onClearCode is undefined");
 }
 
 

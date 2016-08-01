@@ -6,6 +6,8 @@
 #include "../containers/autoArray.tcc"
 #include "../interface.tcc"
 #include "../exceptions/httpStatusException.h"
+#include "../containers/map.tcc"
+
 
 namespace LightSpeed {
 

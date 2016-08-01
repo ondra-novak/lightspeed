@@ -74,7 +74,7 @@ namespace LightSpeed {
 				Super::operator=(other);return *this;
 			}
 
-			#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 					ConstValue(ConstValue &&other):Super(std::move(other)) {}
 			#endif
 
@@ -266,7 +266,7 @@ namespace LightSpeed {
 			Value &clear();
 
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 			Value(Value &&other):Super(std::move(other)) {}
 #endif
 
@@ -759,7 +759,7 @@ namespace LightSpeed {
 			Value newValue(const wchar_t *v)  {return this->_invoke().newValue(ConstStrW(v));}
 			Value newValue(std::string &v)  {return this->_invoke().newValue(ConstStrA(v.data(),v.length()));}
 			Value newValue(std::wstring &v)  {return this->_invoke().newValue(ConstStrW(v.data(),v.length()));}
-				#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 							Value newValue(std::nullptr_t) {return this->_invoke().newValue(null);}
 				#endif
 			static const Value &newValue(const Value &v) {return v;}

@@ -43,6 +43,7 @@ void UrlEncodeConvert::write(const char& x) {
 	}
 	hasItems = true;
 	needItems = false;
+	readpos = 0;
 }
 
 

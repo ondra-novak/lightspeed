@@ -10,7 +10,7 @@
 #include "../containers/deque.h"
 #include "../meta/emptyClass.h"
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 #include <type_traits>
 #include <functional>
 #endif
@@ -994,7 +994,7 @@ template<typename Fn>
 struct FutureCatch {Fn fn;	FutureCatch(const Fn &fn):fn(fn) {} };
 
 }
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 
 
 namespace _intr {

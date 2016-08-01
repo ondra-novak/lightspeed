@@ -150,7 +150,7 @@ namespace LightSpeed {
         }
 
 		//C++x11
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 
 		RefCntPtr(RefCntPtr &&other) {
 			this->ptr = other.ptr;
