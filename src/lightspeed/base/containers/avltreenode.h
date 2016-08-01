@@ -47,7 +47,7 @@ public:
 	AvlTreeNode(const T &val):left(0),right(0),balance(0),dirty(true),data(val) {
 	}
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 	AvlTreeNode(T &&val):left(0),right(0),balance(0),dirty(true),data(std::move(val)) {
 	}
 #endif
@@ -544,7 +544,7 @@ public:
 		Iterator out;
 		AvlTreeNode<T, LinkT> *x = tree->insert(order,nd,&out);
 		if (exists) *exists = x == 0;
-		if (x) tree = x;
+		if (x) {tree = x; count++;}
 		return out;
 	}
 

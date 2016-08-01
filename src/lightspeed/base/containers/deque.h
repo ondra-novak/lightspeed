@@ -60,6 +60,7 @@ public:
 	 @param count of items to preallocate
 	 */
 	bool reserve(natural count);
+	void swap(Deque &other);
 
 protected:
 

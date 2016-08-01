@@ -2,8 +2,10 @@
 
 #include "promise.h"
 
+#include "../../mt/atomic.h"
 
 #include "../containers/deque.tcc"
+#include "../containers/variant.h"
 #include "../containers/autoArray.tcc"
 #include "../exceptions/canceledException.h"
 #include "../exceptions/pointerException.h"
@@ -344,7 +346,7 @@ Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 			delete this;
 		}
 		virtual void resolve(const PException &oe) throw() {
-			//deleted exception handler - error in reject is probihited
+			//deleted exception handler - error in reject is prohibited
 			rptr.resolve(rfn(oe));
 			delete this;
 		}
@@ -355,6 +357,31 @@ Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 	Future<T> p(future->alloc);
 	addObserver(new(future->alloc) X(resolveFn,rejectFn,p.getPromise()));
 	return p;
+
+}
+
+template<typename T>
+template<typename Fn, typename RFn>
+Future<T> Future<T>::thenCall(Fn resolveFn, RFn rejectFn) {
+	if (future == nil) init();
+
+	class X :public IObserver, public DynObject {
+	public:
+		X(Fn fn,RFn rfn):fn(fn),rfn(rfn) {}
+		virtual void resolve(const T &result) throw() {
+			fn(result);
+			delete this;
+		}
+		virtual void resolve(const PException &oe) throw() {
+			rfn(oe);
+			delete this;
+		}
+
+	protected:
+		Fn fn; RFn rfn;
+	};
+	addObserver(new(future->alloc) X(resolveFn,rejectFn));
+	return *this;
 
 }
 
@@ -591,17 +618,23 @@ Future<T> Future<T>::thenWake(ISleepingObject &sleep, natural resolveReason, nat
 
 template<typename Fn>
 Future<void> Future<void>::then(Fn fn) {
-	return Future<Empty>::then(EmptyCallVoid<Fn>(fn));
+	return Future<Void>::then(EmptyCallVoid<Fn>(fn));
 }
 
 template<typename Fn>
 Future<void> Future<void>::thenCall(Fn fn) {
-	return Future<Empty>::thenCall(EmptyCallVoid<Fn>(fn));
+	return Future<Void>::thenCall(EmptyCallVoid<Fn>(fn));
 }
+
 
 template<typename Fn, typename RFn>
 Future<void> Future<void>::then(Fn resolveFn, RFn rejectFn){
-	return Future<Empty>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+	return Future<Void>::then(EmptyCallVoid<Fn>(resolveFn),rejectFn);
+}
+
+template<typename Fn, typename RFn>
+Future<void> Future<void>::thenCall(Fn resolveFn, RFn rejectFn){
+	return Future<Void>::thenCall(EmptyCallVoid<Fn>(resolveFn),rejectFn);
 }
 
 template<typename T>
@@ -756,6 +789,299 @@ IPromiseControl::State Future<T>::getState() const throw ()
 	if (future == nil) return IPromiseControl::stateNotResolved;
 	return future->getState();
 }
+
+template<typename T>
+bool Future<T>::Value::isLastReference() const {
+	return (readAcquire(&this->counter) == readAcquire(&this->resultRefCnt)+1);
+}
+
+template<typename T>
+FutureAutoCancel<T>::FutureAutoCancel(const Future<T> &f):Future<T>(f) {
+}
+
+template<typename T>
+FutureAutoCancel<T>::~FutureAutoCancel() {
+
+	if (this->future != null) {
+		if (this->future->isLastReference()) {
+			if (IPromiseControl::stateResolving == this->cancel()) {
+				wait();
+			}
+		}
+	}
+}
+
+namespace _intr {
+
+template<typename From, typename To, typename Fn>
+class FnResolveObserver: public Future<From>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const Fn &fn, const Promise<To> &p):fn(fn),p(p) {}
+	virtual void resolve(const From &result) throw() {
+		p.callAndResolve(fn, result);
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.reject(e);
+		delete this;
+	}
+protected:
+	Fn fn;
+	Promise<To> p;
+};
+
+template<typename To, typename Fn>
+class FnResolveObserver<void, To, Fn>: public Future<void>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const Fn &fn, const Promise<To> &p):fn(fn),p(p) {}
+	virtual void resolve() throw() {
+		p.callAndResolve(fn);
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.reject(e);
+		delete this;
+	}
+protected:
+	Fn fn;
+	Promise<To> p;
+};
+
+template<typename T, typename Fn>
+class FnResolveObserver<T,T,FutureCatch<Fn> >: public Future<T>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const FutureCatch<Fn> &fn, const Promise<T> &p):fn(fn),p(p) {}
+	virtual void resolve(const T &result) throw() {
+		p.resolve(result);
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.callAndResolve(fn.fn, e);
+		delete this;
+	}
+protected:
+	FutureCatch<Fn> fn;
+	Promise<T> p;
+};
+
+
+template<typename Fn>
+class FnResolveObserver<void,void,FutureCatch<Fn> >: public Future<void>::IObserver, public DynObject {
+public:
+	FnResolveObserver(const FutureCatch<Fn> &fn, const Promise<void> &p):fn(fn),p(p) {}
+	virtual void resolve() throw() {
+		p.resolve();
+		delete this;
+	}
+	virtual void resolve(const PException &e) throw() {
+		p.callAndResolve(fn.fn, e);
+		delete this;
+	}
+protected:
+	FutureCatch<Fn> fn;
+	Promise<void> p;
+};
+
+}
+
+#ifdef LIGHTSPEED_ENABLE_CPP11
+
+
+template<typename T, typename Fn>
+auto operator >> (Future<T> f, const Fn &fn)
+	-> typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type {
+	IRuntimeAlloc &alloc = f.getAllocator();
+	typedef typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type FutT;
+	typedef typename FutT::Type ToType;
+	typedef T FromType;
+	FutT p(alloc);
+	f.addObserver(new(alloc) _intr::FnResolveObserver<FromType,ToType, Fn>(fn,p.getPromise()));
+	return p;
+}
+
+#endif
+
+
+template<typename T>
+template<typename Y>
+Future<Variant> Future<T>::operator||(const Future<Y> &b) {
+
+	class TtoVariant: public Future<T>::IObserver {
+	public:
+		TtoVariant(const Promise<Variant> &v):v(v) {}
+		virtual void resolve(const T &val) throw() {
+			v.resolve(Variant(val));
+			delete this;
+		}
+		virtual void resolve(const PException &val) throw() {
+			v.resolve(val);
+			delete this;
+		}
+		Promise<Variant> v;
+	};
+	class YtoVariant: public Future<Y>::IObserver {
+	public:
+		YtoVariant(const Promise<Variant> &v):v(v) {}
+		virtual void resolve(const Y &val) throw() {
+			v.resolve(Variant(val));
+			delete this;
+		}
+		virtual void resolve(const PException &val) throw() {
+			v.resolve(val);
+			delete this;
+		}
+		Promise<Variant> v;
+	};
+
+	//retrieve alocator
+	IRuntimeAlloc &alloc = getAllocator();
+	//create future with allocator
+	Future<Variant> v(alloc);
+	//retrieve promise
+	Promise<Variant> p = v.getPromise();
+
+	//share promise between converters - only first will resolve, other will be ignored
+	this->addObserver(new(alloc) TtoVariant(p));
+	b.addObserver(new(alloc) YtoVariant(p));
+	//return result promise
+	return v;
+}
+
+template<typename T>
+Future<T> Future<T>::operator||(const Future &b) {
+
+	//retrieve alocator
+	IRuntimeAlloc &alloc = getAllocator();
+	//create future with allocator
+	Future<Variant> v(alloc);
+	//retrieve promise
+	Promise<Variant> p = v.getPromise();
+
+	//resolve promise when both futures are resolve- only first will resolve, other will be ignored
+	this->then(p);
+	b.then(p);
+	//return result promise
+
+	return v;
+}
+
+namespace _intr {
+//Activates resolution, when both futures are resolved
+/* It also contains temporary stored results
+ * and also contains object observing the promises
+ *
+ * Ref counter tracks of references, everytime promise is resolved, reference is decreased
+ */
+template<typename T, typename Y>
+class FutureAllAktivator: public DynObject, public RefCntObj {
+public:
+
+	//result 1
+	Optional<T> v1;
+	//result 2
+	Optional<Y> v2;
+	//result promise
+	Promise<std::pair<T,Y> > result;
+
+
+
+
+	//called to check whether both are resolved
+	void tryResolve() {
+
+		if (v1 != null && v2 != null) {
+			//resolve pair
+			result.resolve(std::pair<T,Y>(v1,v2));
+		}
+	}
+
+	void reject(const PException &e) {
+		//reject whole promise
+		result.reject(e);
+	}
+
+	typedef RefCntPtr<FutureAllAktivator> PAktivator;
+
+	class ReceiverX: public Future<T>::IObserver {
+	public:
+		PAktivator owner;
+
+		ReceiverX(const PAktivator &owner):owner(owner.getMT()) {}
+		virtual void resolve(const T &v) throw() {
+			//store result
+			owner->v1 = v;
+			// try to resolve
+			owner->tryResolve();
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+		virtual void resolve(const PException &e) throw() {
+			//reject
+			owner->reject(e);
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+	};
+
+	class ReceiverY: public Future<Y>::IObserver {
+	public:
+		PAktivator owner;
+
+		ReceiverY(const PAktivator &owner):owner(owner.getMT()) {}
+		virtual void resolve(const Y &v) throw() {
+			//store result
+			owner.v2 = v;
+			// try to resolve
+			owner.tryResolve();
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+		virtual void resolve(const PException &e) throw() {
+			//reject
+			owner.reject(e);
+			// set pointer to NULL (decrease counter)
+			owner = null;
+		}
+	};
+
+	ReceiverX recvX;
+	ReceiverY recvY;
+
+	FutureAllAktivator(const Promise<std::pair<T,Y> > &result)
+		:result(result),recvX(*this),recvY(*this) {}
+
+
+};
+
+}
+
+template<typename T>
+template<typename Y>
+Future<std::pair<T,Y> > Future<T>::operator&& (const Future<Y> &b) {
+
+
+	IRuntimeAlloc &alloc = getAllocator();
+	Future<std::pair<T,Y> > res(alloc);
+	Promise<std::pair<T,Y> > p = res.getPromise();
+	_intr::FutureAllAktivator<T,Y> *akt = new(alloc) _intr::FutureAllAktivator<T,Y>(p);
+	try {
+		this->addObserver(&akt->recvX);
+		b.addObserver(&akt->recvY);
+	} catch (...) {
+		try {
+			this->removeObserver(&akt->recvX);
+			b.removeObserver(&akt->recvY);
+		} catch (...) {
+			//there shouldn't be exception;...
+			std::terminate();
+		}
+		delete akt;
+	}
+
+	return res;
+}
+
+
 
 }
 

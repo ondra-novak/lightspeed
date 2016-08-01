@@ -13,6 +13,7 @@
 #include "../../base/text/textParser.tcc"
 #include "../../base/text/textstream.tcc"
 #include "../../base/containers/autoArray.tcc"
+#include "jsonexception.h"
 
 
 namespace LightSpeed {
@@ -28,14 +29,20 @@ Serializer<T>::Serializer(IWriteIterator<char, T> &iter, bool escapeUTF8)
 template<typename T>
 void Serializer<T>::serializeArray(const INode *json) {
 	iter.write('[');
-	Iterator oiter = json->getFwIter();
+	natural index =0;
+	ConstIterator oiter = json->getFwConstIter();
 	if (oiter.hasItems()) {
-		const NodeInfo &n = oiter.getNext();
-		serialize(n.node);
+		const ConstKeyValue &n = oiter.getNext();
+		serialize(n);
 		while (oiter.hasItems()) {
 			iter.write(',');
-			const NodeInfo &n = oiter.getNext();
-			serialize(n.node);
+			const ConstKeyValue &n = oiter.getNext();
+			try {
+				serialize(n);
+				index++;
+			} catch (Exception &e) {
+				throw SerializeError_t(THISLOCATION, String(ConstStrA("[")+ToString<natural>(index)+ConstStrA("]"))) << e;
+			}
 		}
 	}
 	iter.write(']');
@@ -94,15 +101,19 @@ void Serializer<T>::serializeStringEscUTF(ConstStrA str) {
 	for (ConstStrA::Iterator oiter = str.getFwIter(); oiter.hasItems();) {
 		signed char c = oiter.getNext();
 		if (c < 0) {
-			Utf8ToWideFilter flt;
-			flt.input(c);
-			while (!flt.hasItems()) flt.input(oiter.getNext());
-			flt.flush();
-			while (flt.hasItems()) {
-				wchar_t cu = flt.output();
-				TextOut<IWriteIterator<char, T> &, StaticAlloc<32> > fmt(iter);
-				fmt.setBase(16);
-				fmt("\\u%{04}1") << (unsigned int)cu;
+			try {
+				Utf8ToWideFilter flt;
+				flt.input(c);
+				while (!flt.hasItems()) flt.input(oiter.getNext());
+				flt.flush();
+				while (flt.hasItems()) {
+					wchar_t cu = flt.output();
+					TextOut<IWriteIterator<char, T> &, StaticAlloc<32> > fmt(iter);
+					fmt.setBase(16);
+					fmt("\\u%{04}1") << (unsigned int)cu;
+				}
+			} catch (Exception &e) {
+				throw SerializeError_t(THISLOCATION,str) << e;
 			}
 		} else {
 			writeChar<char>(c,iter);
@@ -112,27 +123,32 @@ void Serializer<T>::serializeStringEscUTF(ConstStrA str) {
 }
 
 template<typename T>
-void Serializer<T>::serializeObjectNode(const NodeInfo &n) {
+void Serializer<T>::serializeObjectNode(const ConstKeyValue &n) {
 	if (escapeUTF8)
-		serializeStringEscUTF(n.key->getString());
+		serializeStringEscUTF(n.getStringKey());
 	else
-		serializeString(n.key->getString());
+		serializeString(n.getStringKey());
 
 	iter.write(':');
-	serialize(n.node);
+	serialize(n);
 }
 
 template<typename T>
 void Serializer<T>::serializeObject(const INode *json) {
 	iter.write('{');
-	Iterator oiter = json->getFwIter();
+	ConstIterator oiter = json->getFwConstIter();
 	if (oiter.hasItems()) {
-		const NodeInfo &n = oiter.getNext();
+		const ConstKeyValue &n = oiter.getNext();
 		serializeObjectNode(n);
 		while (oiter.hasItems()) {
 			iter.write(',');
-			const NodeInfo &n = oiter.getNext();
-			serializeObjectNode(n);
+			const ConstKeyValue &n = oiter.getNext();
+			try {
+				serializeObjectNode(n);
+			} catch (Exception &e) {
+				throw SerializeError_t(THISLOCATION, n.getStringKey()) << e;
+			}
+
 		}
 	}
 	iter.write('}');

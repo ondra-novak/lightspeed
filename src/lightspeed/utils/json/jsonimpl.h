@@ -28,11 +28,12 @@ public:
 	virtual bool getBool() const {return true;}
 	virtual bool isNull() const {return false;}
 	virtual INode *getVariable(ConstStrA var) const;
-	virtual natural getEntryCount() const {return 0;}
+	virtual natural getEntryCount() const {return fields.size();}
 	virtual INode *getEntry(natural ) const {return 0;}
 	virtual bool enumEntries(const IEntryEnum &fn) const;
 
 	virtual bool empty() const {return fields.empty();}
+	virtual natural length() const;
 	void insertField(ConstStrA name, PNode nd);
 	virtual INode *add(PNode nd);
 	virtual INode *add(ConstStrA name, PNode nd);
@@ -40,13 +41,12 @@ public:
 	virtual INode * erase(ConstStrA name);
 	virtual INode *erase(natural ) {return this;}
 
-	virtual INode * enableMTAccess();
+	virtual const INode * enableMTAccess() const ;
 
 	virtual INode *clone(PFactory factory) const;
 
 	virtual bool operator==(const INode &other) const;
 
-	virtual Iterator getFwIter() const;
 	virtual INode *replace(ConstStrA name, Value newValue, Value *prevValue = 0);
 	virtual INode *clear();
 
@@ -113,13 +113,12 @@ public:
 	void internalAdd(PNode nd);
 	virtual INode *erase(ConstStrA ) {return this;}
 	virtual INode *erase(natural index);
-	virtual INode *enableMTAccess();
+	virtual const INode *enableMTAccess() const;
 
 	virtual INode *clone(PFactory factory) const;
 
 	virtual bool operator==(const INode &other) const;
 
-	virtual Iterator getFwIter() const;
 	virtual INode *replace(natural name, Value newValue, Value *prevValue = 0);
 	virtual INode * clear();
 
@@ -141,7 +140,7 @@ public:
 	virtual bool getBool() const {return !value.empty();}
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const;
-	virtual INode * enableMTAccess();
+	virtual const INode * enableMTAccess()const;
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
@@ -162,7 +161,7 @@ public:
 	virtual bool getBool() const {return !value.empty();}
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const  {return value;}
-	virtual INode * enableMTAccess();
+	virtual const INode * enableMTAccess() const;
 	virtual INode *clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 	virtual bool isUtf8() const {return true;}
@@ -325,25 +324,6 @@ public:
 	static Null *getNull();
 
 };
-class Delete: public LeafNode {
-public:
-	virtual NodeType getType() const {return ndDelete;}
-	virtual ConstStrW getString() const {throw accessError(THISLOCATION);}
-	virtual integer getInt() const {throw accessError(THISLOCATION);}
-	virtual linteger getLongInt() const {throw accessError(THISLOCATION);}
-	virtual double getFloat() const {throw accessError(THISLOCATION);}
-	virtual bool getBool() const {throw accessError(THISLOCATION);}
-	virtual bool isNull() const {throw accessError(THISLOCATION);}
-
-	virtual INode *clone(PFactory factory) const;
-
-	virtual bool operator==(const INode &other) const;
-
-	ErrorMessageException accessError(const ProgramLocation &loc) const;
-
-	static Delete *getDelete();
-
-};
 
 
 
@@ -412,7 +392,6 @@ protected:
 
 }
 }
-
 
 
 #endif /* LIGHTSPEED_UTILS_JSONIMPL_H_ */

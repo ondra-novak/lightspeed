@@ -362,7 +362,7 @@ public:
     : _tree (itr._tree)
   {
     _length = itr._length;
-    for (short i = 0; i < _length; i++)
+    for ( short i = 0; i < _length; i++)
       _path[i] = itr._path[i];
     _index = itr._index;
   }

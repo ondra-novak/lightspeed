@@ -93,7 +93,7 @@ static void testThenPromise(PrintTextA &print) {
 	Thread t,t2;
 	ThreadResolve resolveFn(t);
 	t2.start(ThreadFunction::create(&produceResult, f1.getPromise()));
-	int res = f1.then(resolveFn).getValue();
+	int res = (f1 >> resolveFn).getValue();
 	TimeStamp end = TimeStamp::now();
 	natural dist = (end - start).getMilis();
 	print("%1-%2") << res << (dist>100 && dist < 300);
@@ -122,7 +122,19 @@ static void testAlternativeResult(PrintTextA &print) {
 	t.start(ThreadFunction::create(&produceResult, f.getPromise()));
 	int res = f.then(&testReturnException).onException(&testDoAlternativeResult).getValue();
 	print("%1") << res;
+}
 
+
+static void chainingTestC11(PrintTextA &print) {
+	Future<int> f;
+	Promise<int> p = f.getPromise();
+	double result;
+	f >> [](const int &v){return v * 3;}
+		 >> [](natural v){return v/5.0;}
+		 >> [&result](double v) {result = v;};
+
+	p.resolve(42);
+	print("%1") << result;
 }
 
 
@@ -131,6 +143,7 @@ TestApp promiseTest2("promises.singleThread", "ST", &singleThreadTest);
 TestApp promiseTest3("promises.leftPromise", "0-1-2-3-4", &leftPromise);
 TestApp promiseTest4("promises.thenPromise", "65-1", &testThenPromise);
 TestApp promiseTest5("promises.alternativeResult", "42", &testAlternativeResult);
+defineTest chaining_test("promises.chaining","25.200000", &chainingTestC11);
 
 
 }

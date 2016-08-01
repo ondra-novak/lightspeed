@@ -13,6 +13,7 @@
 #include "../../base/memory/smallAlloc.h"
 #include "../../base/text/textFormat.h"
 #include "../../base/countof.h"
+#include "../../base/containers/map.tcc"
 
 
 namespace LightSpeed {
@@ -111,7 +112,7 @@ namespace LightSpeed {
 
 		ProcessContext(IRuntimeAlloc *alloc):
 			hProcess(0),cmdLine(CmdLineAlloc(alloc)),envStr(CmdLineAlloc(alloc)),noArgs(true)
-			,extraFlags(0) {}
+			,extraFlags(0) {enableMTAccess();}
 
 		static ProcessContext &getCtx(IProcessContext &ctx) {
 			return static_cast<ProcessContext &>(ctx);

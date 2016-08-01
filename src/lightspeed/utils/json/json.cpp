@@ -32,36 +32,18 @@ INode *Object::getVariable(ConstStrA var) const {
 	if (x) return x->data.value; else return 0;
 }
 
-class StrKeyA2: public IKey {
-public:
-	StrKeyA2() {}
-	StrKeyA2(ConstStrA w):str(w) {}
-
-
-	virtual Type getType() const {return string;}
-	virtual ConstStrA getString() const {return str;}
-	virtual natural getIndex() const {
-		natural res = 0;
-		parseUnsignedNumber(str.getFwIter(),res,10);
-		return res;
-	}
-
-
-protected:
-	ConstStrA str;
-};
 
 bool Object::enumEntries(const IEntryEnum &fn) const {
-	StrKeyA2 kk;
+	natural index= 0;
 	for (FieldMap::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FieldNode *e = iter.getNext();
-		kk = StrKeyA2(e->data.key);
-		if (fn(*e->data.value,kk)) return true;
+		if (fn(e->data.value,e->data.key,index)) return true;
+		index++;
 	}
 	return false;
 }
 
-void Object::insertField(ConstStrA name, PNode nd) {
+void Object::insertField(ConstStrA name, Value nd) {
 	Value v = isMTAccessEnabled()?nd.getMT():nd;
 
 	ConstStrA out;
@@ -71,7 +53,12 @@ void Object::insertField(ConstStrA name, PNode nd) {
 	if (exists) delete item;
 }
 
-INode *Object::add(PNode nd) {
+natural Object::length() const {
+	return fields.size();
+}
+
+
+INode *Object::add(Value nd) {
 	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	natural l = fields.size();
@@ -80,7 +67,7 @@ INode *Object::add(PNode nd) {
 	return add(StringA(fmt.write()),nd);
 }
 
-INode *Object::add(ConstStrA name, PNode nd) {
+INode *Object::add(ConstStrA name, Value nd) {
 	if (nd == nil) throwNullPointerException(THISLOCATION);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	insertField(name,nd);
@@ -88,7 +75,7 @@ INode *Object::add(ConstStrA name, PNode nd) {
 }
 
 INode *Object::clone(PFactory factory) const {
-	PNode r = factory->newClass();
+	Value r = factory->newClass();
 	for (FieldMap::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FieldNode *e = iter.getNext();
 		r->add(e->data.key,e->data.value->clone(factory));
@@ -137,7 +124,7 @@ INode *Object::clear() {
 
 
 
-INode *Object::enableMTAccess()
+const INode *Object::enableMTAccess() const
 {
 	RefCntObj::enableMTAccess();
 	for (FieldMap::Iterator iter = fields.getFwIter(); iter.hasItems();) {
@@ -196,14 +183,14 @@ Array::Array(ConstStringT<INode *> v) {
 bool Array::enumEntries(const IEntryEnum &fn) const {
 	natural p = 0;
 	for (FieldList_t::Iterator iter = list.getFwIter();iter.hasItems();) {
-		const PNode &nd = iter.getNext();
-		if (fn(*nd.get(),NumKey(p))) return true;
+		const Value &nd = iter.getNext();
+		if (fn(nd,ConstStrA(),p)) return true;
 		++p;
 	}
 	return false;
 }
 
-INode *Array::add(PNode nd) {
+INode *Array::add(Value nd) {
 	if (nd == nil) throw InvalidParamException(THISLOCATION,0,"Argument has no value");
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	if (isMTAccessEnabled()) list.add(nd.getMT());
@@ -211,7 +198,7 @@ INode *Array::add(PNode nd) {
 	return this;
 }
 
-INode *Array::add(ConstStrA , PNode nd) {
+INode *Array::add(ConstStrA , Value nd) {
 	return add(nd);
 }
 
@@ -220,12 +207,12 @@ INode *Array::erase(natural index) {
 	return this;
 }
 
-void Array::internalAdd(PNode nd) {list.add(nd);}
+void Array::internalAdd(Value nd) {list.add(nd);}
 
 INode *Array::clone(PFactory factory) const {
-	PNode r = factory->newArray();
+	Value r = factory->newArray();
 	for (FieldList_t::Iterator iter = list.getFwIter();iter.hasItems();) {
-		const PNode &e = iter.getNext();
+		const Value &e = iter.getNext();
 		r->add(e->clone(factory));
 	}
 	return r.detach();
@@ -237,8 +224,8 @@ bool Array::operator==(const INode &other) const {
 	if (list.length() != k->list.length()) return false;
 	for (FieldList_t::Iterator iter = list.getFwIter(),iter2 =k->list.getFwIter();
 		iter.hasItems();) {
-			const PNode &e1 = iter.getNext();
-			const PNode &e2 = iter2.getNext();
+			const Value &e1 = iter.getNext();
+			const Value &e2 = iter2.getNext();
 			if (*e1 != *e2) return false;
 	}
 	return true;
@@ -246,11 +233,11 @@ bool Array::operator==(const INode &other) const {
 
 
 
-INode * Array::enableMTAccess()
+const INode * Array::enableMTAccess() const
 {
 	RefCntObj::enableMTAccess();
 	for (FieldList_t::Iterator iter = list.getFwIter(); iter.hasItems();) {
-		const PNode &e = iter.getNext();
+		const Value &e = iter.getNext();
 		e.getMT();
 		e->enableMTAccess();
 	}
@@ -300,7 +287,7 @@ ConstStrW TextFieldA::getString() const {
 	return *wide;
 }
 
-INode * TextField::enableMTAccess() {
+const INode * TextField::enableMTAccess() const {
 	RefCntObj::enableMTAccess();
 	return this;
 }
@@ -340,7 +327,7 @@ linteger TextFieldA::getLongInt() const {
 }
 
 
-INode * TextFieldA::enableMTAccess() {
+const INode * TextFieldA::enableMTAccess() const {
 	RefCntObj::enableMTAccess();
 	return this;
 }
@@ -432,19 +419,6 @@ bool Null::operator==(const INode &other) const {
 	else return true;
 }
 
-INode *Delete::clone(PFactory factory) const {
-	return factory->newDeleteNode().detach();
-}
-
-bool Delete::operator==(const INode &other) const {
-	const Delete *t = dynamic_cast<const Delete *>(&other);
-	if (t == 0) return false;
-	else return true;
-}
-
-ErrorMessageException Delete::accessError(const ProgramLocation &loc) const {
-	return ErrorMessageException(loc,"Member is deleted");
-}
 
 INode *Bool::clone(PFactory factory) const {
 	return factory->newValue(b).detach();
@@ -460,6 +434,11 @@ bool Bool::operator==(const INode &other) const {
 void ParseError_t::message( ExceptionMsg &msg ) const
 {
 	msg("JSON parser error at: %1") << nearStr;
+}
+
+void SerializeError_t::message( ExceptionMsg &msg ) const
+{
+	msg("JSON serializer error at: %1") << nearStr;
 }
 
 
@@ -502,20 +481,20 @@ INode * AbstractNode_t::add( ConstStrA name, PNode newNode )
 
 
 
-PNode Factory::createObject() {return new Object;}
-PNode Factory::createNumber(natural v) {return new IntField(v);}
-PNode Factory::createNumber(integer v) {return new IntField(v);}
+Value Factory::createObject() {return new Object;}
+Value Factory::createNumber(natural v) {return new IntField(v);}
+Value Factory::createNumber(integer v) {return new IntField(v);}
 #ifdef LIGHTSPEED_HAS_LONG_TYPES
 PNode Factory::createNumber(lnatural v) {return new IntField64(v);}
 PNode Factory::createNumber(linteger v) {return new IntField64(v);}
 #endif
-PNode Factory::createNumber(float v) {return new FloatField(v);}
-PNode Factory::createNumber(double v) {return new FloatField(v);}
-PNode Factory::createNumber(bool v) {return new Bool(v);}
-PNode Factory::createString(ConstStrW v) {return new TextField(v);}
-PNode Factory::createString(ConstStrA v) {return new TextFieldA(v);}
-PNode Factory::createArray(ConstStringT<Value> v) {return new Array(v);}
-PNode Factory::createArray(ConstStringT<INode *> v) {return new Array(v);}
+Value Factory::createNumber(float v) {return new FloatField(v);}
+Value Factory::createNumber(double v) {return new FloatField(v);}
+Value Factory::createNumber(bool v) {return new Bool(v);}
+Value Factory::createString(ConstStrW v) {return new TextField(v);}
+Value Factory::createString(ConstStrA v) {return new TextFieldA(v);}
+Value Factory::createArray(ConstStringT<Value> v) {return new Array(v);}
+Value Factory::createArray(ConstStringT<INode *> v) {return new Array(v);}
 
 
 
@@ -562,265 +541,70 @@ void FactoryCommon::toStream(const INode &nd, SeqFileOutput &stream) {
 
 
 
-LightSpeed::JSON::PNode Factory::fromString( ConstStrA text )
+Value Factory::fromString( ConstStrA text )
 {
 	ConstStrA::Iterator iter = text.getFwIter();
 	return parseStream(iter);
 }
 
 
-LightSpeed::JSON::PNode Factory::fromStream( SeqFileInput &stream )
+Value Factory::fromStream( SeqFileInput &stream )
 {
 	SeqTextInA in(stream);
 	return parseStream(in);
 
 }
-LightSpeed::JSON::PNode Factory::fromCharStream( IVtIterator<char> &stream )
+Value Factory::fromCharStream( IVtIterator<char> &stream )
 {
 	return parseStream(stream);
 			
 }
-/* creates new JSON class, merges subclasses and
-   skips items presented in changes JSON class, because
-   it expects that they will be added by MergeClassAddNew_t
-   */
-class MergeClassDropOld_t: public IEntryEnum {
-public:
-	virtual bool operator()(const INode &nd, const IKey &name) const {
-		const INode *chgnd = changes->getVariable(name.getString());
-		if (chgnd) {
-			if (chgnd->getType() == ndObject && nd.getType() == ndObject) {
-				newcls->add(name.getString(),fact->mergeClasses(
-					static_cast<const Object *>(chgnd),
-					static_cast<const Object *>(&nd)));
-			}
-		} else {
-			newcls->add(name.getString(),nd.clone(fact));
-		}
-		return false;
-	}
 
-	MergeClassDropOld_t(Object *newcls, const Object *changes, FactoryCommon *fact)
-		:newcls(newcls),changes(changes),fact(fact) {}
-protected:
-	Object *newcls;
-	const Object *changes;
-	FactoryCommon *fact;
-};
-
-/* Adds new items into class, not removing already existing */
-class MergeClassAddNew_t: public IEntryEnum {
-public:
-	virtual bool operator()(const INode &nd, const IKey &name) const {
-		NodeType ndt = nd.getType();
-		if (newcls->getVariable(name.getString()) == 0 && ndt != ndDelete) {
-			newcls->add(name.getString(),nd.clone(fact));
-		}
-		return false;
-	}
-	MergeClassAddNew_t(Object *newcls, IFactory *fact)
-		:newcls(newcls),fact(fact) {}
-protected:
-	Object *newcls;
-	IFactory *fact;
-};
-
-LightSpeed::JSON::PNode FactoryCommon::merge( const INode &base, const INode &change )
-{
-
-	const Object *clsbase = dynamic_cast<const Object *>(&base);
-	const Object *clschange = dynamic_cast<const Object *>(&change);
-	if (NULL != clsbase && NULL != clschange) {
-		return mergeClasses(clschange, clsbase);
-	} else {
-		return change.clone(this);
-	}
-	
-}
-
-LightSpeed::JSON::PNode FactoryCommon::mergeClasses( const Object * clschange, const Object * clsbase )
-{
-	PNode nwnode = this->newClass();
-	Object *newcls = static_cast<Object *>(nwnode.get());
-	MergeClassDropOld_t mgd(newcls,clschange, this);
-	MergeClassAddNew_t mga(newcls,this);
-	clsbase->enumEntries(mgd);
-	clschange->enumEntries(mga);
-	return nwnode;
-}
-
-
-
-Iterator::~Iterator() {
-	if (iter) iter->~IIntIter();
-}
-
-Iterator::Iterator(const IIntIter* internalIter) {
-	AllocInBuffer b(buffer,sizeof(buffer));
-	iter = internalIter->clone(b);
-	next = iter->hasItems();
-}
-
-const NodeInfo& Iterator::getNext() {
-	next = iter->getNext(tmp);
-	return tmp;
-}
-
-const NodeInfo& Iterator::peek() const {
-	next = iter->peek(tmp);
-	return tmp;
-}
-
-Iterator::Iterator(const Iterator& other)
-	:iter(0),next(false)
-{
-	if (other.iter) {
-		AllocInBuffer b(buffer,sizeof(buffer));
-		iter = other.iter->clone(b);
-		next = iter->hasItems();
-	}
-
-}
-
-bool Iterator::hasItems() const {
-	return next;
-}
-
-Iterator Object::getFwIter() const {
-
-	class Iter: public Iterator::IIntIter, public DynObject {
-	public:
-		Iter(const FieldMap &mp):iter(mp.getFwIter()) {}
-
-		virtual bool hasItems() const {return iter.hasItems();}
-		virtual bool getNext(NodeInfo &nfo) {
-			const FieldNode *e = iter.getNext();
-			k = e->data.key;
-			nfo.key = &k;
-			nfo.node = e->data.value;
-			return iter.hasItems();
-		}
-		virtual bool peek(NodeInfo &nfo) const {
-			const FieldNode *e = iter.peek();
-			k = e->data.key;
-			nfo.key = &k;
-			nfo.node = e->data.value;
-			return iter.hasItems();
-		}
-		virtual IIntIter *clone(IRuntimeAlloc &alloc) const {
-			return new(alloc) Iter(*this);
-		}
-
-	protected:
-		FieldMap::Iterator iter;
-		mutable StrKeyA2 k;
-	};
-
-	Iter x(fields);
-	return Iterator(&x);
-
-}
-
-Iterator Array::getFwIter() const {
-
-	class Iter: public Iterator::IIntIter, public DynObject {
-	public:
-		Iter(const FieldList_t &mp):iter(mp.getFwIter()),index(0) {}
-
-		virtual bool hasItems() const {return iter.hasItems();}
-		virtual bool getNext(NodeInfo &nfo) {
-			k = index++;
-			PNode nd = iter.getNext();
-			nfo.key = &k;
-			nfo.node = nd;
-			return iter.hasItems();
-		}
-		virtual bool peek(NodeInfo &nfo) const {
-			k = index;
-			PNode nd = iter.peek();
-			nfo.key = &k;
-			nfo.node = nd;
-			return iter.hasItems();
-		}
-		virtual IIntIter *clone(IRuntimeAlloc &alloc) const {
-			return new(alloc) Iter(*this);
-		}
-
-	protected:
-		FieldList_t::Iterator iter;
-		natural index;
-		mutable NumKey k;
-	};
-
-	Iter x(list);
-	return Iterator(&x);
-
-}
-
-
-const INode& Iterator::getNextKC(ConstStrA fieldName) {
-	if (isNextKey(fieldName)) {
-		return *getNext().node;
-	} else {
-		throw RequiredFieldException(THISLOCATION,fieldName);
-	}
-}
-
-bool Iterator::isNextKey(ConstStrA fieldName) const {
-	return hasItems() && peek().key->getString() == fieldName;
-}
-
-PNode PFactory::array()
+Value PFactory::array()
 {
 	return (*this)->array();
 }
 
 
-PNode  PFactory::object()
+Value  PFactory::object()
 {
 	return (*this)->object();
 }
 
 
 
-LightSpeed::JSON::PNode PNode::operator[]( ConstStrA name ) const
+Value Value::operator[]( ConstStrA name ) const
 {
-	PNode ret = (*this)->getVariable(name);
-	if (ret == nil) throw JSON::RequiredFieldException(THISLOCATION, name);
-	return ret;
+	return Value(safeGet()->getPtr(name));
 }
 
 
-LightSpeed::JSON::PNode PNode::operator[]( const char *name ) const
+Value Value::operator[]( const char *name ) const
 {
-	PNode ret = (*this)->getVariable(name);
-	if (ret == nil) throw JSON::RequiredFieldException(THISLOCATION, name);
-	return ret;
+	return Value(safeGet()->getPtr(ConstStrA(name)));
 }
 
-LightSpeed::JSON::PNode PNode::operator[]( int pos ) const
+Value Value::operator[]( int pos ) const
 {
 	if (pos < 0 || pos >= (int)(*this)->getEntryCount()) {
 		throwRangeException_To<natural>(THISLOCATION,(*this)->getEntryCount(),pos);
 	}
-	PNode ret = (*this)->getEntry(pos);
-	return ret;
+	return Value(safeGet()->getPtr(pos));
 }
 
-LightSpeed::JSON::PNode PNode::operator[]( natural pos ) const
+Value Value::operator[]( natural pos ) const
 {
 	if (pos >= (*this)->getEntryCount()) {
 		throwRangeException_To(THISLOCATION,(*this)->getEntryCount(),pos);
 	}
-	PNode ret = (*this)->getEntry(pos);
-	return ret;
+	return Value(safeGet()->getPtr(pos));
 }
 
 
-bool PNode::setIfNullDeleteOtherwiseAtomic(INode *nd) {
+bool ConstValue::setIfNullDeleteOtherwiseAtomic(const INode *nd) {
 	nd->enableMTAccess();
 	nd->addRef();
-	if (lockCompareExchangePtr<INode>(&this->ptr,0,nd) != 0) {
+	if (lockCompareExchangePtr<const INode>(&this->ptr,0,nd) != 0) {
 		delete nd;
 		return false;
 	} else {
@@ -929,10 +713,6 @@ Value FactoryCommon::newValue(NullType) {
 	return sharedNull;
 }
 
-Value FactoryCommon::newDeleteNode() {
-	if (sharedDelete == nil) sharedDelete.setIfNullDeleteOtherwiseAtomic(new Delete);
-	return sharedDelete;
-}
 
 INode *EmptyString::clone(PFactory f) const {
 	return f->newValue(ConstStrA());
@@ -968,10 +748,448 @@ bool SingleCharacter::operator==(const INode &other) const {
 }
 
 
-} 
+ConstValue ConstValue::operator [](ConstStrA name) const {
+	return ConstValue(safeGet()->getPtr(name));
+}
 
+ConstValue ConstValue::operator [](const char* name) const {
+	return ConstValue(safeGet()->getPtr(name));
+}
+
+ConstValue ConstValue::operator [](int i) const {
+	return ConstValue(safeGet()->getPtr(i));
+}
+
+ConstValue ConstValue::operator [](natural i) const {
+	return ConstValue(safeGet()->getPtr(i));
+}
+
+bool ConstValue::isNull() const {
+	return safeGet()->isNull();
+}
+
+bool ConstValue::getBool() const {
+	return safeGet()->getBool();
+}
+
+ConstStrA ConstValue::getStringA() const {
+	return safeGet()->getStringUtf8();
+}
+
+ConstStrW ConstValue::getString() const {
+	return safeGet()->getString();
+}
+
+integer ConstValue::getInt() const {
+	return safeGet()->getInt();
+}
+
+natural ConstValue::getUInt() const {
+	return safeGet()->getUInt();
+}
+
+linteger ConstValue::getLongInt() const {
+	return safeGet()->getLongInt();
+}
+
+lnatural ConstValue::getLongUInt() const {
+	return safeGet()->getLongUInt();
+}
+
+double ConstValue::getNumber() const {
+	return safeGet()->getFloat();
+}
+
+ConstValue::Type ConstValue::getType() const {
+	return safeGet()->getType();
+}
+
+bool ConstValue::getOrDefault(bool defVal) const {
+	return ptr?ptr->getBool():defVal;
+}
+
+ConstStrA ConstValue::getOrDefault(ConstStrA defVal) const {
+	return ptr?ptr->getStringUtf8():defVal;
+}
+
+ConstStrW ConstValue::getOrDefault(ConstStrW defVal) const {
+	return ptr?ptr->getString():defVal;
+}
+
+integer ConstValue::getOrDefault(integer defVal) const {
+	return ptr?ptr->getInt():defVal;
+
+}
+
+natural ConstValue::getOrDefault(natural defVal) const {
+	return ptr?ptr->getUInt():defVal;
+}
+
+double ConstValue::getOrDefault(double defVal) const {
+	return ptr?ptr->getFloat():defVal;
+}
+
+float ConstValue::getOrDefault(float defVal) const {
+	return ptr?(float)ptr->getFloat():defVal;
+}
+
+ConstValue ConstValue::getOrDefault(const ConstValue& value) const {
+	return ptr?ConstValue(ptr):value;
+
+}
+
+natural ConstValue::length() const {
+	return safeGet()->length();
+}
+
+
+bool ConstValue::empty() const {
+	return safeGet()->empty();
+}
+
+static StringCore<ConstKeyValue>enumConst(const ConstValue &object) {
+	StringCore<ConstKeyValue> res;
+	StringCore<ConstKeyValue>::WriteIterator iter = res.createBufferIter(object.length());
+	class Filler: public IEntryEnum {
+	public:
+		Filler(StringCore<ConstKeyValue>::WriteIterator &iter):iter(iter) {}
+		virtual bool operator()(const INode *nd, ConstStrA key, natural index) const {
+			iter.write(ConstKeyValue(index,key,ConstValue(nd)));
+			return false;
+		}
+		StringCore<ConstKeyValue>::WriteIterator &iter;
+	};
+	Filler f(iter);
+	object->enumEntries(f);
+	return res;
+}
+
+static StringCore<KeyValue>enumMutable(const Value &object) {
+	StringCore<KeyValue> res;
+	StringCore<KeyValue>::WriteIterator iter = res.createBufferIter(object.length());
+	class Filler: public IEntryEnum {
+	public:
+		Filler(StringCore<KeyValue>::WriteIterator &iter):iter(iter) {}
+		virtual bool operator()(const INode *nd, ConstStrA key, natural index) const {
+			iter.write(KeyValue(index,key,Value(const_cast<INode *>(nd))));
+			return false;
+		}
+		StringCore<KeyValue>::WriteIterator &iter;
+	};
+	Filler f(iter);
+	object->enumEntries(f);
+	return res;
+}
+
+ConstIterator::ConstIterator(const ConstValue& object):Super(enumConst(object)) {
+}
+
+Iterator::Iterator(const Value& object):Super(enumMutable(object)) {
+}
+
+Value AbstractNode_t::copy(PFactory factory, natural depth, bool mt_share) const {
+	if (getType() == ndObject) {
+		Value out = factory->object();
+		if (depth) {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x = ckv->copy(factory,depth-1,mt_share);
+				out->add(ckv.getStringKey(),x);
+			}
+		} else {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x (const_cast<INode *>((const INode *)ckv));
+				if (mt_share) x->RefCntObj::enableMTAccess();
+				out->add(ckv.getStringKey(),x);
+			}
+		}
+		return out;
+	} else if (getType() == ndArray) {
+		Value out = factory->array();
+		if (depth) {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x = ckv->copy(factory,depth-1,mt_share);
+				out->add(x);
+			}
+		} else {
+			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
+				const ConstKeyValue &ckv = iter.getNext();
+				Value x (const_cast<INode *>((const INode *)ckv));
+				if (mt_share) x->enableMTAccess();
+				out->add(x);
+			}
+		}
+		return out;
+	} else  {
+		if (mt_share) enableMTAccess();
+		return Value(const_cast<INode *>(static_cast<const INode *>(this)));
+	}
+}
+
+
+Container& Container::set(ConstStrA name, const ConstValue& value) {
+	const_cast<INode *>(safeGet())->replace(name,static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::add(ConstStrA name, const ConstValue& value) {
+	const_cast<INode *>(safeGet())->add(name,static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::set(natural index, const ConstValue& value) {
+	const_cast<INode *>(safeGet())->replace(index,static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::add(const ConstValue& value) {
+	const_cast<INode *>(safeGet())->add(static_cast<const Value &>(value));
+	return *this;
+}
+
+Container& Container::unset(ConstStrA name) {
+	const_cast<INode *>(safeGet())->erase(name);
+	return *this;
+}
+
+Container& Container::erase(natural index) {
+	const_cast<INode *>(safeGet())->erase(index);
+	return *this;
+}
+
+Container& Container::load(const ConstValue& from) {
+	class Loader: public IEntryEnum {
+	public:
+		Container &c;
+
+		virtual bool operator()(const INode *nd, ConstStrA key, natural) const  {
+			c.set(key, ConstValue(nd));
+			return false;
+		}
+		Loader(Container &c):c(c) {}
+	};
+	class ArrayLoader: public IEntryEnum {
+	public:
+		Container &c;
+
+		virtual bool operator()(const INode *nd, ConstStrA, natural) const  {
+			c.add(ConstValue(nd));
+			return false;
+		}
+		ArrayLoader(Container &c):c(c) {}
+	};
+	if ((*this)->isObject()) {
+		Loader l(*this);
+		from->enumEntries(l);
+		return *this;
+	} else {
+		ArrayLoader l(*this);
+		from->enumEntries(l);
+		return *this;
+
+	}
+}
+
+const INode* Container::checkIsolation(const INode* ptr) {
+	if (ptr->isShared())
+		throw SharedValueException(THISLOCATION);
+	return ptr;
+}
+
+const char *SharedValueException::msgText = "Cannot make object mutable, it is shared.";
+void SharedValueException::message(ExceptionMsg &msg) const {
+	msg(msgText);
+}
+
+Value& Value::set(ConstStrA name, const Value& value) {
+	safeGetMutable()->replace(name,value);return *this;
+}
+
+Value& Value::add(ConstStrA name, const Value& value) {
+	safeGetMutable()->add(name,value);return *this;
+}
+
+Value& Value::set(natural index, const Value& value) {
+	safeGetMutable()->replace(index,value);return *this;
+}
+
+Value& Value::add(const Value& value) {
+	safeGetMutable()->add(value);return *this;
+}
+
+Value& Value::unset(ConstStrA name) {
+	Container::unset(name);return *this;
+}
+
+Value& Value::erase(natural index) {
+	Container::erase(index);return *this;
+}
+
+Value& Value::load(const ConstValue& from) {
+	Container::load(from);return *this;
+}
+
+Container& Container::clear() {
+	const_cast<INode *>(safeGet())->clear();
+	return *this;
+}
+
+Value& Value::clear() {
+	Container::clear();
+	return *this;
+}
+
+const Path Path::root(Path::root,"<root>");
+
+ConstValue Path::operator()(const ConstValue& root) const {
+	if (isRoot()) return root;
+	ConstValue v = parent.operator()(root);
+	if (v != null)
+		return isIndex()?v[getIndex()]:v[getKey()];
+	else
+		return null;
+}
+
+Value Path::operator()(const Value& root) const {
+	if (isRoot()) return root;
+	Value v = parent.operator()(root);
+	if (v != null)
+		return isIndex()?v[getIndex()]:v[getKey()];
+	else
+		return null;
+
+}
+
+Path *Path::copy() const {
+	return Path::copy(StdAlloc::getInstance());
+}
+
+Path *Path::copy(IRuntimeAlloc &alloc) const {
+	//do not perform copy of root element
+	if (isRoot()) return const_cast<Path *>(this);
+	//calculate required size - first include pointer to allocator
+	natural reqSize = sizeof(IRuntimeAlloc *);
+	//calculate length
+	natural len=0;
+	for (const Path *p = this; p != &root; p = &p->parent) {
+		//reserve space for element
+		reqSize +=sizeof(Path);
+		//if it is key, then reserve space for name
+		if (p->isKey()) reqSize+=p->index;
+		//increase count of elemenets
+		len++;
+	}
+	IRuntimeAlloc *owner;
+	//allocate memory, return owner of memory
+	void *buff = alloc.alloc(reqSize,owner);
+	IRuntimeAlloc **a = reinterpret_cast<IRuntimeAlloc **>(buff);
+	//store allocator
+	*a = owner;
+	//get pointer to first item
+	Path *start = reinterpret_cast<Path *>(a+1);
+	//get pointer to string buffer
+	char *strbuff = reinterpret_cast<char *>(start+len);
+	//perform recursive copy
+	return copyRecurse(start,strbuff);
+}
+
+Path *Path::copyRecurse(Path * trg, char  *strBuff) const {
+	//stop on root
+	if (isRoot()) return const_cast<Path *>(this);
+	//if it is key
+	if (isKey()) {
+		//pick first unused byte in string buffer
+		char *c = strBuff;
+		//copy name to buffer
+		memcpy(strBuff, keyName,index);
+		//advence pointer in buffer
+		strBuff+=index;
+		//copy rest of path to retrieve new pointer
+		Path *out = copyRecurse(trg+1,strBuff);
+		//construct path item at give position, use returned pointer as parent
+		//and use text from string buffer as name
+		return new((void *)trg) Path(*out, ConstStrA(c, index));
+	} else {
+		//if it is index, just construct rest of path
+		Path *out = copyRecurse(trg+1,strBuff);
+		//copy rest of path to retrieve new pointer
+
+		return new((void *)trg) Path(*out, index);
+	}
+}
+
+void Path::operator delete(void *ptr) {
+	//delete operator is used instead of destructor
+	//because object is POD type, it has no destructor
+	//destructor is called when need to delete object
+	//because object is always allocated by copy()
+	//we can nout perform cleanup of whole path
+
+	//do nothing with root
+	if (ptr == &root) return;
+
+	//retrieve allocator
+	IRuntimeAlloc **a = reinterpret_cast<IRuntimeAlloc **>(ptr);
+	IRuntimeAlloc *alc = *(a-1);
+
+	//calculate reqSize
+	natural reqSize = sizeof(IRuntimeAlloc *);
+
+	for (const Path *p = reinterpret_cast<Path *>(ptr); ptr != &root; p = &p->parent) {
+		//reserve space for element
+		reqSize+=sizeof(Path);
+		//if it is key, then reserve space for name
+		if (p->isKey()) reqSize+=p->getKey().length();
+	}
+	//deallocate memory
+	alc->dealloc(a,reqSize);
+
+}
+void *Path::operator new(size_t , void *p) {
+	return p;
+}
+void Path::operator delete (void *, void *) {
+
+}
+
+CompareResult Path::compare(const Path &other) const {
+	if (isRoot()) return other.isRoot()?cmpResultEqual:cmpResultLess;
+	if (other.isRoot()) return cmpResultGreater;
+	CompareResult z = parent.compare(other.parent);
+	if (z == cmpResultEqual) {
+		if (isIndex()) {
+			if (other.isIndex()) {
+				if (getIndex() <  other.getIndex()) return cmpResultLess;
+				else if (getIndex() > other.getIndex()) return cmpResultGreater;
+				else return cmpResultEqual;
+			} else {
+				return cmpResultLess;
+			}
+		} else if (other.isKey()) {
+			return getKey().compare(other.getKey());
+		} else {
+			return cmpResultGreater;
+		}
+	} else {
+		return z;
+	}
+}
+
+
+Value getConstant(Constant c) {
+	switch (c) {
+	case constFalse: return Factory().newValue(false); break;
+	case constTrue: return Factory().newValue(true); break;
+	case constNull: return Factory().newValue(null); break;
+	case constZero: return Factory().newValue(0); break;
+	case constEmptyStr: return Factory().newValue(ConstStrA()); break;
+	}
+	throw; //should never reached
+}
 
 
 }
 
-
+}

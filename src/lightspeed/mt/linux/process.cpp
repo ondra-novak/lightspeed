@@ -61,12 +61,12 @@ namespace LightSpeed {
 			:curEnv(0),cmdLine(RTAlloc(StdAlloc::getInstance()))
 			,alloc(StdAlloc::getInstance())
 			,extraStreams(RTAlloc(StdAlloc::getInstance()))
-			,pid(-1),exitCode(-1) {}
+			,pid(-1),exitCode(-1) {enableMTAccess();}
 		LinuxProcessContext(IRuntimeAlloc &alloc)
 			:curEnv(0),cmdLine(RTAlloc(alloc))
 			,alloc(alloc)
 			,extraStreams(RTAlloc(alloc))
-			,pid(-1),exitCode(-1) {}
+			,pid(-1),exitCode(-1) {enableMTAccess();}
 
 
 	};

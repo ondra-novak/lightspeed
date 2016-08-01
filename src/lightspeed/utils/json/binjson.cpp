@@ -58,18 +58,18 @@ void JsonToBinary::serializeValue(const JSON::INode& val,
 
 void JsonToBinary::serializeArray(const JSON::INode& val, SeqFileOutput& output) {
 	output.write(opcArray);
-	for (JSON::Iterator iter = val.getFwIter(); iter.hasItems();) {
-		serializeValue(*iter.getNext().node,output);
+	for (JSON::ConstIterator iter = val.getFwConstIter(); iter.hasItems();) {
+		serializeValue(*iter.getNext(),output);
 	}
 	output.write(opcEnd);
 }
 
 void JsonToBinary::serializeObject(const JSON::INode& val, SeqFileOutput& output) {
 	output.write(opcObject);
-	for (JSON::Iterator iter = val.getFwIter(); iter.hasItems();) {
-		const KeyValue &kv = iter.getNext();
+	for (JSON::ConstIterator iter = val.getFwConstIter(); iter.hasItems();) {
+		const ConstKeyValue &kv = iter.getNext();
 		writeString(kv.getStringKey(),output);
-		serializeValue(*kv.node,output);
+		serializeValue(*kv,output);
 	}
 	output.write(opcEnd);
 }

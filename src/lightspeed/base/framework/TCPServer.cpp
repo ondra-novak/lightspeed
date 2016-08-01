@@ -46,9 +46,11 @@ void TCPServer::start(NetworkStreamSource tcpsource)
 
 	if (lockCompareExchange(shutdown,1,0) != 1) return;
 
+	eventListener = INetworkServices::getNetServices().createEventListener();
+
 	shutdown = 0;
 	mother = tcpsource;
-	eventListener(mother,&sleeper);
+	eventListener->add(mother,&sleeper,INetworkResource::waitForInput,naturalNull,0);
 }
 
 
@@ -83,17 +85,17 @@ void TCPServer::stop()
 	//remove all sockets from the event listener
 	for (ConnectionList::Iterator iter = connList.getFwIter(); iter.hasItems();) {
 		PConnection conn = iter.getNext().getMT();
-		eventListener(conn->getStream(),conn).erase();
+		eventListener->remove(conn->getStream(),conn);
 	}
 
 	///remove all other ports
 	for (natural i = 0; i < otherPorts.length(); i++) {
-		eventListener(otherPorts[i]->getSocket(), otherPorts[i]).erase();
+		eventListener->remove(otherPorts[i]->getSocket(), otherPorts[i]);
 	}
 
 	Notifier ntf;
 	//finally remove mother socket from the listener
-	eventListener(mother,&sleeper).erase().onCompletion(&ntf);
+	eventListener->remove(mother.getHandle(),&sleeper,&ntf);
 	//wait for completion
 	ntf.wait(naturalNull,false);
 
@@ -102,21 +104,15 @@ void TCPServer::stop()
 
 	//clear other ports
 	otherPorts.clear();
-#if 0
-	//close mother socket
-	mother = NetworkStreamSource();
 
-	//kill network event listener to cleanup any forgotten connection
-	eventListener = NetworkEventListener();
-	//everything is clean
-	//leave shutdown flag on to prevent any future tries to repeat this
-#endif
+	///clear event listener, stop the thread
+	eventListener = null;
 }
 
 void TCPServer::Sleeper::wakeUp(natural ) throw() {
 	owner.acceptConn(owner.mother, 0);
 	//re-register mother
-	if (owner.mother.hasItems()) owner.eventListener(owner.mother,this);
+	if (owner.mother.hasItems()) owner.eventListener->add(owner.mother,this,owner.mother->getDefaultWait(),naturalNull,0);
 }
 void TCPServer::acceptConn(NetworkStreamSource& listenSock, natural sourceId) throw() {
 
@@ -247,7 +243,7 @@ void TCPServer::close(Connection *k) {
 }
 
 void TCPServer::reuse(Connection *k) {
-	eventListener(k->getStream(), k).forInput();
+	eventListener->add(k->getStream(), k, INetworkResource::waitForInput);
 }
 
 void TCPServer::reuse(Connection *k, ITCPServerConnHandler::Command command) {
@@ -255,18 +251,15 @@ void TCPServer::reuse(Connection *k, ITCPServerConnHandler::Command command) {
 	switch (command) {
 	case ITCPServerConnHandler::cmdWaitRead:
 		tmm = k->getDataReadyTimeout();
-		if (tmm == naturalNull) eventListener(k->getStream(),k).forInput();
-		else eventListener(k->getStream(),k).forInput().timeout(tmm);
+		eventListener->add(k->getStream(),k,INetworkResource::waitForInput,tmm);
 		break;
 	case ITCPServerConnHandler::cmdWaitWrite:
 		tmm = k->getWriteReadyTimeout();
-		if (tmm == naturalNull) eventListener(k->getStream(),k).forOutput();
-		else eventListener(k->getStream(),k).forOutput().timeout(tmm);
+		eventListener->add(k->getStream(),k,INetworkResource::waitForOutput,tmm);
 		break;
 	case ITCPServerConnHandler::cmdWaitReadOrWrite:
 		tmm = std::min(k->getDataReadyTimeout(),k->getWriteReadyTimeout());
-		if (tmm == naturalNull) eventListener(k->getStream(),k).forOutput().forInput();
-		else eventListener(k->getStream(),k).forOutput().forInput().timeout(tmm);
+		eventListener->add(k->getStream(),k,INetworkResource::waitForInput | INetworkResource::waitForOutput,tmm);
 		break;
 	case ITCPServerConnHandler::cmdWaitUserWakeup:
 		break;
@@ -276,7 +269,7 @@ void TCPServer::reuse(Connection *k, ITCPServerConnHandler::Command command) {
 
 }
 
-NetworkEventListener  TCPServer::getEventListener()
+PNetworkEventListener  TCPServer::getEventListener()
 {
 	return eventListener;
 }
@@ -335,13 +328,13 @@ natural TCPServer::addPort(NetworkStreamSource tcpsource) {
 	natural id = otherPorts.length()+1;
 	OtherPortAccept *k = new OtherPortAccept(*this,id,tcpsource);
 	otherPorts.add(k);
-	eventListener(tcpsource,k);
+	eventListener->add(tcpsource,k,INetworkResource::waitForInput);
 	return id;
 }
 
 void TCPServer::OtherPortAccept::wakeUp(natural ) throw()  {
 	owner.acceptConn(getSocket(),sourceId);
-	owner.getEventListener()(getSocket(),this);
+	owner.getEventListener()->add(getSocket(),this);
 }
 
 TCPServer::OtherPortAccept::OtherPortAccept(TCPServer& owner, natural sourceId,

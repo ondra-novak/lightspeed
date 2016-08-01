@@ -64,6 +64,7 @@ enum SimpleManipulators {
 		Impl &operator <<(natural num);
 		Impl &operator <<(integer num);
 
+
 #if _MSC_VER == 1800
 		//HACK functions must exist, but should never called
 		Impl &operator()(ConstStringT<Empty_t> pattern) { throw; }
@@ -135,6 +136,21 @@ enum SimpleManipulators {
 		TextFormat &operator <<(TextFormatManip m) {
 			m.doManip(*this);return *this;
 		}
+		///Use iterator content of argument.
+		/**
+		 * Note that function consumes content of iterator (until eof is reaches).
+		 * This is the reason, why the address must be supplied. Reference cannot be
+		 * used because there is const T & on many places around.
+		 *
+		 * @code
+		 * textfmt << &iter;
+		 *
+		 * @param address to iterator
+		 * @return this reference
+		 */
+		template<typename X>
+		TextFormat &operator <<(IIterator<T, X> *);
+
 
 		TextFormat &setBase(natural b);
 		TextFormat &setPrecision(natural p);

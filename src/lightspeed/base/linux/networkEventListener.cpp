@@ -45,6 +45,8 @@ void LinuxNetworkEventListener::set(const Request& request) {
 	bool r = worker.isRunning();
 	if (r && worker.getThreadId() == ThreadId::current()) {
 		doRequest(request);
+		//FIXED: need to call completion notify even if not posted...
+		if (request.reqNotify) request.reqNotify->wakeUp(0);
 	} else {
 		Synchronized<FastLock> _(lock);
 		if (!r) {

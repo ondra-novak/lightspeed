@@ -3,11 +3,48 @@
 
 #include "../types.h"
 #include "../iter/iteratorFilter.h"
+#include "../iter/iterConv.h"
 #include "../exceptions/utf.h"
 //#include "../qualifier.h"
 
 namespace LightSpeed
 {
+
+	class Utf8ToWideConvert: public ConverterBase<char, wchar_t, Utf8ToWideConvert> {
+	public:
+
+		Utf8ToWideConvert();
+		Utf8ToWideConvert(bool skipInvalid);
+
+		const wchar_t &getNext();
+		const wchar_t &peek() const;
+		void write(const char &item);
+
+		void enableSkipInvalidChars(bool enable) {skipInvChars = enable;}
+		bool isSkipInvalidCharsEnabled() const {return skipInvChars;}
+    protected:
+		wchar_t outchar;
+		bool skipInvChars;
+		byte state;
+		static const byte initState = 0xff;
+		void updateState();
+	};
+
+	class WideToUtf8Convert: public ConverterBase<wchar_t, char, WideToUtf8Convert> {
+	public:
+
+		WideToUtf8Convert();
+
+		const char &getNext();
+		const char &peek() const;
+		void write(const wchar_t &item);
+		void updateState();
+    protected:
+		char outchars[10];
+		byte rdpos;
+	};
+
+
 
     
 	///Filter that is fed by UTF-8 characters and returns WIDE characters
@@ -117,35 +154,35 @@ namespace LightSpeed
 
 
     template<typename WrIterator>
-    class Utf8ToWideWriter: public FilterWrite<WrIterator, Utf8ToWideFilter> {
+    class Utf8ToWideWriter: public ConvertWriteIter<Utf8ToWideConvert,WrIterator> {
     public:
         Utf8ToWideWriter(WrIterator iter)
-            :FilterWrite<WrIterator, Utf8ToWideFilter>(iter) {}
-		void enableSkipInvalidChars(bool enable) {this->lt.enableSkipInvalidChars(enable);}
-		bool isSkipInvalidCharsEnabled() const {return this->flt.isSkipInvalidCharsEnabled();}
+    		:ConvertWriteIter<Utf8ToWideConvert,WrIterator>(iter) {}
+		void enableSkipInvalidChars(bool enable) {this->conv.enableSkipInvalidChars(enable);}
+		bool isSkipInvalidCharsEnabled() const {return this->conv.isSkipInvalidCharsEnabled();}
     };
 
     template<typename WrIterator>
-    class WideToUtf8Writer: public FilterWrite<WrIterator, WideToUtf8Filter> {
+    class WideToUtf8Writer: public ConvertWriteIter<WideToUtf8Convert,WrIterator> {
     public:
         WideToUtf8Writer(WrIterator iter)
-            :FilterWrite< WrIterator, WideToUtf8Filter>(iter) {}
+            :ConvertWriteIter<WideToUtf8Convert,WrIterator>(iter) {}
     };
 
     template<typename RdIterator>
-    class Utf8ToWideReader: public FilterRead<RdIterator, Utf8ToWideFilter> {
+    class Utf8ToWideReader: public ConvertReadIter<Utf8ToWideConvert,RdIterator> {
     public:
         Utf8ToWideReader(RdIterator iter)
-            :FilterRead<RdIterator, Utf8ToWideFilter>(iter) {}
-		void enableSkipInvalidChars(bool enable) {this->flt.enableSkipInvalidChars(enable);}
-		bool isSkipInvalidCharsEnabled() const {return this->flt.isSkipInvalidCharsEnabled();}
+            :ConvertReadIter<Utf8ToWideConvert,RdIterator>(iter) {}
+		void enableSkipInvalidChars(bool enable) {this->conv.enableSkipInvalidChars(enable);}
+		bool isSkipInvalidCharsEnabled() const {return this->conv.isSkipInvalidCharsEnabled();}
     };
 
     template<typename RdIterator>
-    class WideToUtf8Reader: public FilterRead<RdIterator, WideToUtf8Filter> {
+    class WideToUtf8Reader: public ConvertReadIter<WideToUtf8Convert,RdIterator> {
     public:
         WideToUtf8Reader(RdIterator iter)
-            :FilterRead<RdIterator, WideToUtf8Filter>(iter) {}
+            :ConvertReadIter<WideToUtf8Convert,RdIterator>(iter) {}
     };
 
 }

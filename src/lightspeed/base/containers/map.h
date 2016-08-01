@@ -77,7 +77,7 @@ namespace LightSpeed {
 
 			///constructor
 			KeyValue(const Key &key, const Value &value):key(key),value(value) {}
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 			KeyValue(Key &&key, Value &&value):key(std::move(key)),value(std::move(value)) {}
 			KeyValue(KeyValue &&x):key(std::move(x.key)),value(std::move(x.value)) {}
 			KeyValue(const KeyValue &x):key(x.key),value(x.value) {}
@@ -141,7 +141,7 @@ namespace LightSpeed {
 			return tree.insert(KeyValue(key,value),exist);
 		}
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 		Iterator insert(Key &&key,Value &&value, bool *exist = 0) {
 			return tree.insert(KeyValue(std::move(key),std::move(value)),exist);
 		}
@@ -180,9 +180,9 @@ namespace LightSpeed {
 		 * @param found used to store state, whether key has been found
 		 * @return iterator that refers the found item
 		 */
-		Iterator seek(const Key &key, bool *found = 0) const {
+		Iterator seek(const Key &key, bool *found = 0, Direction::Type dir = Direction::forward) const {
 			const KeyValue &e = reinterpret_cast<const KeyValue &>(key);
-			return tree.seek(e,found);
+			return tree.seek(e,found,dir);
 		}
 
 		///removes all items

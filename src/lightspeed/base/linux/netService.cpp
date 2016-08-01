@@ -113,7 +113,9 @@ void INetworkServices::setIOServices(INetworkServices *newServices)
 
 PNetworkEventListener LinuxNetService::createEventListener()
 {
-	return new LinuxNetworkEventListener;
+	LinuxNetworkEventListener *x = new LinuxNetworkEventListener;
+	x->enableMTAccess();
+	return x;
 }
 
 

@@ -14,6 +14,7 @@
 #include "../debug/dbglog.h"
 #include "../streams/netio_ifc.h"
 #include <ws2ipdef.h>
+#include "../containers/map.tcc"
 
 namespace LightSpeed {
 

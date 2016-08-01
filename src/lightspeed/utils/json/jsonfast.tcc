@@ -215,7 +215,7 @@ inline void ParserFast<T>::parseRawString() {
 									throw ParseError_t(THISLOCATION,strBuff);
 								}
 							}
-							wchar_t wy = (wchar_t)_intr::stringToUnsignedNumber<natural>(buff,16);
+							wchar_t wy = (wchar_t)::LightSpeed::_intr::stringToUnsignedNumber<natural>(buff,16);
 							WideToUtf8Filter flt;
 							flt.input(wy);
 							while (flt.hasItems()) strBuff.add(flt.output());
@@ -371,7 +371,7 @@ inline ConstStrA ParserFast<T>::arrayIndexStr(natural i) {
 	char buff[100];
 	strBuff.clear();
 	strBuff.add('[');
-	strBuff.append(_intr::numberToString(i,buff,100,10));
+	strBuff.append(::LightSpeed::_intr::numberToString(i,buff,100,10));
 	strBuff.add(']');
 	return strBuff;
 }

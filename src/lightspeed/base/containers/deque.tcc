@@ -282,6 +282,13 @@ namespace LightSpeed {
 	}
 
 
+	template<typename T, typename Alloc>
+	void Deque<T,Alloc>::swap(Deque<T,Alloc> &other) {
+		 memBlock.swap(other.memBlock);
+		 natural h = head; head = other.head; other.head = h;
+		 natural t = tail; tail = other.tail; other.tail = t;
+	}
+
 }
 #endif /* LIGHTSPEED_CONTAINERS_DEQUE_TCC_ */
 

@@ -107,7 +107,7 @@ namespace LightSpeed {
 		}
 
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 		Optional &operator=(T &&val) {
 			if (&val != &get()) {
 				if (_x) {
@@ -165,7 +165,7 @@ namespace LightSpeed {
 		}
 
 		bool operator!=(NullType) const {
-			return _x;
+			return _x != 0;
 		}
 
 		const T *operator->() const {
@@ -176,6 +176,15 @@ namespace LightSpeed {
 		T *operator->() {
 			if (!_x) throwNullPointerException(THISLOCATION);
 			return &get();
+		}
+
+		const T &value() const {
+			if (!_x) throwNullPointerException(THISLOCATION);
+			return get();
+		}
+		T &value() {
+			if (!_x) throwNullPointerException(THISLOCATION);
+			return get();
 		}
 
 
@@ -210,7 +219,7 @@ namespace LightSpeed {
 		void construct(const T &val) {
 			new(reinterpret_cast<void *>(buffer)) T(val);
 		}
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 		void construct(T &&val) {
 			new(reinterpret_cast<void *>(buffer)) T(std::move(val));
 		}

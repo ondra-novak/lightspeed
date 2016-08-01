@@ -174,7 +174,7 @@ namespace LightSpeed {
 			return insert(k,exist);
 		}
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 
 		///Adds value into tree
 		/**

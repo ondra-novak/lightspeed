@@ -110,7 +110,7 @@ namespace LightSpeed {
 			}
 		}
 
-#if __cplusplus >= 201103L
+#ifdef LIGHTSPEED_ENABLE_CPP11
 
 		template<typename T, typename U>
 		T *createInstanceUsing(U &&obj)  {

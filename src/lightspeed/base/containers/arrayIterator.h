@@ -51,9 +51,9 @@ namespace LightSpeed {
 
 		bool hasItems() const {
 			if (step > 0)
-                return cur <= end && cur >= 0 && cur < (integer)container.size();
+                return cur <= end && cur >= 0 && cur < (integer)container.length();
             else
-                return cur >= end && cur >= 0 && cur < (integer)container.size();
+                return cur >= end && cur >= 0 && cur < (integer)container.length();
         }
 
 		natural getRemain() const {
@@ -101,7 +101,7 @@ namespace LightSpeed {
         }
 
 
-		ArrayIterator(Container cont):container(cont),begin(0),end(cont.size()-1)
+		ArrayIterator(Container cont):container(cont),begin(0),end(integer(cont.length())-1)
 			,cur(0),step(1) {}
 
 
@@ -126,8 +126,8 @@ namespace LightSpeed {
 		Container container;
 		integer begin;
 		integer end;
-        integer step;
 		integer cur;
+        integer step;
 
 	};
 

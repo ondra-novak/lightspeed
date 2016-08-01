@@ -58,7 +58,7 @@ protected:
 	void serializeDeleted(const INode *);
 	void serializeNull(const INode *);
 
-	void serializeObjectNode(const NodeInfo &n);
+	void serializeObjectNode(const ConstKeyValue &n);
 	void serializeObject(const INode *json);
 	void serializeString(const INode *json);
 	void serializeFloat(const INode *json);

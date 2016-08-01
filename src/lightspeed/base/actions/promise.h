@@ -8,9 +8,18 @@
 #include "../../mt/exceptions/timeoutException.h"
 #include "../../mt/fastlock.h"
 #include "../containers/deque.h"
+#include "../meta/emptyClass.h"
+
+#ifdef LIGHTSPEED_ENABLE_CPP11
+#include <type_traits>
+#include <functional>
+#endif
 
 namespace LightSpeed {
 
+
+class Variant;
+template<typename X, typename Y> class CombinedFuture;
 
 
 IRuntimeAlloc *getPromiseAlocator();
@@ -196,6 +205,7 @@ public:
 	class IObserver;
 	class Resolution;
 	friend class Promise<T>;
+	typedef T Type;
 
 
 	///Construct empty future object
@@ -319,6 +329,23 @@ public:
 	template<typename Fn, typename RFn>
 	Future then(Fn resolveFn, RFn rejectFn);
 
+
+	///Define what happens when promise is resolved
+	/**
+     * @param resolveFn Function to call once promise is resolved
+	 * @param rejectFn Function to call once promise is rejected. There are
+	 * similar rules as for resolveFn
+	 *
+	 * @return Reference to current promise. Functions doesn't create new instance of Future,
+	 * because return values from the functions are ignored.
+	 * 	 *
+	 * @note - Technical note - Functions are called in the context of thread
+	 *  doing resolution. If you need to call function in another context, you
+	 *  have to execute function through the IExecutor.
+	 */
+	template<typename Fn, typename RFn>
+	Future thenCall(Fn resolveFn, RFn rejectFn);
+
 	///Specifies what happens, when promise is rejected
 	/**
      * @param fn Function to call once promise is rejected
@@ -426,6 +453,11 @@ public:
 	 * affects all currently registered observers.
 	 *
 	 * @param exception exception to use for cancellation.
+	 * @note Calling the cancel() inside resolution handler can cause, that rest of
+	 * handlers (in the list) will be canceled. This can cause that future will
+	 * be resolved twice in situation when then+onException is used and when then() calls
+	 * 'cancel' (exception will thrown to the onException).
+	 *
 	 */
 	IPromiseControl::State cancel(const Exception &exception) throw();
 
@@ -489,7 +521,7 @@ public:
 	/**
 	 * Function is static so you have to call it using:
 	 * @code
-	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x,&tranform_fn);
+	 * Promise<Y> promise_y = Promise<Y>::transform(promise_x,&transform_fn);
 	 * @endcode
 	 * ... where promise_x is original promise and Y is a new type. Function will use
 	 * function to convert value to the new type.
@@ -508,6 +540,63 @@ public:
 	 *
 	 */
 	PPromiseControl getControlInterface();
+
+
+	///Returns future, which becomes resolved once one of the futures is resolved
+	/** Function returns future which is resolved by a result of the fastest future from the
+	 * specified couple. Operator can be chained with other futures and its working the same manner.
+	 *
+	 * @param a first future
+	 * @param b second future
+	 * @return Future which will resolve with result of the first resolved future. Because it can
+	 * be various types, result is stored into Variant type
+	 *
+	 * @note Result of Future<void> is stored as instance of the Void class
+	 *
+	 */
+	template<typename Y>
+	Future<Variant> operator||(const Future<Y> &b);
+
+	///Returns future, which becomes resolved once one of the futures is resolved
+	/** Function returns future which is resolved by a result of the fastest future from the
+	 * specified couple. Operator can be chained with other futures and its working the same manner.
+	 *
+	 * @param b second future
+	 * @return Future which will resolve with result of the first resolved future. Because both
+	 * futures are same type, result is also same type
+	 *
+	 */
+
+	Future<T> operator||(const Future &b);
+
+
+	///Returns future, which becomes resolved once both of the futures are resolved
+	/**
+	 * @param b second future
+	 * @return Future, which will resolve with pair
+	 */
+	template<typename Y>
+	Future<std::pair<T,Y> > operator&& (const Future<Y> &b);
+
+	///Combines futures allows to define operation on it
+	/**
+	 * @code
+	 * Future<A> fa=...;
+	 * Future<B> fb=...;
+	 * Future<C> fc = (fa + fb) >> [](A a, B b){ return C(a,b);};
+	 * @endcode
+	 *
+	 * Works similar as operator &&, however it combines results of futures and allows to call
+	 * function on both results. Operator+ always require to have run operator >> which defines
+	 * operation to combine results.
+	 *
+	 * @param b other future
+	 * @return stub containing both futures which is ready to perform run operator
+	 *
+	 * @note function is available for C++11 and older
+	 */
+	template<typename Y>
+	CombinedFuture<T,Y> operator+(const Future<Y> &b);
 
 
 	///Allows create much flexible observers than classical "then" or "onException"
@@ -587,6 +676,10 @@ public:
 
 	};
 
+	IRuntimeAlloc &getAllocator() {
+		if (future == nil) init();
+		return future->alloc;
+	}
 
 protected:
 
@@ -622,7 +715,8 @@ protected:
 		virtual void wait(const Timeout &tm) const;
 		virtual Value *getValue() { return this; }
 
-
+		///Returns true, if future has last Future reference (Promise referes are not counted)
+		bool isLastReference() const;
 
 	protected:
 		mutable FastLock lock;
@@ -665,32 +759,35 @@ protected:
  * type should accept observer functions without arguments and they should not expect return value of the
  * observer function. Also resolve promise should be called without arguments.
  *
- * Specialization uses Promise<Empty> where Empty is special empty class. During lifetime of
- * the promise, the Empty instance is carried through, but it should not leave the promise object out.
+ * Specialization uses Promise<Void> where Void is special empty class. During lifetime of
+ * the promise, the Void instance is carried through, but it should not leave the promise object out.
  *
  * Functions then() and thenCall() accepts observers without argument. Conversion to observer with
- * "the Empty" argument is done by the internal function EmptyCallVoid. This function shallows
+ * "the Void" argument is done by the internal function EmptyCallVoid. This function shallows
  * the observer function and calls it without argument. It also doesn't expect return value.
  *
  * To resolve Promise<void> you should construct PromiseResolution<void>. This object
- * contains simple function resolve() without argument. Function internally constructs Empty instance
+ * contains simple function resolve() without argument. Function internally constructs Void instance
  * and uses it to process whole observer chain.
  *
- * Promise<void> can be anytime converted to Promise<Empty> and vice versa.
+ * Promise<void> can be anytime converted to Promise<Void> and vice versa.
  *
  *
- * It is possible to receive value of the promise, but you will receive an instance of the Empty class
+ * It is possible to receive value of the promise, but you will receive an instance of the Void class
  *
  * Function wait() doesn't return value, but still can throw an exception in case, that promise
  * is rejected.
  *
  */
 template<>
-class Future<void>: public Future<Empty> {
+class Future<void>: public Future<Void> {
 public:
 
+	typedef void Type;
+
+
 	Future() {}
-	Future(const Future<Empty> &e):Future<Empty>(e) {}
+	Future(const Future<Void> &e):Future<Void>(e) {}
 
 
 	template<typename Fn>
@@ -698,13 +795,13 @@ public:
 	public:
 		Fn fn;
 		EmptyCallVoid(Fn fn):fn(fn) {}
-		const Empty &operator()(const Empty &x) const {fn();return x;}
+		const Void &operator()(const Void &x) const {fn();return x;}
 
 	};
 
-	class IObserver : public Future<Empty>::IObserver {
+	class IObserver : public Future<Void>::IObserver {
 	public:
-		virtual void resolve(const Empty &) throw() {
+		virtual void resolve(const Void &) throw() {
 			resolve();
 		}
 		virtual void resolve() throw() = 0;
@@ -717,6 +814,8 @@ public:
 	Future thenCall(Fn fn);
 	template<typename Fn, typename RFn>
 	Future then(Fn resolveFn, RFn rejectFn);
+	template<typename Fn, typename RFn>
+	Future thenCall(Fn resolveFn, RFn rejectFn);
 
 	///attach another promise object to current promise
 	/**
@@ -744,7 +843,7 @@ public:
 	 * @exception TimeoutException timeout elapsed before resolution
 	 * @exception any promise has been rejected with an exception.
 	 */
-	void wait(const Timeout &tm) {Future<Empty>::wait(tm);}
+	void wait(const Timeout &tm) {Future<Void>::wait(tm);}
 
 	Promise<void> getPromise();
 
@@ -773,6 +872,7 @@ public:
 	~Promise();
 
 	using  Future<T>::Resolution::resolve;
+
 
 
 	virtual void resolve(const T &result) throw() {
@@ -847,14 +947,14 @@ protected:
 
 
 template<>
-class Promise<void> : public Promise<Empty> {
+class Promise<void> : public Promise<Void> {
 public:
-	typedef Promise<Empty> Super;
+	typedef Promise<Void> Super;
 	Promise(const Super &other) :Super(other) {}
 	Promise(const Future<void> &future) : Super(future) {}
 	using Super::resolve;
 	virtual void resolve() throw() {
-		Empty x;
+		Void x;
 		Super::resolve(x);
 	}
 
@@ -863,7 +963,83 @@ public:
 	template<typename Fn, typename Arg>
 	void callAndResolve(Fn fn, Arg arg) throw();
 
+
+
+};
+
+///Future which cancels itself when it is destroyed
+/** You should use this class instead of Future if you need to cancel it when all references
+ * has been removed. If last reference is Future, then the future is not canceled.
+ *
+ * You can convert Future to FutureAutoCancel. Then you should destroy Future variable
+ * and store only FutureAutoCancel variables.
+ *
+ *
+ * Future is canceled when count of references is euqal to count of promises.
+ * Future must not be already resolved (similar to cancel())
+ *
+ */
+
+template<typename T>
+class FutureAutoCancel: public Future<T>{
+public:
+	~FutureAutoCancel();
+	FutureAutoCancel(const Future<T> &f);
+};
+
+
+namespace _intr {
+
+template<typename Fn>
+struct FutureCatch {Fn fn;	FutureCatch(const Fn &fn):fn(fn) {} };
+
+}
+#ifdef LIGHTSPEED_ENABLE_CPP11
+
+
+namespace _intr {
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** General rule, T convert to Future<T> */
+template<typename T> struct DetermineFutureType {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** Future<T> convert to Future<T> */
+template<typename T> struct DetermineFutureType<Future<T> > {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** const T & convert to Future<T> */
+template<typename T> struct DetermineFutureType<const T &> {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** Constructor<T, Impl> to Future<T> */
+template<typename T, typename Impl> struct DetermineFutureType<Constructor<T,Impl> > {typedef Future<T> Type;};
+///Determines type of future depend on type given (from return type of the function - C++11)
+/** IConstructor<IConstructor<T> to Future<T> */
+template<typename T> struct DetermineFutureType<IConstructor<T> > {typedef Future<T> Type;};
+
+
+template<typename T, typename Fn> struct DetermineFutureHandlerRetVal {
+	typedef typename std::result_of<Fn(T)>::type type;
+};
+
+template<typename Fn> struct DetermineFutureHandlerRetVal<void, Fn> {
+	typedef typename std::result_of<Fn()>::type type;
+};
+
+template<typename Fn> struct DetermineFutureHandlerRetVal<void, FutureCatch<Fn> > {
+	typedef void type;
 };
 
 }
+
+template<typename T, typename Fn, typename Args>
+auto operator >> (Future<T> f, const Fn &fn)
+     -> typename _intr::DetermineFutureType<typename _intr::DetermineFutureHandlerRetVal<T,Fn>::type>::Type;
+
+
+
+template<typename Fn>
+_intr::FutureCatch<Fn> futureCatch(const Fn &fn) {return _intr::FutureCatch<Fn>(fn);}
+
+#endif
+
+}
+
 
