@@ -47,6 +47,10 @@ public:
 	template<typename Iter>
 	const To &peekFromIter(const Iter &source) const;
 
+	template<typename Iter>
+	bool hasItemsFromIter(const Iter &source) const;
+
+
 	void flush();
 
 	template<typename Iter>
@@ -89,6 +93,9 @@ public:
 	template<typename Iter>
 	void flushToIter(Iter &iter);
 
+	template<typename Iter>
+	bool hasItemsFromIter(const Iter &source) const;
+
 
 	void flush();
 };
@@ -102,20 +109,7 @@ public:
 	ConvertReadIter(typename FastParam<SrcIter>::T srcIter):srcIter(srcIter) {}
 	ConvertReadIter(const Converter &init, typename FastParam<SrcIter>::T srcIter):conv(init),srcIter(srcIter) {}
 	bool hasItems() const {
-		//if convertor has items, return true
-		if (conv.hasItems) return true;
-		//if convertor reports end of logical block, return false;
-		if (conv.eolb) return false;
-		//if source stream has items
-		while (srcIter.hasItems()) {
-			//we don't know until we will feed convertor with some items
-			ConvertReadIter *cthis = const_cast<ConvertReadIter *>(this);
-			cthis->conv.write(cthis->srcIter.getNext());
-			//if convertor has items, return true
-			if (conv.hasItems) return true;
-			//if convertor reports end of logical block, return false;
-			if (conv.eolb) return false;
-		}
+		if (conv.hasItemsFromIter(srcIter)) return true;
 		//if not, call flush to finish conversion (we need to const cast here, because there is no other place how to handle this)
 		if (implicitFlush) const_cast<ConvertReadIter *>(this)->conv.flush();
 		//if there are items after flush, continue returning true, otherwise return false
@@ -345,19 +339,25 @@ inline natural IConverter<From, To, Impl>::blockRead(Iter& source,FlatArray& arr
 template<typename From, typename To, typename Impl>
 template<typename Iter>
 inline void IConverter<From, To, Impl>::writeToIter(const From& item,Iter& target) {
-	return static_cast<Impl &>(*this).write(item,target);
+	return static_cast<Impl &>(*this).writeToIter(item,target);
 }
 
 template<typename From, typename To, typename Impl>
 template<typename Iter>
 inline const To& IConverter<From, To, Impl>::getNextFromIter(Iter& source) {
-	return static_cast<Impl &>(*this).getNext(source);
+	return static_cast<Impl &>(*this).getNextFromIter(source);
+}
+
+template<typename From, typename To, typename Impl>
+template<typename Iter>
+inline bool IConverter<From, To, Impl>::hasItemsFromIter(const Iter& source) const {
+	return static_cast<Impl &>(*this).hasItemsFromIter(source);
 }
 
 template<typename From, typename To, typename Impl>
 template<typename Iter>
 inline const To& IConverter<From, To, Impl>::peekFromIter(const Iter& source) const {
-	return static_cast<Impl &>(*this).peek(source);
+	return static_cast<Impl &>(*this).peekFromIter(source);
 }
 
 template<typename From, typename To, typename Impl>
@@ -456,6 +456,30 @@ inline const To& ConverterBase<From, To, Impl>::peekFromIter(const Iter& source)
 	}
 	return Super::peek();
 }
+
+template<typename From, typename To, typename Impl>
+template<typename Iter>
+inline bool ConverterBase<From, To, Impl>::hasItemsFromIter(const Iter& source) const{
+	//if convertor has items, return true
+	if (this->hasItems) return true;
+	//if convertor reports end of logical block, return false;
+	if (this->eolb) return false;
+	//if source stream has items
+	while (source.hasItems()) {
+		//we don't know until we will feed convertor with some items
+		Impl &impl = const_cast<Impl &>(this->getImpl());
+		Iter &iter = const_cast<Iter &>(source);
+
+		impl.write(iter.getNext());
+		//if convertor has items, return true
+		if (this->hasItems) return true;
+		//if convertor reports end of logical block, return false;
+		if (this->eolb) return false;
+	}
+	return false;
+
+}
+
 
 template<typename From, typename To, typename Impl>
 inline void ConverterBase<From, To, Impl>::flush() {

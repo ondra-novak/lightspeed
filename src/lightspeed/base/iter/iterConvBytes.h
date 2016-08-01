@@ -78,6 +78,12 @@ public:
 		const FromT &in = source.peek();
 		return reinterpret_cast<const ToT &>(in);
 	}
+
+	template<typename Iter>
+	bool hasItemsFromIter(const Iter &source) const {
+		return source.hasItems();
+	}
+
 protected:
 	static const natural inputBytes = sizeof(FromT);
 	static const natural outputBytes = sizeof(ToT);
