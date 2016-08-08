@@ -22,7 +22,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))/common.mk
 
 LDLIBS+=$(LDOTHERLIBS)
 
-$(APPNAME): $(OBJS) $(LIBPATHS)
+$(APPNAME): $(OBJS) $(LIBPATHS)  $(CFGNAME)
 	@echo "$(APPNAME) Linking ... $(LDLIBS)"
 ifneq "$(notdir $(APPNAME))" "$(APPNAME)"		
 	@mkdir -p $(@D)
@@ -32,9 +32,11 @@ endif
 
 clean:
 	@echo $(APPNAME): cleaning  
-	@$(RM) $(clean_list)
-	@$(RM) -r tmp
-	@for X in $(NEEDLIBS); do $(MAKE) -C $$X clean; done
+ifneq "$(clean_list)" ""
+	$(RM) $(clean_list)
+endif
+	$(RM) -r $(BUILDDIR)
+	for X in $(NEEDLIBS); do $(MAKE) -C $$X clean; done
 	
 
 

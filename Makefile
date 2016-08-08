@@ -33,5 +33,5 @@ $(CONFIG): testfn testbuildin
 compiletests: $(APPNAME)
 
 runtests: $(APPNAME) 
-	tmp/lightspeed_test
+	$(BUILDDIR)/lightspeed_test
 	

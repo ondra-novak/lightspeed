@@ -53,16 +53,18 @@ endef
 $(LIBDEPS): $(CONFIG)
 	@$(genlibdeps)
 
-$(LIBFULLNAME): $(OBJS) $(LIBDEPS)
+$(LIBFULLNAME): $(OBJS) $(LIBDEPS) $(CFGNAME)
 	@$(genlibdeps)
 	@echo "$(LIBNAME): Creating library ..."		
 	@$(AR) -r $@ $(OBJS)	
 	
 clean: 
 	@echo $(LIBNAME): cleaning 
-	@$(RM) $(clean_list)
-	@$(RM) $(LIBDEPS)
-	@$(RM) -r tmp
+ifneq "$(clean_list)" ""
+	$(RM) $(clean_list)
+endif
+	$(RM) $(LIBDEPS)
+	$(RM) -r $(BUILDDIR)
 	
 
 

@@ -1,4 +1,6 @@
 
+BUILDDIR=tmp
+
 all: $(TARGETFILE)
 	@echo "Finished $(TARGETFILE)"
 debug: $(TARGETFILE)
@@ -22,12 +24,14 @@ endif
 
 ifeq "$(FORCE_DEBUG)" "1"
 CXXFLAGS += -O0 -g3 -fPIC -Wall -Wextra -DDEBUG -D_DEBUG $(INCLUDES)
-CFGNAME := tmp/cfg.debug
+CFGNAME := $(BUILDDIR)/cfg.debug
 LIBMAKEGOALS ?= debug
+OBJCACHE=debug
 else 
 CXXFLAGS += -O3 -g3 -fPIC -Wall -Wextra -DNDEBUG $(INCLUDES)
-CFGNAME := tmp/cfg.release
+CFGNAME := $(BUILDDIR)/cfg.release
 LIBMAKEGOALS ?= all
+OBJCACHE=release
 endif
 
 -include $(CFGNAME)
@@ -41,28 +45,31 @@ endif
 
 
 ROOT_DIR:=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-OBJS += $(patsubst %,tmp/%,${CPP_SRCS:.cpp=.o})
-DEPS := $(patsubst %,tmp/%,${CPP_SRCS:.cpp=.deps})
-clean_list += $(OBJS)  ${DEPS} $(TARGETFILE) tmp/cfg.debug tmp/cfg.release $(CONFIG) 
+OBJS += $(patsubst %,$(BUILDDIR)/$(OBJCACHE)/%,${CPP_SRCS:.cpp=.o})
+DEPS := $(patsubst %,$(BUILDDIR)/$(OBJCACHE)/%,${CPP_SRCS:.cpp=.deps})
+
 
 .PHONY: debug all debug clean force-rebuild deps 
 
 force-rebuild: 
 	@echo $(PROGRESSPREFIX): Requested rebuild
-	@rm -f tmp/cfg.debug tmp/cfg.release $(TARGETFILE)
+	@rm -f $(BUILDDIR)/cfg.debug $(BUILDDIR)/cfg.release $(TARGETFILE)
 	
-tmp:
-	@mkdir -p tmp	
+$(BUILDDIR):
+	@mkdir -p $(BUILDDIR)	
+
+$(BUILDDIR)/$(OBJCACHE): $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)	
 	
-$(CFGNAME): | tmp
-	@rm -f tmp/cfg.debug tmp/cfg.release
+$(CFGNAME): | $(BUILDDIR)
+	@rm -f $(BUILDDIR)/cfg.debug $(BUILDDIR)/cfg.release
 	@touch $@	
 	@echo $(PROGRESSPREFIX): Forced rebuild for CXXFLAGS=$(CXXFLAGS)
 
 
-tmp/%.o: %.cpp  $(CONFIG) $(CFGNAME) 
+$(BUILDDIR)/$(OBJCACHE)/%.o: %.cpp  $(CONFIG)  
 	@set -e
 	@mkdir -p $(@D) 
 	@echo $(PROGRESSPREFIX): $(*F).cpp  
-	@$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $*.cpp -MMD -MF tmp/$*.deps
+	@$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $*.cpp -MMD -MF $(BUILDDIR)/$(OBJCACHE)/$*.deps
 
