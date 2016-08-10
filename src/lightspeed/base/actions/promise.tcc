@@ -213,6 +213,17 @@ const T & Future<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 }
 
 template<typename T>
+const T *Future<T>::tryGetValue() const
+{
+	if (getState() != IPromiseControl::stateNotResolved) {
+		if (future->value != nil) return &future->value;
+		if (future->exception != nil) future->exception->throwAgain(THISLOCATION);
+	}
+	return 0;
+
+}
+
+template<typename T>
 const T & Future<T>::wait( ) const {
 	return wait(Timeout());
 }

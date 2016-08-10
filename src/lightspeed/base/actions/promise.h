@@ -256,6 +256,9 @@ public:
 	///Alias to wait. Function retrieves value of the promise if resolved, otherwise blocks.
 	const T &getValue() const {return wait();}
 
+	///Tries to retrieve value, if not resolved, returns NULL, otherwise it returns pointer to it
+	const T *tryGetValue() const;
+
 	///Reads value - same as wait(), just with infinite timeout
 	operator const T &() const {return wait();}
 
