@@ -107,6 +107,8 @@ public:
 
 protected:
 
+	static const natural eventUserWakeup = naturalNull-2;
+
 
 	class Connection: public RefCntObj, public ISleepingObject, public ITCPServerConnControl {
 	public:
@@ -148,11 +150,20 @@ protected:
 		natural dataReadyTimeout;
 		natural writeReadyTimeout;
 		natural sourceId;
+		//state of userWakeup
 		atomic userWakeupState;
+		//reason carried through userWakeup - available when userWakeupEvent
+		natural userWakeupReason;
 
-		static const atomicValue userWakeupEnabled = 1;
+		///userWakeup is inactive (default state)
+		static const atomicValue userWakeupInactive = 0;
+		///connection is sleeping, must be waken up
+		static const atomicValue userWakeupSleepingState = 1;
+		///there is wakeUp-event recorded
 		static const atomicValue userWakeupEvent = 2;
-		static const atomicValue userWakeupEnabledEvent = userWakeupEnabled | userWakeupEvent;
+		/* It is impossible to set both flags. The both function first checks the state
+		 *  and if oposite flag is set, they perform action immediately. State is cleared then
+		 */
 
 
 		class CompletionWakeUp: public ISleepingObject {
@@ -165,8 +176,7 @@ protected:
 		};
 
 		CompletionWakeUp complWakeUp;
-		void userWakeup(natural reason);
-		atomicValue setUserWakeupState(atomicValue flag);
+		void userWakeup();
 
 
 	};
@@ -213,7 +223,6 @@ protected:
 	void worker(Connection *owner);
 	void workerEx(Connection *owner, natural eventId);
 	void workerDisconnect(Connection *owner);
-	void checkUserWakeup(Connection *k);
 	void close(Connection *k);
 	void reuse(Connection *k);
 	void reuse(Connection *k, ITCPServerConnHandler::Command command);

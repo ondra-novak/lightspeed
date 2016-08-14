@@ -94,7 +94,15 @@ public:
 
 	///Returns object that can be used to wake connection while it has been put into inactive state
 	/**
+	 * When the handler returns cmdWaitUserWakeup, then connection is put into inactive state, where
+	 * it no longer receives events from the network event listener. It just sleeping without
+	 * occupying any thread.
 	 *
+	 * If you want to wakeup such connection, you have to call wakeUp() on userSleeper. This
+	 * function returns pointer to such object bound to the current connection.
+	 *
+	 * You can call the wakeUp() function even if connection is active. The event is recorded
+	 *  and prevents it to sleep in the future.
 	 *
 	 */
 
@@ -154,6 +162,7 @@ public:
 		cmdWaitUserWakeup = 4 
 	};
 
+
 	///Called when there are data ready
 	/**
 	 * @param stream connected stream
@@ -185,12 +194,14 @@ public:
 	 *
 	 * @param stream connected stream
 	 * @param context user context created during onConnect()
+	 * @param reason reason passed through user wakeup
 	 * @return command to TCP server. To continue waiting to userWakeup, you can return waitUserWakeup command
+	 *
 	 * otherwise return correct command.
 	 *
 	 *
 	 */
-	virtual Command onUserWakeup(const PNetworkStream &stream, ITCPServerContext *context) throw() = 0;
+	virtual Command onUserWakeup(const PNetworkStream &stream, ITCPServerContext *context, natural reason = 0) throw() = 0;
 	///Called when the peer connection has been closed
 	/**If the disconnection is detected during a waiting,
 	 * function onDisconnectByPeer is called. Function is not called, when disconnection is detected

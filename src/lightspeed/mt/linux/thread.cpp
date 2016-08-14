@@ -415,7 +415,9 @@ void Thread::deepSleep(const Timeout &timeout) {
 }
 
 void Thread::wakeUp(natural reason) throw() {
-	if (sleeper != nil) sleeper->wakeUp(reason);
+	if (sleeper != nil) {
+		sleeper->wakeUp(reason);
+	}
 }
 
 ///Retrieves ID of thread

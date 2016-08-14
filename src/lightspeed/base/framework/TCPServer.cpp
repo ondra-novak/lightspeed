@@ -169,7 +169,7 @@ public:
 
 	RunWorkerCompletion(TCPServer &server, Connection *conn):server(server),conn(conn) {}
 	void operator()() const {
-		server.checkUserWakeup(conn);
+		server.workerEx(conn,eventUserWakeup);
 	}
 protected:
 	TCPServer &server;
@@ -228,10 +228,9 @@ void TCPServer::Connection::wakeUp(natural reason) throw() {
 
 
 
-void TCPServer::Connection::userWakeup( natural )
+void TCPServer::Connection::userWakeup(  )
 {
 	owner.executor->execute(RunWorkerCompletion(owner,this));
-
 }
 
 
@@ -293,19 +292,42 @@ void TCPServer::workerEx(Connection *owner, natural eventId) {
 			cmdout = handler2->onWriteReady(owner->getStream(),owner->getContext());break;
 		case INetworkResource::waitTimeout:
 			cmdout = handler2->onTimeout(owner->getStream(),owner->getContext());break;
+		case eventUserWakeup:
+			cmdout = handler2->onUserWakeup(owner->getStream(),owner->getContext(), owner->userWakeupReason);break;
 		default:
 			cmdout = ITCPServerConnHandler::cmdRemove;
 		}
+
+		//if cmdout is set to cmdWaitUserWakeup, then let connection goes sleep
+		while (cmdout == ITCPServerConnHandler::cmdWaitUserWakeup) {
+			//push userWakeupEnabled to the state
+			atomicValue v = lockCompareExchange(owner->userWakeupState, 0, owner->userWakeupSleepingState);
+			//test whether it successful,
+			//this can fail only when event has been recorded
+			if (v & owner->userWakeupEvent) {
+				//reset the state
+				if (lockCompareExchange(owner->userWakeupState, v, 0) == v) {
+					//call the handler again
+					cmdout = handler2->onUserWakeup(owner->getStream(),owner->getContext(), owner->userWakeupReason);
+					//depend on result, we can repeat or return to normal processing
+				} else {
+					//this is uncommon situation. Failing to reset means, that there are two threads
+					//running the same connection. This should not happen
+					//the only solution is not allow this thread to continue
+					return;
+				}
+			} else {
+				//we successfuly set the state, leave connection now
+				return;
+			}
+		}
+
 	} catch (...) {
 		cmdout = ITCPServerConnHandler::cmdRemove;
 	}
 
+	//reuse connection depend on status
 	reuse(owner,cmdout);
-
-	if (cmdout == ITCPServerConnHandler::cmdWaitUserWakeup) {
-		owner->setUserWakeupState(owner->userWakeupEnabled);
-		checkUserWakeup(owner);
-	}
 }
 
 void TCPServer::workerDisconnect(Connection *owner) {
@@ -344,32 +366,29 @@ TCPServer::OtherPortAccept::OtherPortAccept(TCPServer& owner, natural sourceId,
 }
 
 
-void TCPServer::checkUserWakeup(Connection *k) {
-	ITCPServerConnHandler::Command cmd = ITCPServerConnHandler::cmdWaitUserWakeup;
-	while (lockCompareExchange(k->userWakeupState,k->userWakeupEnabledEvent,0) == k->userWakeupEnabledEvent) {
-		cmd = handler2->onUserWakeup(k->stream,k->getContext());
-		if (cmd == ITCPServerConnHandler::cmdWaitUserWakeup) {
-			k->setUserWakeupState(k->userWakeupEnabled);
-		}
-	}
-	if (cmd != ITCPServerConnHandler::cmdWaitReadOrWrite)
-		reuse(k,cmd);
-}
-
-atomicValue TCPServer::Connection::setUserWakeupState(atomicValue flag) {
-	atomicValue v = userWakeupState;
-	atomicValue nv;
-	do {
-		nv = v | flag;
-	} while (lockCompareExchange(userWakeupState,v,nv) != v);
-	return v;
-
-}
-
 void TCPServer::Connection::CompletionWakeUp::wakeUp( natural reason /*= 0 */ ) throw()
 {
-	atomicValue v = owner.setUserWakeupState(userWakeupEvent);
-	if (v & userWakeupEnabled) owner.userWakeup(reason);
+	owner.userWakeupReason = reason;
+	//try to record even when waiting is not expected
+	atomicValue value = lockCompareExchange(owner.userWakeupState,0,userWakeupEvent);
+	//this fails, when userWakeupEnabled is enabled, so connection is already sleeping
+	if (value & userWakeupSleepingState) {
+
+		//clear internal state, because we are going to wakeUp the connection
+		if (lockCompareExchange(owner.userWakeupState, value, 0) == value) {
+			//wakeup the connection
+			owner.userWakeup();
+		} else {
+			//note setting to zero can fail. This can happen, when two threads wakening
+			//same connection at the same time (twice)
+			//first resets the state, second fails.
+			//in this case, repeat this function
+			this->wakeUp(reason);
+		}
+	} else {
+		//state has been remembered, we can leave connection now because it is still
+		//in handler. It will execute userWakeup immediately when it leaves its thread
+	}
 }
 
 }

@@ -23,8 +23,9 @@ natural ThreadSleeper::getReason() const {
 	return reason;
 }
 
-void ThreadSleeper::wakeUp(natural ) throw() {
+void ThreadSleeper::wakeUp(natural reason ) throw() {
 	int val = 0;
+	this->reason = reason;
 	sem_getvalue(&semaphore,&val);
 	if (val < 1) sem_post(&semaphore);
 
