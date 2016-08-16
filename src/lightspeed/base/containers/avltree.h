@@ -403,6 +403,17 @@ namespace LightSpeed {
 	const Cmp &getCompareOperator() const {return cmpOper;}
 
 
+	template<typename Fn>
+	bool forEach(const Fn &fn, Direction::Type dir) const {
+		switch (dir) {
+		case Direction::forward: return forEachForward(tree,fn);
+		case Direction::backward: return forEachBackward(tree,fn);
+		case Direction::up: return forEachSuffix(tree,fn);
+		case Direction::down: return forEachPrefix(tree,fn);
+		default:return false;
+		}
+	}
+
 	protected:
 		Node *tree;
 		NodeAlloc allocFactory;
@@ -416,7 +427,29 @@ namespace LightSpeed {
 			allocFactory->destroyInstance(tree);
 		}
 
+		template<typename Fn>
+		bool forEachForward(const Node *tree, const Fn &fn) const {
+			if (tree == 0) return false;
+			return forEachForward(tree->getLeft(),fn) || fn(tree->data) || forEachForward(tree->getRight(),fn);
+		}
 
+		template<typename Fn>
+		bool forEachBackward(const Node *tree, const Fn &fn) const {
+			if (tree == 0) return false;
+			return forEachBackward(tree->getRight(),fn) || fn(tree->data) || forEachBackward(tree->getLeft(),fn);
+		}
+
+		template<typename Fn>
+		bool forEachSuffix(const Node *tree, const Fn &fn) const {
+			if (tree == 0) return false;
+			return forEachSuffix(tree->getLeft(),fn) || forEachSuffix(tree->getRight(),fn) || fn(tree->data);
+		}
+
+		template<typename Fn>
+		bool forEachPrefix(const Node *tree, const Fn &fn) const {
+			if (tree == 0) return false;
+			return fn(tree->data) || forEachPrefix(tree->getLeft(),fn) || forEachPrefix(tree->getRight(),fn);
+		}
 	};
 }
 

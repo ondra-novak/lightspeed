@@ -330,6 +330,21 @@ namespace LightSpeed {
 			tree.swap(other.tree);
 		}
 
+
+		///for each item - function will receive KeyValue object. Function have to return true to stop enumeration, false to continue
+		/**
+		 * @param fn function prototype bool fn(KeyValue). Function should return false to continue enumeration, or true to stop enumeration
+		 * @param dir direction: forward, backward, up (start from the bottom of tree, to the top of tree). down (from the top to the bottom)
+		 * @retval true enumeration stopped
+		 * @retval false enumeration finished
+		 */
+		template<typename Fn>
+		bool forEach(const Fn &fn, Direction::Type dir) const {
+			return tree.forEach(fn,dir);
+		}
+
+
+
 	protected:
 		enum Exclude{exclude};
 		enum Include{include};

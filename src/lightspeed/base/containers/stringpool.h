@@ -146,6 +146,23 @@ namespace LightSpeed {
 		template<typename X>
 		Str add(const IIterator<T,X> &iter);
 
+		class WriteIterator: public WriteIteratorBase<T, WriteIterator> {
+		public:
+			WriteIterator(StringPool &owner):owner(owner),startMark(owner.pool.length()) {}
+			bool hasItems() const {return true;}
+			void write(const T &x) {owner.pool.add(x);}
+			Str finish();
+
+		protected:
+			StringPool &owner;
+			natural startMark;
+
+		};
+
+		WriteIterator getWriteIterator() {
+			return WriteIterator(*this);
+		}
+
 	protected:
 		AutoArray<T, Alloc> pool;
 		const T * poolRef;

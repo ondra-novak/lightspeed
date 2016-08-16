@@ -97,6 +97,24 @@ inline typename StringPool<T, Alloc>::Str StringPool<T, Alloc>::add(const IItera
 	return Str(&poolRef,k,e - k);
 }
 
+template<typename T, typename Alloc>
+inline typename StringPool<T, Alloc>::Str StringPool<T, Alloc>::WriteIterator::finish() {
+	natural endMark = owner.pool.length();
+	if (StringBase<T>::needZeroChar) {
+		typename
+		AutoArray<T, Alloc>::WriteIter iter=owner.pool.getWriteIterator();
+		StringBase<T>::writeZeroChar(iter);
+	}
+	owner.poolRef = owner.pool.data();
+	natural beginMark = startMark;
+	startMark = owner.pool.length();
+
+	return Str(&owner.poolRef,beginMark,beginMark - endMark);
+
+
+
+}
+
 
 
 }
