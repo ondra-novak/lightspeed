@@ -719,6 +719,19 @@ void Promise<T>::callAndResolve(Fn fn) throw() {
 	}
 }
 
+template<typename T>
+void Promise<T>::rejectInCatch() throw() {
+	try {
+		throw;
+	} catch (const Exception &e) {
+		reject(e);
+	} catch (const std::exception &e) {
+		reject(StdException(THISLOCATION,e));
+	} catch (...) {
+		reject(UnknownException(THISLOCATION));
+	}
+}
+
 template<typename Fn>
 void Promise<void>::callAndResolve(Fn fn) throw() {
 	try {

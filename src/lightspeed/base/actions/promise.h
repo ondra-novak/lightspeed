@@ -934,6 +934,14 @@ public:
 	template<typename Fn, typename Arg>
 	void callAndResolve(Fn fn, Arg arg) throw();
 
+	///Function can be called in catch handler. It picks current exception and use it to resolve(reject) the promise
+	/** note is called outside of the catch handler, it can cause SIGABORT
+	 *
+	 * @note function has worse performance than reject() with known exception object, because it
+	 * generates aditional exceptions which are caught for exploration
+	 * */
+	void rejectInCatch() throw();
+
 protected:
 	friend class Future<T>;
 	Promise(typename Future<T>::Value *r);

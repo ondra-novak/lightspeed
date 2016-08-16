@@ -60,7 +60,8 @@ void AllocCluster::dealloc( void *ptr, natural sz )
 	if (!isMyPtr(ptr,bksize)) throw InvalidPointerException(THISLOCATION,ptr);
 	bool wasFull = isFull();
 	makeDealloc(ptr,sz);
-	master->onDealloc(this,wasFull);
+	if (wasFull || isEmpty())
+		master->onDealloc(this,wasFull);
 }
 
 byte AllocCluster::mapAddress( void * ptr , natural bksize )
