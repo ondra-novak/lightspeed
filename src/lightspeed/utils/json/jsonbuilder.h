@@ -78,6 +78,8 @@ public:
 
 	template<typename T>
 	Array operator,(const T &x) const {return operator<<(x);}
+	CArray operator,(const Container &x) const {return operator<<(x);}
+	CArray operator,(const ConstValue &x) const {return operator<<(x);}
 	///use serialization operator to construct array or feed array with values
 	/**
 	 * @code
@@ -184,6 +186,8 @@ public:
 
 		template<typename T>
 		Array &operator,(const T &x) {return operator<<(x);}
+		CArray operator,(const ConstValue &x)  {return operator<<(x);}
+		CArray operator,(const Container &x)  {return operator<<(x);}
 		template<typename T>
 		Array &operator<<(const T &x) {add(factory->newValue(x));return *this;}
 		Array &operator<<(NullType n) {add(factory->newValue(n)); return *this;}
