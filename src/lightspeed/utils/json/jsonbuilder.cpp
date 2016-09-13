@@ -57,30 +57,6 @@ Builder::CObject Builder::object(const ConstValue &nd) const {
 	return CObject(factory,c);
 }
 
-Builder::CObject Builder::Object::operator ()(ConstStrA name, const ConstValue& n) {
-	CObject obj(factory,*this);
-	obj(name,n);
-	return obj;
-}
-
-Builder::CObject Builder::Object::operator ()(ConstStrA name, const Container& n) {
-	const ConstValue &f = n;
-	CObject obj(factory,*this);
-	obj(name,f);
-	return obj;
-}
-
-Builder::CArray Builder::Array::operator <<(const ConstValue& x) {
-	CArray obj(factory,*this);
-	obj << x;
-	return obj;
-}
-
-Builder::CArray Builder::Array::operator <<(const Container& x) {
-	CArray obj(factory,*this);
-	obj << x;
-	return obj;
-}
 
 
 Container Builder::operator ()(const ConstStringT<Container>& val) const {
@@ -102,25 +78,32 @@ Builder::Object Builder::Object::operator/(ConstStrA pathItem) {
 
 
 Builder::CObject Builder::operator ()(ConstStrA name,const ConstValue& value) const {
-	Object obj(factory);
+	CObject obj(factory);
 	return obj(name,value);
 }
 
 Builder::CObject Builder::operator ()(ConstStrA name,const Container& value) const {
-	Object obj(factory);
+	CObject obj(factory);
 	return obj(name,value);
 }
 
 Builder::CArray Builder::operator <<(const Container& x) const {
-	Array obj(factory);
+	CArray obj(factory);
 	return obj << x;
 
 }
 
 Builder::CArray Builder::operator <<(const ConstValue& x) const {
-	Array obj(factory);
+	CArray obj(factory);
 	return obj << x;
 }
 
+JSON::Builder::CObject JSON::Builder::container(const ConstValue& value) const {
+	return CObject(factory, value->copy(factory,1,value->isMTAccessEnabled()));
 }
+
+
 }
+
+}
+

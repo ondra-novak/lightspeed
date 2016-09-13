@@ -69,10 +69,16 @@ public:
 	///Creates empty object
 	Value operator()(NullType) const;
 
+	///Creates container object.
+	/** Container object enables to add ConstValue without copying it. However result is Container, not Value */
+	template<typename T>
+	CObject container(ConstStrA name, const T &value) const;
+	CObject container(const ConstValue &value) const;
+
 
 
 	template<typename T>
-	typename FactoryHlpNewValueType<T>::T operator()(const T &val) const;
+	Value operator()(const T &val) const;
 	Container operator()(const ConstStringT<Container> &val) const;
 	Container operator()(const ConstStringT<ConstValue> &val) const;
 
@@ -153,14 +159,9 @@ public:
 		 */
 		Object operator/(ConstStrA name);
 		Object &operator()(ConstStrA name, NullType n) {set(name, factory->newValue(n));return *this;};
-		CObject operator()(ConstStrA name, const ConstValue &n);
-		CObject operator()(ConstStrA name, const Container &n);
-		CObject operator()(ConstStrA name, const CObject &n) {
-				return operator()(name, static_cast<const Container &>(n));
-		}
-		CObject operator()(ConstStrA name, const CArray &n) {
-				return operator()(name, static_cast<const Container &>(n));
-		}
+		///Converts Object to Container Object
+		/** This allows to add ConstValue object to the container, however, result will be Container */
+		CObject container() const {return CObject(factory,*this);}
 	protected:
 	};
 
@@ -168,14 +169,23 @@ public:
 	public:
 
 		CObject(const PFactory &factory, const Container &nd):CCommon(factory,nd) {}
+		CObject(const PFactory &factory):CCommon(factory,factory->newObject()) {}
 
 		template<typename T>
 		CObject &operator()(ConstStrA name, const T &value) {
-			set(name,factory->newValue(value));
+			setValue(name,value,&value);
 			return *this;
 		}
 		CObject &operator()(ConstStrA name, NullType n) {set(name, n);return *this;};
 	protected:
+		template<typename T>
+		void setValue(ConstStrA name, const T &value, ...) {
+			set(name, factory->newValue(value));
+		}
+		template<typename T>
+		void setValue(ConstStrA name, const T &value, const ConstValue *) {
+			set(name, value);
+		}
 	};
 
 	class Array: public Common {
@@ -186,15 +196,11 @@ public:
 
 		template<typename T>
 		Array &operator,(const T &x) {return operator<<(x);}
-		CArray operator,(const ConstValue &x)  {return operator<<(x);}
-		CArray operator,(const Container &x)  {return operator<<(x);}
 		template<typename T>
 		Array &operator<<(const T &x) {add(factory->newValue(x));return *this;}
 		Array &operator<<(NullType n) {add(factory->newValue(n)); return *this;}
-		CArray operator<<(const ConstValue &x);
-		CArray operator<<(const Container &x);
-		CArray operator<<(const CArray &x) {return operator<<(static_cast<const Container &>(x));}
-		CArray operator<<(const CObject &x) {return operator<<(static_cast<const Container &>(x));}
+		/** This allows to add ConstValue object to the container, however, result will be Container */
+		CArray container() const {return CArray(factory,*this);}
 	protected:
 
 	};
@@ -203,13 +209,22 @@ public:
 	public:
 
 		CArray(const PFactory &factory, const Container &nd):CCommon(factory,nd) {}
+		CArray(const PFactory &factory):CCommon(factory,factory->newArray()) {}
 
 		template<typename T>
 		CArray &operator,(const T &x) {return operator<<(x);}
 		template<typename T>
-		CArray &operator<<(const T &x) {add(factory->newValue(x)); return *this;}
+		CArray &operator<<(const T &x) {setValue(x,&x); return *this;}
 		CArray &operator<<(NullType n) {add(factory->newValue(n)); return *this;}
 	protected:
+		template<typename T>
+		void setValue(const T &value, ...) {
+			add(factory->newValue(value));
+		}
+		template<typename T>
+		void setValue(const T &value, const ConstValue *) {
+			add(value);
+		}
 
 	};
 
@@ -232,9 +247,12 @@ inline Builder::Object Builder::operator ()(ConstStrA name, const T& value) cons
 }
 
 template<typename T>
-inline typename FactoryHlpNewValueType<T>::T  Builder::operator ()(const T& value) const {
-	return factory->newValue(value);
+inline Builder::CObject Builder::container(ConstStrA name, const T& value) const {
+	CObject nd(factory);
+	nd(name, value);
+	return nd;
 }
+
 
 
 template<typename T>
@@ -244,6 +262,10 @@ inline Builder::Array Builder::operator <<(const T&value) const {
 	return nd;
 }
 
+template<typename T>
+Value Builder::operator()(const T &val) const {
+	return factory->newValue(val);
+}
 
 }
 }
