@@ -11,8 +11,8 @@
 #include "../../mt/atomic.h"
 #ifdef LIGHTSPEED_PLATFORM_WINDOWS
 #include <time.h>
-inline int localtime_r(const time_t *tmt, struct tm *tminfo) {
-	return localtime_s(tminfo,tmt);
+inline int gmtime_r(const time_t *tmt, struct tm *tminfo) {
+	return gmtime_s(tminfo,tmt);
 }
 #endif
 
@@ -84,7 +84,7 @@ AbstractLogProvider::LogTimestamp::LogTimestamp() {
 	time_t tmt;
 	time(&tmt);
 	struct tm tminfo;
-	localtime_r(&tmt,&tminfo);
+	gmtime_r(&tmt,&tminfo);
 	year = tminfo.tm_year+1900;
 	month = tminfo.tm_mon+1;
 	day = tminfo.tm_mday;
