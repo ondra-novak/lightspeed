@@ -136,6 +136,19 @@ protected:
 
 };
 
+template<typename T>
+Value parse(IIterator<char, T> &iter, const PFactory &factory) {
+	Parser<T> s(iter,factory);
+	return s.parse();
+}
+template<typename T>
+Value parse(const IIterator<char, T> &iter, const PFactory &factory) {
+	T copy(static_cast<const T &>(iter));
+	Parser<T> s(copy,factory);
+	return s.parse();
+}
+
+
 }
 }
 

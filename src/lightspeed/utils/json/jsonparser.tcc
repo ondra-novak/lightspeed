@@ -1,6 +1,9 @@
+#include "json.h"
 #include "jsondefs.h"
 #include "jsonparser.h"
 
+#include "jsonexception.h"
+#include "../../base/text/textFormat.tcc"
 
 namespace LightSpeed {
 

@@ -21,6 +21,7 @@
 #include "../../base/containers/stringBase.h"
 #include "../../base/iter/vtiterator.h"
 #include "../../base/meta/emptyClass.h"
+#include "../../base/memory/refCounted.h"
 namespace LightSpeed {
 	class SeqFileInput;
 	class SeqFileOutput;
@@ -59,9 +60,9 @@ namespace LightSpeed {
 		class IFactory;
 
 
-		class ConstValue: public ::LightSpeed::RefCntPtr<const INode> {
+		class ConstValue: public RefCountedPtr<const INode> {
 		public:
-			typedef ::LightSpeed::RefCntPtr<const INode> Super;
+			typedef ::LightSpeed::RefCountedPtr<const INode> Super;
 			typedef NodeType Type;
 
 			ConstValue() {}
@@ -122,10 +123,7 @@ namespace LightSpeed {
 	        natural length() const;
 	        bool empty() const;
 
-	        ConstValue getMT() const {
-	        	RefCntPtr x = getMT();
-	        	return static_cast<ConstValue &>(x);
-	        }
+	        ConstValue getMT() const {return *this;}
 
 	    };
 
@@ -220,11 +218,7 @@ namespace LightSpeed {
 	        INode &operator *() const {return *safeGetMutable();}
 	        operator Pointer<INode>() const {return Pointer<INode>(safeGetMutable());}
 
-	        Value getMT() const {
-	        	RefCntPtr x = RefCntPtr::getMT();
-	        	return static_cast<Value &>(x);
-	        }
-	        INode *detach()  {return const_cast<INode *>(Super::detach());}
+	        Value getMT() const {return *this;}
 	        INode *get() const {return const_cast<INode *>(Super::get());}
 
 			///Set property of an object
@@ -279,9 +273,9 @@ namespace LightSpeed {
 		//Smart pointer to factory
 		/**Automatically tracks reference counts for factories allowing free unused factories as required */
 //		typedef ::LightSpeed::RefCntPtr<IFactory> PFactory;
-		class PFactory: public ::LightSpeed::RefCntPtr<IFactory> {
+		class PFactory: public ::LightSpeed::RefCountedPtr<IFactory> {
 		public:
-			typedef ::LightSpeed::RefCntPtr<IFactory> Super;
+			typedef ::LightSpeed::RefCountedPtr<IFactory> Super;
 
 			PFactory() {}
 			PFactory(const Super &x):Super(x) {}
@@ -424,7 +418,7 @@ namespace LightSpeed {
 
 		*/
 
-		class INode: public ::LightSpeed::IRefCntInterface {
+		class INode: public virtual IInterface, public RefCounted {
 		public:
 
 			///retrieves type of node
@@ -541,7 +535,7 @@ namespace LightSpeed {
 			bool operator !=(const INode &other) const {return !(*this == other);}
 
 			///Creates copy of whole JSON tree using different factory
-			virtual INode *clone(PFactory factory) const = 0;
+			virtual Value clone(PFactory factory) const = 0;
 
 			///Creates copy of while JSON keeping immutable values shared
 			/**
@@ -745,10 +739,10 @@ namespace LightSpeed {
 			Value newValue(const wchar_t *v)  {return this->_invoke().newValue(ConstStrW(v));}
 			Value newValue(std::string &v)  {return this->_invoke().newValue(ConstStrA(v.data(),v.length()));}
 			Value newValue(std::wstring &v)  {return this->_invoke().newValue(ConstStrW(v.data(),v.length()));}
-			Value newValue(const ConstValue &v) {return v->copy(&this->_invoke(),naturalNull,v->isMTAccessEnabled());}
+			Value newValue(const ConstValue &v) {return v->copy(&this->_invoke(),naturalNull,false);}
 			Value newValue(const Value &v) {return v;}
 			Value newValue(INode *v) {return v;}
-			Value newValue(const INode *v) {return v->copy(&this->_invoke(),naturalNull,v->isMTAccessEnabled());}
+			Value newValue(const INode *v) {return v->copy(&this->_invoke(),naturalNull,false);}
 #ifdef LIGHTSPEED_ENABLE_CPP11
 							Value newValue(std::nullptr_t) {return this->_invoke().newValue(null);}
 				#endif
@@ -768,7 +762,7 @@ namespace LightSpeed {
 		 * destroy JSON structure complette, then destroy factory. This doesn't apply to
 		 * factory created by method create() without arguments
 		 */
-		class IFactory: public RefCntObj, public IInterface, public FactoryHelper<IFactory> {
+		class IFactory: public RefCounted, public virtual IInterface, public FactoryHelper<IFactory> {
 		public:
 
 			using FactoryHelper<IFactory>::newValue;

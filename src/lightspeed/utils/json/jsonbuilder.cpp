@@ -99,7 +99,7 @@ Builder::CArray Builder::operator <<(const ConstValue& x) const {
 }
 
 JSON::Builder::CObject JSON::Builder::container(const ConstValue& value) const {
-	return CObject(factory, value->copy(factory,1,value->isMTAccessEnabled()));
+	return CObject(factory, value->copy(factory,1,true));
 }
 
 

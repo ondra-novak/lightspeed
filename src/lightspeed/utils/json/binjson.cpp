@@ -211,7 +211,7 @@ public:
 	virtual bool operator==(const INode &other) const {
 		return getStringUtf8() == other.getStringUtf8();
 	}
-	virtual INode *clone(PFactory factory) const {return new(*factory->getAllocator()) EnumNode(text);}
+	virtual Value clone(PFactory factory) const {return new(*factory->getAllocator()) EnumNode(text);}
 
 
 protected:

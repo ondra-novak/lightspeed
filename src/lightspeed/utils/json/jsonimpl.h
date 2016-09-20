@@ -43,7 +43,7 @@ public:
 
 	virtual const INode * enableMTAccess() const ;
 
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 
 	virtual bool operator==(const INode &other) const;
 
@@ -115,7 +115,7 @@ public:
 	virtual INode *erase(natural index);
 	virtual const INode *enableMTAccess() const;
 
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 
 	virtual bool operator==(const INode &other) const;
 
@@ -141,7 +141,7 @@ public:
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const;
 	virtual const INode * enableMTAccess()const;
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
 	AutoArray<wchar_t,SmallAlloc<32> > value;
@@ -162,7 +162,7 @@ public:
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const  {return value;}
 	virtual const INode * enableMTAccess() const;
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 	virtual bool isUtf8() const {return true;}
 	virtual ConstStrW getString() const;
@@ -183,7 +183,7 @@ public:
 	virtual bool getBool() const {return false;}
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const  {return ConstStrA();}
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 	virtual bool isUtf8() const {return true;}
 	virtual ConstStrW getString() const {return ConstStrW();}
@@ -200,7 +200,7 @@ public:
 	virtual bool getBool() const {return false;}
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const  {return ConstStrA("0");}
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 	virtual bool isUtf8() const {return true;}
 	virtual ConstStrW getString() const {return ConstStrW(L"0");}
@@ -217,7 +217,7 @@ public:
 	virtual bool getBool() const {return false;}
 	virtual bool isNull() const {return false;}
 	ConstStrA getStringUtf8() const  {return ConstStrA(x);}
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 	virtual bool isUtf8() const {return true;}
 	virtual ConstStrW getString() const {return ConstStrW(x);}
@@ -253,7 +253,7 @@ public:
 	virtual double getFloat() const {return double(x);}
 	virtual bool getBool() const {return x != 0;}
 	virtual bool isNull() const {return false;}
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
 	virtual TextFieldA *createTextNode() const;
@@ -273,7 +273,7 @@ public:
 	virtual double getFloat() const {return double(x);}
 	virtual bool getBool() const {return x != 0;}
 	virtual bool isNull() const {return false;}
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
 	virtual TextFieldA *createTextNode() const;
@@ -299,7 +299,7 @@ public:
 	virtual TextFieldA *createTextNode() const;
 
 
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
 
@@ -318,7 +318,7 @@ public:
 	virtual bool getBool() const {return false;}
 	virtual bool isNull() const {return true;}
 
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
 	static Null *getNull();
@@ -340,7 +340,7 @@ public:
 	virtual bool getBool() const {return b;}
 	virtual bool isNull() const {return false;}
 
-	virtual INode *clone(PFactory factory) const;
+	virtual Value clone(PFactory factory) const;
 	virtual bool operator==(const INode &other) const;
 
 	bool b;

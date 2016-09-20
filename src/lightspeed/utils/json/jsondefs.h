@@ -12,6 +12,7 @@
 #include "../../base/memory/smallAlloc.h"
 
 
+
 #pragma once
 
 namespace LightSpeed {
@@ -71,7 +72,6 @@ public:
 	virtual INode* erase(ConstStrA) {return this;}
 
 	virtual const INode*  enableMTAccess() const {
-		RefCntObj::enableMTAccess();
 		return this;
 	}
 

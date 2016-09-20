@@ -7,7 +7,6 @@
 #include "json.h"
 #include "jsonimpl.h"
 #include "jsonexception.h"
-#include "jsonfast.tcc"
 #include "jsonparser.tcc"
 #include "jsonserializer.tcc"
 
@@ -44,7 +43,6 @@ bool Object::enumEntries(const IEntryEnum &fn) const {
 }
 
 void Object::insertField(ConstStrA name, Value nd) {
-	Value v = isMTAccessEnabled()?nd.getMT():nd;
 
 	ConstStrA out;
 	FieldNode *item = new(name, out) FieldNodeNew(Field(out, nd));
@@ -74,13 +72,13 @@ INode *Object::add(ConstStrA name, Value nd) {
 	return this;
 }
 
-INode *Object::clone(PFactory factory) const {
+Value Object::clone(PFactory factory) const {
 	Value r = factory->newClass();
 	for (FieldMap::Iterator iter = fields.getFwIter();iter.hasItems();) {
 		const FieldNode *e = iter.getNext();
 		r->add(e->data.key,e->data.value->clone(factory));
 	}
-	return r.detach();
+	return r;
 }
 
 bool Object::operator==(const INode &other) const {
@@ -126,11 +124,6 @@ INode *Object::clear() {
 
 const INode *Object::enableMTAccess() const
 {
-	RefCntObj::enableMTAccess();
-	for (FieldMap::Iterator iter = fields.getFwIter(); iter.hasItems();) {
-		const FieldNode *e = iter.getNext();
-		e->data.value->enableMTAccess();
-	}
 	return this;
 }
 
@@ -193,8 +186,7 @@ bool Array::enumEntries(const IEntryEnum &fn) const {
 INode *Array::add(Value nd) {
 	if (nd == nil) throw InvalidParamException(THISLOCATION,0,"Argument has no value");
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
-	if (isMTAccessEnabled()) list.add(nd.getMT());
-	else list.add(nd);
+	list.add(nd);
 	return this;
 }
 
@@ -209,13 +201,13 @@ INode *Array::erase(natural index) {
 
 void Array::internalAdd(Value nd) {list.add(nd);}
 
-INode *Array::clone(PFactory factory) const {
+Value Array::clone(PFactory factory) const {
 	Value r = factory->newArray();
 	for (FieldList_t::Iterator iter = list.getFwIter();iter.hasItems();) {
 		const Value &e = iter.getNext();
 		r->add(e->clone(factory));
 	}
-	return r.detach();
+	return r;
 }
 
 bool Array::operator==(const INode &other) const {
@@ -235,7 +227,6 @@ bool Array::operator==(const INode &other) const {
 
 const INode * Array::enableMTAccess() const
 {
-	RefCntObj::enableMTAccess();
 	for (FieldList_t::Iterator iter = list.getFwIter(); iter.hasItems();) {
 		const Value &e = iter.getNext();
 		e.getMT();
@@ -288,12 +279,11 @@ ConstStrW TextFieldA::getString() const {
 }
 
 const INode * TextField::enableMTAccess() const {
-	RefCntObj::enableMTAccess();
 	return this;
 }
 
-INode *TextField::clone(PFactory factory) const {
-	return factory->newValue(value).detach();
+Value TextField::clone(PFactory factory) const {
+	return factory->newValue(value);
 }
 
 bool TextField::operator==(const INode &other) const {
@@ -328,12 +318,11 @@ linteger TextFieldA::getLongInt() const {
 
 
 const INode * TextFieldA::enableMTAccess() const {
-	RefCntObj::enableMTAccess();
 	return this;
 }
 
-INode *TextFieldA::clone(PFactory factory) const {
-	return factory->newValue(value).detach();
+Value TextFieldA::clone(PFactory factory) const {
+	return factory->newValue(value);
 }
 
 bool TextFieldA::operator==(const INode &other) const {
@@ -372,12 +361,12 @@ TextFieldA *IntField64::createTextNode() const {
 	return new TextFieldA(fmt.write());
 }
 
-INode *IntField::clone(PFactory factory) const {
-	return factory->newValue(x).detach();
+Value IntField::clone(PFactory factory) const {
+	return factory->newValue(x);
 }
 
-INode *IntField64::clone(PFactory factory) const {
-	return factory->newValue(x).detach();
+Value IntField64::clone(PFactory factory) const {
+	return factory->newValue(x);
 }
 
 bool IntField::operator==(const INode &other) const {
@@ -398,8 +387,8 @@ TextFieldA *FloatField::createTextNode() const {
 	return new TextFieldA(fmt.write());
 }
 
-INode *FloatField::clone(PFactory factory) const {
-	return factory->newValue(x).detach();
+Value FloatField::clone(PFactory factory) const {
+	return factory->newValue(x);
 }
 
 bool FloatField::operator==(const INode &other) const {
@@ -408,7 +397,7 @@ bool FloatField::operator==(const INode &other) const {
 	else return x == t->x;
 }
 
-INode *Null::clone(PFactory f) const {
+Value Null::clone(PFactory f) const {
 	return f->newValue(null);
 
 }
@@ -420,8 +409,8 @@ bool Null::operator==(const INode &other) const {
 }
 
 
-INode *Bool::clone(PFactory factory) const {
-	return factory->newValue(b).detach();
+Value Bool::clone(PFactory factory) const {
+	return factory->newValue(b);
 }
 
 bool Bool::operator==(const INode &other) const {
@@ -506,6 +495,9 @@ public:
 
 	FastFactory():FactoryAlloc<>(alloc) {}
 	virtual IFactory *clone() {return new FastFactory;}
+	~FastFactory() {
+		RefCounted::commitAllRefs();
+	}
 };
 
 
@@ -533,8 +525,15 @@ ConstStrA Factory::toString(const INode &nd )
 	return strRes.getArray();
 }
 
+template<typename T> void doSerialize(const INode &nd, IWriteIterator<char, T> &iter) {
+	Serializer<T> s(iter,true);
+	s.serialize(&nd);
+
+}
+
 void FactoryCommon::toStream(const INode &nd, SeqFileOutput &stream) {
-	JSON::toStream(&nd,stream,this->escapeUTF);
+	SeqTextOutA textStream(stream);
+	doSerialize(nd,textStream);
 }
 
 
@@ -602,7 +601,6 @@ Value Value::operator[]( natural pos ) const
 
 
 bool ConstValue::setIfNullDeleteOtherwiseAtomic(const INode *nd) {
-	nd->enableMTAccess();
 	nd->addRef();
 	if (lockCompareExchangePtr<const INode>(&this->ptr,0,nd) != 0) {
 		delete nd;
@@ -714,7 +712,7 @@ Value FactoryCommon::newValue(NullType) {
 }
 
 
-INode *EmptyString::clone(PFactory f) const {
+Value EmptyString::clone(PFactory f) const {
 	return f->newValue(ConstStrA());
 }
 
@@ -724,7 +722,7 @@ bool EmptyString::operator==(const INode &other)const {
 
 
 
-INode *ZeroNumber::clone(PFactory f)const {
+Value ZeroNumber::clone(PFactory f) const {
 	return f->newValue(natural(0));
 }
 
@@ -734,7 +732,7 @@ bool ZeroNumber::operator==(const INode &other)const {
 }
 
 
-INode *SingleCharacter::clone(PFactory f)const {
+Value SingleCharacter::clone(PFactory f) const {
 	return f->newValue(getStringUtf8());
 }
 
@@ -900,7 +898,6 @@ Value AbstractNode_t::copy(PFactory factory, natural depth, bool mt_share) const
 			for(ConstIterator iter = getFwConstIter(); iter.hasItems();) {
 				const ConstKeyValue &ckv = iter.getNext();
 				Value x (const_cast<INode *>((const INode *)ckv));
-				if (mt_share) x->RefCntObj::enableMTAccess();
 				out->add(ckv.getStringKey(),x);
 			}
 		}

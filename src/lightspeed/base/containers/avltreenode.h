@@ -562,7 +562,7 @@ public:
 	AvlTreeNode<T, LinkT> *remove(const AvlTreeNode<T, LinkT> &nd)  {
 		AvlTreeNode<T, LinkT> *out;
 		tree = tree->remove(order,&nd,out);
-		count--;
+		if (out) count--;
 		return out;
 	}
 
@@ -570,7 +570,7 @@ public:
 		bool done = false;
 		AvlTreeNode<T, LinkT> *nd = iter.peek();
 		tree = static_cast<AvlTreeNode<T, LinkT> *>(tree->remove(iter,done));
-		count--;
+		if (done) count--;
 		return nd;
 	}
 

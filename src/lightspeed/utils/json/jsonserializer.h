@@ -77,8 +77,6 @@ void serialize(const INode *json, IWriteIterator<char, T> &iter, bool escapeUTF8
 	s.serialize(json);
 }
 
-template<typename T>
-void serialize(const INode *json, IWriteIterator<char, T> &iter, bool escapeUTF8);
 
 template<typename T, typename X>
 static void writeChar(X c, IWriteIterator<char, T> & iter) {
