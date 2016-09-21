@@ -19,6 +19,11 @@
 #define LIGHTSPEED_ENABLE_CPP11
 #endif
 
+
+#define likely(x)       (x)
+#define unlikely(x)     (x)
+
+
 #include "winpch.h"
 
 #endif /*PLATFORM_*/

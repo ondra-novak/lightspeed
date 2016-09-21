@@ -10,6 +10,7 @@
 
 #include "../../mt/atomic.h"
 #include "../../mt/threadHook.h"
+#include "../../base/platform.h"
 
 namespace LightSpeed {
 
@@ -28,13 +29,13 @@ public:
 	PointerCacheItem():pointer(0),counter(0) {}
 
 	bool flush() {
-		if (counter) {
+		if (likely(counter != 0)) {
 			//there can happen a collision when item is reused during the flush
 			//so we need to re-check, that counter is really zero after the flush
 			//if not, repeat the flush operation, because somebody really
 			//need this item empty
 			do {
-				//save values first - it can be rewrited during this operation
+				//save values first - it can be rewritten during this operation
 				atomicValue z = counter;
 				const RefCounted *p = pointer;
 				//reset counter - slot is no longer used
@@ -50,21 +51,8 @@ public:
 			return false;
 		}
 	}
-	void updateCounter(const RefCounted *newp, atomicValue diff) {
-		//pointers differ?
-		if (pointer != newp) {
-			//flush item
-			flush();
-			//store item
-			pointer = newp;
-			//increase one reference for the thread which holds the reference
-			pointer->updateCounterMt(1);
-			//however, remove this reference from the local counter
-			counter = diff-1;
-		} else {
-			counter += diff;
-		}
-	}
+	template<atomicValue diff>
+	void updateCounter(const RefCounted *newp);
 
 	const RefCounted * getPtr() const {return pointer;}
 
@@ -73,7 +61,6 @@ public:
 		else return 0;
 	}
 
-protected:
 	const RefCounted *pointer;
 	atomicValue counter;
 
@@ -87,12 +74,14 @@ public:
 	static const natural cacheSize = 64;
 
 
-	void updateCounter(const RefCounted *ptr, atomicValue diff);
+	template<atomicValue diff>
+	void updateCounter(const RefCounted *ptr);
 	void flush(const RefCounted *ptr);
 	PointerCache ();
 	~PointerCache();
 
-	static thread_local RefCounted::PointerCache pointerCache;
+	static thread_local RefCounted::PointerCache *pointerCache;
+
 
 	void flushTable() throw();
 	natural getCounter(const RefCounted *ptr) const;
@@ -103,54 +92,122 @@ protected:
 
 };
 
-class CleanupThreadHook: public AbstractThreadHook {
-	virtual void onThreadExit(Thread &)  {
-		RefCounted::commitAllRefs();
-	}
-	virtual void onThreadException(Thread &) throw() {
-		RefCounted::commitAllRefs();
+class RefCounted::PointerDmz: public RefCounted::PointerCache {
+public:
+	static RefCounted dmzItem;
+	static RefCounted::PointerDmz dmzTable;
+
+
+	PointerDmz() {
+		for (natural i = 0; i < cacheSize; i++) {
+			table[i].pointer = &dmzItem;
+			table[i].counter = 12345678;
+		}
 	}
 
 };
 
+class CleanupThreadHook: public AbstractThreadHook {
+public:
+	CleanupThreadHook() {
+		RefCounted::onThreadInit();
+	}
+	~CleanupThreadHook() {
+		RefCounted::onThreadExit();
+	}
+
+	virtual void onThreadInit(Thread &) {
+		RefCounted::onThreadInit();
+	}
+
+	virtual void onThreadExit(Thread &)  {
+		RefCounted::onThreadExit();
+	}
+	virtual void onThreadException(Thread &) throw() {
+		RefCounted::onThreadExit();
+	}
+
+};
 static CleanupThreadHook hk;
+
+//fake global table which is initialized by fake item (dmzItem)
+//In case that thread-local table is not initialized, or already destroyed, this causes that
+//incrementing and decrementing is directly routed to the interlocked function
+//Using the table means, that there is no extra instruction in time-critical part of reference counting
+//however, it wastes 512 bytes of global heap
+
+RefCounted::PointerDmz RefCounted::PointerDmz::dmzTable;
+RefCounted RefCounted::PointerDmz::dmzItem;
+thread_local RefCounted::PointerCache *RefCounted::PointerCache::pointerCache = &RefCounted::PointerDmz::dmzTable;
+
+
+
+template<atomicValue diff>
+inline void RefCounted::PointerCacheItem::updateCounter(const RefCounted *newp) {
+	//pointers differ?
+	if (likely(pointer == newp)) {
+		counter += diff;
+	} else {
+		//in this case, test whether we are working with dmzTable
+		if (unlikely(pointer == &RefCounted::PointerDmz::dmzItem)) {
+			//if we are, route directly to interlocked
+			newp->updateCounterMt(diff);
+		} else {
+			//flush item
+			flush();
+			//increase one reference for the thread which holds the reference
+			atomicValue r = newp->updateCounterMt(1);
+			//in case that previous count + diff == 0
+			if (unlikely((r + diff) == 0)) {
+				//this was last reference, so we can destroy object now
+				delete newp;
+			} else {
+				//store item
+				pointer = newp;
+				//however, remove this reference from the local counter
+				counter = diff-1;
+			}
+		}
+	}
+}
+
+
+void RefCounted::onThreadExit() {
+	if (RefCounted::PointerCache::pointerCache != &RefCounted::PointerDmz::dmzTable) {
+		//store pointer
+		RefCounted::PointerCache *c = RefCounted::PointerCache::pointerCache;
+		//make table destroyed (all other request will be routed to the dmzTable
+		RefCounted::PointerCache::pointerCache = &RefCounted::PointerDmz::dmzTable;
+		//delete table (will be flushed)
+		delete c;
+	}
+}
+
+void RefCounted::onThreadInit() {
+	if (RefCounted::PointerCache::pointerCache != &RefCounted::PointerDmz::dmzTable) return;
+	RefCounted::PointerCache::pointerCache = new PointerCache;
+}
+
 
 RefCounted::PointerCache::PointerCache () {
 	hk.install();
 }
 
-thread_local RefCounted::PointerCache RefCounted::PointerCache::pointerCache;
 
 
 static inline natural hashPointer(const RefCounted *ptr) {
 
-	Bin::natural32 x;
-	if (sizeof(ptr) > 4) {
-		Bin::natural32 *a = reinterpret_cast<Bin::natural32 *>(&ptr);
-		x = a[0] ^ a[1];
-	} else {
-		x = *reinterpret_cast<Bin::natural32 *>(&ptr);
-	}
-	Bin::natural16 x2;
-	if (sizeof(ptr) > 2) {
-		Bin::natural16 *a = reinterpret_cast<Bin::natural16 *>(&x);
-		x2 = a[0] ^ a[1];
-	} else {
-		x2 = Bin::natural16(x);
-	}
-	Bin::natural8 x3;
-	{
-			Bin::natural8 *a = reinterpret_cast<Bin::natural8 *>(&x2);
-			x3 = a[0] ^ a[1];
-	}
-	return x3;
+
+	natural b = reinterpret_cast<natural>(&ptr);
+	return b ^ (b >> 8) ^ (b >> 16) ^ (b >> 24);
+
 }
 
-
-void RefCounted::PointerCache::updateCounter(const RefCounted *ptr, atomicValue diff) {
+template<atomicValue diff>
+inline void RefCounted::PointerCache::updateCounter(const RefCounted *ptr) {
 	natural index = hashPointer(ptr) & (cacheSize-1);
 	PointerCacheItem &citem = table[index];
-	citem.updateCounter(ptr,diff);
+	citem.updateCounter<diff>(ptr);
 }
 
 void RefCounted::PointerCache::flush(const RefCounted* ptr) {
@@ -185,30 +242,32 @@ void RefCounted::PointerCache::flushTable() throw() {
 
 }
 
-void RefCounted::updateCounter(atomicValue diff) const {
-	PointerCache::pointerCache.updateCounter(this,diff);
+template<atomicValue diff>
+void RefCounted::updateCounter() const {
+	PointerCache::pointerCache->updateCounter<diff>(this);
 }
 
 bool RefCounted::isShared() const {
-	atomicValue cnt = counter + PointerCache::pointerCache.getCounter(this);
+	atomicValue cnt = counter + PointerCache::pointerCache->getCounter(this);
 	return cnt > 1;
 }
 
 void LightSpeed::RefCounted::commitAllRefs() throw() {
-	PointerCache::pointerCache.flushTable();
+	PointerCache::pointerCache->flushTable();
 }
 
 
 void RefCounted::commitRef() const {
-	PointerCache::pointerCache.flush(this);
+	PointerCache::pointerCache->flush(this);
 
 }
 
 
-void RefCounted::updateCounterMt(atomicValue diff) const {
+atomicValue RefCounted::updateCounterMt(atomicValue diff) const {
 	atomicValue x = lockExchangeAdd(counter, diff);
 	if (x + diff == 0)
 		delete this;
+	return x;
 }
 
 natural RefCounted::PointerCache::getCounter(const RefCounted* ptr) const {
@@ -218,5 +277,7 @@ natural RefCounted::PointerCache::getCounter(const RefCounted* ptr) const {
 
 }
 
+template void RefCounted::updateCounter<1>() const;
+template void RefCounted::updateCounter<-1>() const;
 }
 

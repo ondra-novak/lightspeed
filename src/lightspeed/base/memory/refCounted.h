@@ -24,13 +24,13 @@ public:
 	/** Adds reference to the object. Note that reference can be invisible in other threads until
 	 *  it is committed. This function is used by RefCountedPtr
 	 */
-	void addRef() const {updateCounter(1);}
+	void addRef() const {updateCounter<1>();}
 	///adds reference and commit it to the object
 	/**
 	 * Adds reference and commits reference state to the object. Function is slow, because commit operation
 	 * requires interlocked operation
 	 */
-	void addRefCommit() const {updateCounter(1);commitRef();}
+	void addRefCommit() const {updateCounter<1>();commitRef();}
 	///Releases reference
 	/** Removes one reference from the object. Note that removal of the reference can be invisible in
 	 * other threads until it is committed. This function is used by RefCountedPtr.
@@ -40,7 +40,7 @@ public:
 	 *  This is because the current thread doesn't know anything about references in other thread without
 	 *  accessing the object's counter - which is very expensive operation
 	 */
-	void release() const {updateCounter(-1);}
+	void release() const {updateCounter<-1>();}
 	///Releases reference and commit changes to the object
 	/** Removes one reference. It also commits state to the object. If there are no more references, object
 	 * is destroyed. Note that function is slow because the function requires interlocked operation (which is
@@ -48,7 +48,7 @@ public:
 	 *
 	 * @note function is called by function RefCountedPtr::clearAndCommit()
 	 */
-	void releaseCommit() const {updateCounter(-1);commitRef();}
+	void releaseCommit() const {updateCounter<-1>();commitRef();}
 	///Commits cached reference for current thread
 	/** @note function only commits for current thread. It cannot commit reference in other threads */
 	void commitRef() const;
@@ -74,14 +74,29 @@ public:
 	 */
 	static void commitAllRefs() throw();
 
+	///This function should be called after thread starts
+	/** In LightSpeed library while Thread object it is used, this is not necesery, because
+	 *  the object Thread handles this for itself through AbstractThreadHook. However, when Thread object
+	 *  is not used, you have to call this function manually to initialize TLS structures
+	 */
+	static void onThreadInit();
+
+	static void onThreadExit();
+
+	void interlockedAddRef() const {updateCounterMt(1);}
+	void interlockedRelease() const {updateCounterMt(-1);}
+
+
 private:
 	mutable atomic counter;
 
 	class PointerCacheItem;
 	class PointerCache;
+	class PointerDmz;
 
-	void updateCounter(atomicValue diff) const;
-	void updateCounterMt(atomicValue diff) const;
+	template<atomicValue diff>
+	void updateCounter() const;
+	atomicValue updateCounterMt(atomicValue diff) const;
 
 	template<typename T> friend class RefCountedPtr;
 
@@ -203,12 +218,12 @@ protected:
 
     inline void addRefPtr() const {
         if (this->ptr) {
-        	this->ptr->updateCounter(1);
+        	this->ptr->template updateCounter<1>();
         }
     }
     inline void releasePtr() const {
         if (this->ptr) {
-        	this->ptr->updateCounter(-1);
+        	this->ptr->template updateCounter<-1>();
         }
     }
 
