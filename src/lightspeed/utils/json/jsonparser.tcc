@@ -2,6 +2,7 @@
 #include "jsondefs.h"
 #include "jsonparser.h"
 
+#include "../../base/exceptions/errorMessageException.h"
 #include "jsonexception.h"
 #include "../../base/text/textFormat.tcc"
 

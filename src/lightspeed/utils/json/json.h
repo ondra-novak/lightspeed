@@ -21,10 +21,15 @@
 #include "../../base/containers/stringBase.h"
 #include "../../base/iter/vtiterator.h"
 #include "../../base/meta/emptyClass.h"
-#include "../../base/memory/refCounted.h"
+#include "../../base/export.h"
+
 namespace LightSpeed {
 	class SeqFileInput;
 	class SeqFileOutput;
+	template<typename T, template<class> class Compare > class StringTC;
+	template<typename T> struct StrCmpCS;
+    typedef StringTC<char,StrCmpCS> StringA;
+
 }
 
 namespace LightSpeed {
@@ -60,9 +65,9 @@ namespace LightSpeed {
 		class IFactory;
 
 
-		class ConstValue: public RefCountedPtr<const INode> {
+		class ConstValue: public RefCntPtr<const INode> {
 		public:
-			typedef ::LightSpeed::RefCountedPtr<const INode> Super;
+			typedef RefCntPtr<const INode> Super;
 			typedef NodeType Type;
 
 			ConstValue() {}
@@ -279,9 +284,9 @@ namespace LightSpeed {
 		//Smart pointer to factory
 		/**Automatically tracks reference counts for factories allowing free unused factories as required */
 //		typedef ::LightSpeed::RefCntPtr<IFactory> PFactory;
-		class PFactory: public ::LightSpeed::RefCountedPtr<IFactory> {
+		class PFactory: public RefCntPtr<IFactory> {
 		public:
-			typedef ::LightSpeed::RefCountedPtr<IFactory> Super;
+			typedef ::LightSpeed::RefCntPtr<IFactory> Super;
 
 			PFactory() {}
 			PFactory(const Super &x):Super(x) {}
@@ -424,7 +429,7 @@ namespace LightSpeed {
 
 		*/
 
-		class INode: public virtual IInterface, public RefCounted {
+		class INode: public virtual IRefCntInterface {
 		public:
 
 			///retrieves type of node
@@ -768,7 +773,7 @@ namespace LightSpeed {
 		 * destroy JSON structure complette, then destroy factory. This doesn't apply to
 		 * factory created by method create() without arguments
 		 */
-		class IFactory: public RefCounted, public virtual IInterface, public FactoryHelper<IFactory> {
+		class IFactory: public virtual IRefCntInterface, public FactoryHelper<IFactory> {
 		public:
 
 			using FactoryHelper<IFactory>::newValue;
@@ -1145,6 +1150,9 @@ namespace LightSpeed {
 	Value getConstant(Constant);
 
 	inline Value IFactory::newValue(NullType) {return getConstant(constNull);}
+
+
+	StringA toString(const INode *json, bool escapeUTF8 = true);
 
 
 

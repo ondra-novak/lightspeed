@@ -46,6 +46,8 @@ namespace LightSpeed {
 	atomicValue lockExchangeSub( volatile atomic &subj, atomicValue value);
 	atomicValue lockInc(volatile atomic &subj);
 	atomicValue lockDec(volatile atomic &subj);
+	atomicValue lockIncNoBarrier(volatile atomic &subj);
+	atomicValue lockDecNoBarrier(volatile atomic &subj);
 
 	///Atomically exchange value in subj
 	/**

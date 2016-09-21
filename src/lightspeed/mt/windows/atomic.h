@@ -10,7 +10,6 @@
 
 
 #include "atomic_type.h"
-#include "../../base/sync/trysynchronized.h"
 namespace LightSpeed {
 
 
@@ -52,6 +51,21 @@ inline atomicValue lockDec(volatile atomic &subj) {
 #if _WIN64
 	return InterlockedDecrement64(&subj);
 #else 
+	return InterlockedDecrement(&subj);
+#endif
+
+}
+inline atomicValue lockIncNoBarrier(volatile atomic &subj) {
+#if _WIN64
+	return InterlockedIncrement64(&subj);
+#else
+	return InterlockedIncrement(&subj);
+#endif
+}
+inline atomicValue lockDecNoBarrier(volatile atomic &subj) {
+#if _WIN64
+	return InterlockedDecrement64(&subj);
+#else
 	return InterlockedDecrement(&subj);
 #endif
 

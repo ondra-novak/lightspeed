@@ -3,7 +3,7 @@
 
 #include "allocPointer.h"
 #include "../debug/break.h"
-#include "../export.h"
+#include "../../mt/atomic.h"
 
 
 namespace LightSpeed {
@@ -15,48 +15,57 @@ namespace LightSpeed {
 	 * @param Counter type that implements counting
 	 */
 	class RefCntObj {
-		static const atomicValue fastFlag = (atomicValue)((~natural(0)) << (sizeof(natural) * 8 - 1));
-		static LIGHTSPEED_EXPORT atomicValue initialValue;
 	public:
 
-		RefCntObj():counter(initialValue) {}
+		RefCntObj():counter(0) {}
 
 		///adds reference to counter
-		void addRef() const;
-
+		void addRef() const  {
+		#ifdef _DEBUG
+			if (readAcquire(&counter) ==  0xFEEEFEEE) debugBreak();
+		#endif
+			lockInc(counter);
+		}
 		///releases reference to counter
 		/**
 		 * @retval true counter reaches a zero and object must be destroyed
 		 * @retval false counter did not reached a zero
 		 */
-		bool release() const;
+		bool release() const  {
+		#ifdef _DEBUG
+			if (readAcquire(&counter) ==  0xFEEEFEEE) debugBreak();
+		#endif
+			return lockDec(counter) == 0;
+		}
 
 		///Returns true, if object is not shared
-		bool isShared() const {return (counter & ~fastFlag) != 1;}
+		bool isShared() const {return counter > 1;}
 
 		///Sets counter to MT
-		/** Function is MT safe and can be called even if object is already MT aware. In this case
-		 * function does nothing rather of trying to re-enable MT access
+		/** Function is deprecated, counter is always mt safe
 		 */
-		void enableMTAccess() const ;/*{counter &= ~fastFlag;}*/
+		void enableMTAccess() const {}
 		///Sets counter to ST
-		/** Function is MT safe. However you should ensure, that after disabling MT, object cannot be
-		 * accessed from other thread otherwise a race condition can happen.
+		/** Function is deprecated, counter is always mt safe
 		 */
-		void disableMTAccess() const ;/*{counter |= fastFlag;}*/
+		void disableMTAccess() const {}
 		///Object is allocated statically
 		/** allows to work with RefCntObj, but allocated statically.
 		 * Counter should never reach zero
 		 */
 		void setStaticObj() const {addRef();}
 
-		bool isMTAccessEnabled() const {return (counter & fastFlag) == 0;}
+		bool isMTAccessEnabled() const {return true;}
 
 		void debugClear() const;
 
 		///enables MT Access for all objects using RefCntObj as base class created from now
+		/** Function is deprecated, counter is always mt safe
+		 */
 		static void globalEnableMTAccess();
 		///disable MT Access for all objects using RefCntObj as base class created from now
+		/** Function is deprecated, counter is always mt safe
+		 */
 		static void globalDisableMTAccess();
 
 
@@ -64,9 +73,6 @@ namespace LightSpeed {
 	protected:
 		///counter
 		mutable atomic counter;
-
-		void addRefMT() const;
-		bool releaseMT() const;
 	};
 
 
@@ -290,6 +296,7 @@ namespace LightSpeed {
 #ifdef _DEBUG
             	this->ptr->debugClear();
 #endif
+
                 const_cast<RefCntPtr *>(this)->Super::clear();
             } else {
                 const_cast<RefCntPtr *>(this)->Super::detach();

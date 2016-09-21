@@ -500,7 +500,7 @@ public:
 	FastFactory():FactoryAlloc<>(alloc) {}
 	virtual IFactory *clone() {return new FastFactory;}
 	~FastFactory() {
-		RefCounted::commitAllRefs();
+
 	}
 };
 
@@ -1188,6 +1188,12 @@ Value getConstant(Constant c) {
 	case constEmptyStr: return Factory().newValue(ConstStrA()); break;
 	}
 	throw; //should never reached
+}
+
+StringA toString(const INode* json, bool escapeUTF8) {
+	AutoArrayStream<char, SmallAlloc<1024> > buff;
+	serialize(json,buff,escapeUTF8);
+	return StringA(buff.getArray());
 }
 
 

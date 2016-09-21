@@ -152,8 +152,9 @@ ConstStrA realToString(double num, char *string, natural size, natural decimals,
 
 }
 
-
 }
+
+
 
 template class TextFormat<char,StdAlloc>;
 template class TextFormat<wchar_t,StdAlloc>;

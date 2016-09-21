@@ -57,9 +57,6 @@ namespace LightSpeed {
 		 * helpful carry some user data with notification.
 		 */
 		virtual void wakeUp(natural reason = 0) throw() {
-//#ifdef _DEBUG
-			if (((natural)readAcquire(&signaled)) > 1) debugBreak();
-//#endif		
 			//store forward - this object can disappear during processing
 			ISleepingObject *fw = forward;
 			//store reason first

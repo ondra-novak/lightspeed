@@ -10,7 +10,6 @@
 
 
 #include "atomic_type.h"
-#include "../../base/sync/trysynchronized.h"
 #include "../../base/linux/seh.h"
 #include "../../platform.h"
 #ifdef LIGHTSPEED_ATOMICS_USE_MUTEX
@@ -105,6 +104,38 @@ static LLMutex &atomicMutex() {
 #else
 #if HAVE_DECL___ATOMIC_COMPARE_EXCHANGE
 		return __atomic_sub_fetch(&subj,1,__ATOMIC_SEQ_CST);
+#else
+		return __sync_sub_and_fetch(&subj,1);
+#endif
+#endif
+	}
+
+	inline atomicValue lockIncNoBarrier(volatile atomic &subj) {
+#ifdef LIGHTSPEED_ATOMICS_USE_MUTEX
+		LLMutex &mx = atomicMutex();
+		mx.lock();
+		atomic ret = ++subj;
+		mx.unlock();
+		return ret;
+#else
+#if HAVE_DECL___ATOMIC_COMPARE_EXCHANGE
+		return __atomic_add_fetch(&subj,1,__ATOMIC_RELAXED);
+#else
+		return __sync_add_and_fetch(&subj,1);
+#endif
+#endif
+	}
+
+	inline atomicValue lockDecNoBarrier(volatile atomic &subj) {
+#ifdef LIGHTSPEED_ATOMICS_USE_MUTEX
+		LLMutex &mx = atomicMutex();
+		mx.lock();
+		atomic ret = --subj;
+		mx.unlock();
+		return ret;
+#else
+#if HAVE_DECL___ATOMIC_COMPARE_EXCHANGE
+		return __atomic_sub_fetch(&subj,1,__ATOMIC_RELAXED);
 #else
 		return __sync_sub_and_fetch(&subj,1);
 #endif

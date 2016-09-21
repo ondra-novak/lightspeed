@@ -247,8 +247,8 @@ void Serializer<T>::writeChar(X c, IWriteIterator<char, T> & iter) {
 
 
 
-}}
-
+}
+}
 
 
 #endif /* LIBS_LIGHTSPEED_SRC_LIGHTSPEED_UTILS_JSON_JSONSERIALIZER_TCC_ */
