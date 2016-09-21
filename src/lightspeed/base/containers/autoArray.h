@@ -191,6 +191,9 @@ namespace LightSpeed {
             
         };
         
+        ///Mask WriteIterator defined in FlatArray
+        typedef WriteIter WriteIterator;
+
         ///Insert iterator
         /**
          * @see getInsertIterator

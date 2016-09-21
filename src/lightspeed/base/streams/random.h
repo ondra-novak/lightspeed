@@ -15,7 +15,10 @@ namespace LightSpeed {
 			getNext();
 		}
 		
-		void setSeed(uint32_t x);
+		void setSeed(uint32_t x) {
+			this->x = x;
+			crry = 362436069;
+		}
 
 
 		bool hasItems() const {return true;}

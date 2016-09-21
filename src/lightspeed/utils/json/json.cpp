@@ -57,7 +57,7 @@ natural Object::length() const {
 
 
 INode *Object::add(Value nd) {
-	if (nd == nil) throwNullPointerException(THISLOCATION);
+	if (nd == nil) return this;
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	natural l = fields.size();
 	TextFormatBuff<char,StaticAlloc<50> > fmt;
@@ -66,7 +66,7 @@ INode *Object::add(Value nd) {
 }
 
 INode *Object::add(ConstStrA name, Value nd) {
-	if (nd == nil) throwNullPointerException(THISLOCATION);
+	if (nd == nil) return erase(name);
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	insertField(name,nd);
 	return this;
@@ -104,7 +104,10 @@ INode *Object::replace(ConstStrA name, Value newValue, Value *prevValue ) {
 	} else {
 		const FieldNode *e = iter.peek();
 		prev = e->data.value;
-		e->data.value = newValue;
+		if (newValue == null)
+			erase(name);
+		else
+			e->data.value = newValue;
 	}
 	if (prevValue) *prevValue = prev;
 	return this;
@@ -184,7 +187,7 @@ bool Array::enumEntries(const IEntryEnum &fn) const {
 }
 
 INode *Array::add(Value nd) {
-	if (nd == nil) throw InvalidParamException(THISLOCATION,0,"Argument has no value");
+	if (nd == nil) return this;
 	if (nd == this) throw InvalidParamException(THISLOCATION,0,"JSON: Cycle detected");
 	list.add(nd);
 	return this;
@@ -237,7 +240,8 @@ const INode * Array::enableMTAccess() const
 
 INode *Array::replace(natural index, Value newValue, Value *prevValue) {
 	Value prev = list[index];
-	list(index) = newValue;
+	if (newValue == null) list.erase(index);
+	else list(index) = newValue;
 	if (prevValue) *prevValue = prev;
 	return this;
 }

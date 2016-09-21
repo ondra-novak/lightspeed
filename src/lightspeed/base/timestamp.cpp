@@ -312,6 +312,11 @@ namespace LightSpeed {
 		return formatTime(buf,"%Y-%m-%dT%H:%M:%SZ");		
 	}
 
+	TimeStamp TimeStamp::fromJSONTime(ConstStrA jsonTime) {
+		return fromISO8601Time(jsonTime);
+	}
+
 
 
 }
+

@@ -886,6 +886,8 @@ namespace LightSpeed {
     			} catch (const Exception &e) {
     				throw FileIOError(THISLOCATION,EFAULT,folderName) << e;
     			}
+    			if (::rmdir(fn.c_str()) == -1)
+    				throw FileIOError(THISLOCATION,errno,folderName);
 
     		} else {
     			throw FileIOError(THISLOCATION, err, folderName);

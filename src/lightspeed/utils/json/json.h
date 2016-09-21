@@ -154,7 +154,8 @@ namespace LightSpeed {
 			///Set property of an object
 			/**
 			 * @param name property name
-			 * @param value property value
+			 * @param value property value. If value is not set (null pointer, not null value),
+			 *      the field is not created and if exists, it is removed.
 			 * @return reference to container for chains
 			 * @note replaces existing property
 			 */
@@ -162,7 +163,8 @@ namespace LightSpeed {
 			///Add property to an object
 			/**
 			 * @param name property name
-			 * @param value property value
+			 * @param value property value. If value is not set (null pointer, not null value),
+			 *      the field is not created and if exists, it is removed.
 			 * @return reference to container for chains
 			 * @note it will not replace existing node
 			 */
@@ -170,13 +172,14 @@ namespace LightSpeed {
 			///Set index of an array
 			/**
 			 * @param index index of an array
-			 * @param value new value at index
+			 * @param value new value at index. If value refers to null pointer, specified index is removed
 			 * @return reference to container for chains
 			 */
 			Container &set(natural index, const ConstValue &value);
 			///Add new value to the array
 			/**
-			 * @param value new value
+			 * @param value new value.  If value is not set (null pointer, not null value),
+			 *      nothing is added.
 			 * @return reference to container for chains
 			 */
 			Container &add(const ConstValue &value);
@@ -224,7 +227,8 @@ namespace LightSpeed {
 			///Set property of an object
 			/**
 			 * @param name property name
-			 * @param value property value
+			 * @param value property value.If value is not set (null pointer, not null value),
+			 *      the field is not created and if exists, it is removed.
 			 * @return reference to container for chains
 			 * @note replaces existing property
 			 */
@@ -232,7 +236,8 @@ namespace LightSpeed {
 			///Add property to an object
 			/**
 			 * @param name property name
-			 * @param value property value
+			 * @param value property valueIf value is not set (null pointer, not null value),
+			 *      the field is not created and if exists, it is removed.
 			 * @return reference to container for chains
 			 * @note it will not replace existing node
 			 */
@@ -240,13 +245,14 @@ namespace LightSpeed {
 			///Set index of an array
 			/**
 			 * @param index index of an array
-			 * @param value new value at index
+			 * @param value new value at index.If value refers to null pointer, specified index is removed
 			 * @return reference to container for chains
 			 */
 			Value &set(natural index, const Value &value);
 			///Add new value to the array
 			/**
-			 * @param value new value
+			 * @param value new value. If value is not set (null pointer, not null value),
+			 *      nothing is added.
 			 * @return reference to container for chains
 			 */
 			Value &add(const Value &value);
@@ -618,7 +624,7 @@ namespace LightSpeed {
 			///Replaces value
 			/**
 			 * @param index index of the value to replace
-			 * @param newValue new value that replaces old one
+			 * @param newValue new value that replaces old one. If value refers null pointer, specified index is removed
 			 * @param prevValue if not NULL, it will receive previous value
 			 * @return pointer to this
 			 *

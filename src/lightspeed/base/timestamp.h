@@ -115,6 +115,7 @@ namespace LightSpeed {
 
 		static TimeStamp fromISO8601Time(ConstStrA isotime);
 
+		static TimeStamp fromJSONTime(ConstStrA jsonTime);
 
 		///retrieves current day number
 		integer getDay() const {return day;}
@@ -205,6 +206,7 @@ namespace LightSpeed {
 
 		///Format time as database time YYYY-MM-DD HH:MM:SS
 		ISO8601Time asISO8601Time() const;
+
 
 
 		typedef ISO8601Time JSONTime;
