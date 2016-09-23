@@ -84,6 +84,8 @@ namespace LightSpeed
     };
     
   
+    template<class T, class Impl>
+    class IIterator_Range_cpp11;
 
     
     
@@ -205,6 +207,11 @@ namespace LightSpeed
         void skip(){
              this->_invoke().skip();
         }
+
+        IIterator_Range_cpp11<T, Impl> begin();
+        IIterator_Range_cpp11<T, Impl> end();
+
+
     };
 
 
@@ -809,6 +816,54 @@ namespace LightSpeed
 	protected:
 		MutableIter iter;
 	};
+
+
+	template<typename T, typename Impl>
+	class IIterator_Range_cpp11 {
+	public:
+
+		IIterator_Range_cpp11(Impl *iterRef):iterRef(iterRef) {}
+
+		IIterator_Range_cpp11 &operator++() {
+			iterRef->skip();
+			return *this;
+		}
+		const T &operator*() const {
+			return iterRef->peek();
+		}
+		bool operator!=(const IIterator_Range_cpp11 &other) const {
+			if (iterRef) {
+				if (other.iterRef) {
+					return *iterRef != *other.iterRef;
+				} else {
+					return iterRef->hasItems();
+				}
+			} else {
+				if (other.iterRef) {
+					return other.iterRef->hasItems();
+				} else {
+					return false;
+				}
+			}
+		}
+		bool operator==(const IIterator_Range_cpp11 &other) const {
+			return !operator!=(other);
+		}
+
+
+	protected:
+		Impl *iterRef;
+	};
+
+	template<typename T, typename Impl>
+    IIterator_Range_cpp11<T, Impl> IIterator<T,Impl>::begin() {
+		return IIterator_Range_cpp11<T, Impl>(&this->_invoke());
+	}
+	template<typename T, typename Impl>
+    IIterator_Range_cpp11<T, Impl> IIterator<T,Impl>::end() {
+		return IIterator_Range_cpp11<T, Impl>(0);
+
+	}
 
 } // namespace LightSpeed
 
