@@ -140,18 +140,13 @@ bool Future<T>::Value::unregisterObserver( IObserver *ifc )
 template<typename T>
 void Future<T>::addObserver( IObserver*ifc )
 {
-	if (future == nil) {
-		init();
-	}
 	future->registerObserver(ifc);
 }
 
 template<typename T>
 bool Future<T>::removeObserver( IObserver *ifc )
 {
-	if (future == nil) {
-		return false;
-	}
+
 	return future->unregisterObserver(ifc);
 }
 
@@ -216,10 +211,21 @@ template<typename T>
 const T *Future<T>::tryGetValue() const
 {
 	if (getState() != IPromiseControl::stateNotResolved) {
-		if (future->value != nil) return &future->value;
+		if (future->value != nil) return &(const T &)(future->value);
 		if (future->exception != nil) future->exception->throwAgain(THISLOCATION);
 	}
 	return 0;
+
+}
+
+template<typename T>
+const T *Future<T>::tryGetValueNoThrow() const throw()
+{
+	if (getState() != IPromiseControl::stateNotResolved && future->value != nil) {
+		return &(const T &)(future->value);
+	} else {
+		return 0;
+	}
 
 }
 
@@ -231,7 +237,6 @@ const T & Future<T>::wait( ) const {
 template<typename T>
 template<typename Fn>
 Future<T> Future<T>::then( Fn fn) {
-	if (future == nil) init();
 	class X:public IObserver, public DynObject {
 	public:
 		X(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
@@ -257,7 +262,6 @@ template<typename T>
 template<typename Fn>
 Future<T> Future<T>::thenCall( Fn fn)
 {
-	if (future == nil) init();
 
 	class X:public IObserver, public DynObject {
 	public:
@@ -281,7 +285,6 @@ template<typename T>
 template<typename Fn>
 Future<T> Future<T>::onException( Fn fn)
 {
-	if (future == nil) init();
 
 	class X:public IObserver, public DynObject {
 	public:
@@ -316,7 +319,6 @@ template<typename T>
 template<typename Fn>
 Future<T> Future<T>::onExceptionCall( Fn fn)
 {
-	if (future == nil) init();
 
 	class X:public IObserver, public DynObject {
 	public:
@@ -339,7 +341,6 @@ Future<T> Future<T>::onExceptionCall( Fn fn)
 template<typename T>
 template<typename Fn, typename RFn>
 Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
-	if (future == nil) init();
 
 	class X :public IObserver, public DynObject {
 	public:
@@ -374,8 +375,6 @@ Future<T> Future<T>::then(Fn resolveFn, RFn rejectFn) {
 template<typename T>
 template<typename Fn, typename RFn>
 Future<T> Future<T>::thenCall(Fn resolveFn, RFn rejectFn) {
-	if (future == nil) init();
-
 	class X :public IObserver, public DynObject {
 	public:
 		X(Fn fn,RFn rfn):fn(fn),rfn(rfn) {}
@@ -464,12 +463,11 @@ IPromiseControl::State Future<T>::Value::cancel() throw() {
 
 template<typename T>
 void Future<T>::clear() {
-	future = nil;
+	init();
 }
 
 template<typename T>
 Promise<T> Future<T>::getPromise() {
-	if (future == nil) clear(*getPromiseAlocator());
 	return Promise<T>(future);
 }
 
@@ -505,7 +503,7 @@ Future<T> Future<T>::isolate() {
 
 template<typename T>
 template<typename X>
-X Future<T>::transformHelper(const T &value) {
+T Future<T>::transformHelper(const X &value) {
 	return X(value);
 }
 
@@ -520,7 +518,7 @@ template<typename T>
 template<typename X, typename Fn>
 Future<T> Future<T>::transform(Future<X> original, Fn fn) {
 
-	class A:public Future<X>::Resolution, public DynObject {
+	class A:public Future<X>::IObserver, public DynObject {
 	public:
 		A(Fn fn, const Promise<T> &rptr):fn(fn),rptr(rptr) {}
 		virtual void resolve(const X &result) throw() {
@@ -544,8 +542,8 @@ Future<T> Future<T>::transform(Future<X> original, Fn fn) {
 	protected:
 		Fn fn; Promise<T> rptr;
 	};
-	Future<T> p;
-	original.registerCb(new(original.future->alloc) A(fn,p.createResult(original.future->alloc)));
+	Future<T> p(original.future->alloc);
+	original.addObserver(new(original.future->alloc) A(fn,p.getPromise()));
 	return p;
 }
 
@@ -601,7 +599,7 @@ inline Future<T>::Value::~Value() {
 template<typename T>
 Future<T> Future<T>::thenWake(ISleepingObject &sleep, natural resolveReason, natural rejectReason) {
 
-	class A: public Resolution, public DynObject {
+	class A: public IObserver, public DynObject {
 	public:
 		A(ISleepingObject &sleepObj, natural resolved, natural rejected)
 			:sleepObj(sleepObj),resolved(resolved),rejected(rejected) {}
@@ -780,13 +778,12 @@ void Promise<void>::callAndResolve(Fn fn, Arg arg) throw() {
 template<typename T>
 void LightSpeed::Future<T>::init()
 {
-	clear(*getPromiseAlocator());
+	clear(IPromiseControl::getAllocator());
 }
 
 template<typename T>
 PPromiseControl Future<T>::getControlInterface()
 {
-	if (future == nil) init();
 	return PPromiseControl(future);
 }
 
@@ -797,7 +794,7 @@ Future<T>::Future(IRuntimeAlloc &alloc) {
 
 template<typename T>
 Future<T>::Future() {
-
+	init();
 }
 
 template<typename T>
@@ -810,7 +807,6 @@ Promise<T>::Promise(const Future<T> &future) :ptr(future.getValuePtr())
 template<typename T>
 IPromiseControl::State Future<T>::getState() const throw () 
 {
-	if (future == nil) return IPromiseControl::stateNotResolved;
 	return future->getState();
 }
 

@@ -11,6 +11,7 @@
 #include "../meta/emptyClass.h"
 
 #ifdef LIGHTSPEED_ENABLE_CPP11
+#include <cstddef>
 #include <type_traits>
 #include <functional>
 #endif
@@ -22,7 +23,6 @@ class Variant;
 template<typename X, typename Y> class CombinedFuture;
 
 
-IRuntimeAlloc *getPromiseAlocator();
 
 
 ///Controls any promise
@@ -136,6 +136,31 @@ public:
 	/** Function cannot determine result of the promise. It can just only wait for the promise resolution */
 	virtual void wait(const Timeout &tm) const = 0;
 
+
+	///Returns reference to the allocator used to allocate internal structures
+	/**
+	 * @return reference to the allocator
+	 */
+	static IRuntimeAlloc &getAllocator();
+
+	///Sets new allocator for future/promise internals
+	/**
+	 * Pointer to instance to the new allocator. Note that pointer have to remain valid while
+	 * the allocator is attached. Also note that changing allocator doesn't affect objects already
+	 * allocated.
+	 *
+	 * @param alloc pointer to new allocator. Specify nullptr if you need to return default allocator
+	 * there.
+	 *
+	 * @note everytime is allocator changed, the function also releases some free memory claimed by the
+	 * default allocator.
+	 *
+	 *
+	 */
+	static void setAllocator(IRuntimeAlloc *alloc);
+
+
+
 };
 
 typedef RefCntPtr<IPromiseControl> PPromiseControl;
@@ -209,30 +234,97 @@ public:
 
 
 	///Construct empty future object
-	/** 
-	 @note Function doesn't create internal value. It will be create later as needed.
+	/**
+	 * @note Constructor does allocate memory. If you need to construct just empty variable
+	 * which will be later initialized through assignment operator, you can use Future(null)
+	 * or Future(nullptr) which is slightly faster. However, future created by this function
+	 * can be shared before it is used.
 	 */
 	Future();
 	///Construct future object
-	/** Function uses allocator to allocate internal structure
+	/** Function uses allocator to allocate internal structure.
 	*/
-	Future(IRuntimeAlloc &alloc);
+	explicit Future(IRuntimeAlloc &alloc);
+
+#ifdef LIGHTSPEED_ENABLE_CPP11
+	///Construct empty reference
+	/** Use this constructor to remove unnecessary allocation when you plan to initialize
+	 * the variable later. Note that such a variable cannot be used to construct promise or
+	 * attach observers until it is initialized. To achieve maximum performance, this state
+	 * is not detected, so using uninitialized future may cause undefined behavior (crash in most of cases)
+	 */
+
+	Future(std::nullptr_t) {}
+#endif
+
+	///Construct empty reference
+	/** Use this constructor to remove unnecessary allocation when you plan to initialize
+	 * the variable later. Note that such a variable cannot be used to construct promise or
+	 * attach observers until it is initialized. To achieve maximum performance, this state
+	 * is not detected, so using uninitialized future may cause undefined behavior (crash in most of cases)
+	 */
+
+	Future(Null_t) {}
+
+
+	///determines, whether future is initialized
+	/**
+	 * @return true future is initialized
+	 * @return false future is not initialized
+	 *
+	 * @code
+	 * Future<int> f(null);
+	 * Future<int> g;
+	 * bool bf = f.isInitialized(); //false;
+	 * bool bg = g.isInitialized(); //true;
+	 * @endcode
+	 */
+	bool isInitialized() const {
+		return future != null;
+	}
+
+	///determines, whether the future is initialized and has a promise object exposed
+	/**
+	 * @retval true the future is initialized and it exposed a promise object. It is possible,
+	 * that future will be resolved soon somehow
+	 * @retval false the future is not initialized or it has been initialized, but the promise
+	 *   object was not created yet. Waiting for this future may cause a deadlock
+	 *
+	 * * @code
+	 * Future<int> e(null);
+	 * Future<int> f;
+	 * Future<int> g;
+	 * Promise<int> pg = g.getPromise();
+	 *
+	 * bool be = e.hasPromise(); //false;
+	 * bool bf = f.hasPromise(); //false;
+	 * bool bg = g.hasPromise(); //true;
+	 * @endcode
+	 *
+	 */
+	bool hasPromise() const {
+		return future != null && (future->resultRefCnt > 0 || future->isResolved());
+	}
+
 	///Returns promise
 	/** 
 	 The Promise is implemented as reference. You can have multiple promises but all of them refers 
 	 the same future
 	 */
 
+
 	Promise<T> getPromise();
 
 	///Clears the future
-	/** By clearing the varuable you can create new future. This new future doesn't affect any future/promise
-	create by prevous instance. Function just clears this reference */
+	/** By clearing the variable you can create new future. This new future doesn't affect any future/promise
+	create by the previous instance. Function just clears this reference */
 	void clear();
 
 	///Clears the future and create new future using different allocator
 	/**
 	@param alloc allocator to allocate future internals
+
+	@note Just created future without allocator
 	*/
 	void clear(IRuntimeAlloc &alloc);
 
@@ -256,11 +348,27 @@ public:
 	///Alias to wait. Function retrieves value of the promise if resolved, otherwise blocks.
 	const T &getValue() const {return wait();}
 
-	///Tries to retrieve value, if not resolved, returns NULL, otherwise it returns pointer to it
+	///Tries to retrieve value.
+	/**
+	 * @return Pointer to value if the promise is resolved. Returns NULL, if not. However,
+	 * if promise is resolved by the exception, the exception is thrown
+	 *
+	 * @exception any throws exception when promise is rejected.
+	 */
 	const T *tryGetValue() const;
+
+	///Tries to retrieve value.
+	/**
+	 * @return Pointer to value if the promise is resolved. Function returns NULL when promise
+	 * is not resolved or rejected. This can help to optimize code which is able to
+	 * work directly with received value. You still need to attach onException() handler to
+	 * process possible exception.
+	 */
+	const T *tryGetValueNoThrow() const throw();
 
 	///Reads value - same as wait(), just with infinite timeout
 	operator const T &() const {return wait();}
+
 
 	///Define what happens when promise is resolved
 	/**
@@ -744,7 +852,7 @@ protected:
 	RefCntPtr<Value> future;
 
 	template<typename X>
-	static X transformHelper(const T &value);
+	static T transformHelper(const X &value);
 
 	template<typename X> friend class Future;
 
@@ -791,6 +899,32 @@ public:
 
 	Future() {}
 	Future(const Future<Void> &e):Future<Void>(e) {}
+
+	///Construct future object
+	/** Function uses allocator to allocate internal structure.
+	*/
+	explicit Future(IRuntimeAlloc &alloc);
+
+																																																																																																																								#ifdef LIGHTSPEED_ENABLE_CPP11
+	///Construct empty reference
+	/** Use this constructor to remove unnecessary allocation when you plan to initialize
+	 * the variable later. Note that such a variable cannot be used to construct promise or
+	 * attach observers until it is initialized. To achieve maximum performance, this state
+	 * is not detected, so using uninitialized future may cause undefined behavior (crash in most of cases)
+	 */
+
+	Future(std::nullptr_t) {}
+#endif
+
+	///Construct empty reference
+	/** Use this constructor to remove unnecessary allocation when you plan to initialize
+	 * the variable later. Note that such a variable cannot be used to construct promise or
+	 * attach observers until it is initialized. To achieve maximum performance, this state
+	 * is not detected, so using uninitialized future may cause undefined behavior (crash in most of cases)
+	 */
+
+	Future(Null_t) {}
+
 
 
 	template<typename Fn>

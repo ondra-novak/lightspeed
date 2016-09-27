@@ -122,7 +122,7 @@ namespace LightSpeed {
 
 		Future<T> s = source;
 		Future<T> newpromise;
-		newpromise.addObserver(new(*getPromiseAlocator()) Observer(*this, returnValue));
+		newpromise.addObserver(new(IPromiseControl::getAllocator()) Observer(*this, returnValue));
 		s.then(newpromise.getPromise());		
 	}
 

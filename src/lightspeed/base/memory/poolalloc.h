@@ -72,11 +72,15 @@ namespace LightSpeed {
 
 		PoolAlloc():largestAlloc(0),destroyed(0) {}
 		PoolAlloc(const PoolAlloc &):largestAlloc(0),destroyed(0) {}
-		~PoolAlloc() {
+		void freeExtra() {
 			//cleanup blocks
 			while (Block *k = blockList.pop()) {
 				operator delete(k);
 			}
+
+		}
+		~PoolAlloc() {
+			freeExtra();
 			destroyed = 0x12345678;
 		}
 

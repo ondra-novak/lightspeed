@@ -13,16 +13,29 @@ Future<void> Future<void>::then(const Promise<void> &resolution) {
 }
 	
 
+Future<void>::Future(IRuntimeAlloc &alloc):Future<Void>(alloc) {}
+
+
 
 Promise<void> Future<void>::getPromise()
 {
 	return Future<Void>::getPromise();
 }
 
-IRuntimeAlloc * getPromiseAlocator()
-{
-	// use singleton to allocate promise's pool
-	return &Singleton<PoolAlloc>::getInstance();
+
+static PoolAlloc poolAlloc;
+static IRuntimeAlloc *curAlloc = &poolAlloc;
+
+IRuntimeAlloc& IPromiseControl::getAllocator() {
+	return *curAlloc;
+
+}
+
+void IPromiseControl::setAllocator(IRuntimeAlloc* alloc) {
+	if (alloc == 0) curAlloc = &poolAlloc;
+	else curAlloc = alloc;
+	poolAlloc.freeExtra();
+
 }
 
 }
