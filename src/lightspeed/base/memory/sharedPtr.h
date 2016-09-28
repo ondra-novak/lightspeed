@@ -93,29 +93,6 @@ namespace LightSpeed {
     };
 
 
-    ///Weak references
-    /** Helps to implement weak references. Object that must be referenced by a weak reference must
-     * include instance of this class as member variable. Variable is initialized with pointer
-     * to the object. To create weak reference, just simply use this instance to create copy
-     * of SharedPtr instance. The new instance will contain pointer to the object and will be
-     * connected with the WeakRefTarget. Other instances can be created by copying the SharedPtr instances
-     * as long as needed. All instances are connected to each other as SharedPtr is implemented.
-     *
-     * Once the object is destroyed, the destructor of the WeakRefTarget sets all pointers to NULL.
-     *
-     * @note Neither WeakRefTarget nor SharedPtr are MT safe. You have always to use proper synchronization or
-     * ensure, that weak references are accessed from one thread at time only.
-     */
-    template<typename T>
-    class WeakRefTarget: public SharedPtr<T > {
-    public:
-
-    	WeakRefTarget(T *ptr):SharedPtr<T>(ptr) {}
-    	~WeakRefTarget() {
-    		this->redirect(0);
-    	}
-
-    };
 
     ///Keeps pointer to static object to allow be shared, but doesn't actually destroys it
     /**

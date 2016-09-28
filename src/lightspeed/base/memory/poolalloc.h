@@ -28,6 +28,8 @@ namespace LightSpeed {
 		}
 
 		virtual void *alloc(natural objSize) {
+
+			lockInc(refs);
 			//adjust size to have space to store pointer
 			if  (objSize < sizeof(Block) - sizeof(BlockBase)) objSize = sizeof(Block) - sizeof(BlockBase);
 			//take first empty block
@@ -67,11 +69,13 @@ namespace LightSpeed {
 				operator delete(k);
 			} else
 				blockList.push(k);
+
+			release();
 		}
 
 
-		PoolAlloc():largestAlloc(0),destroyed(0) {}
-		PoolAlloc(const PoolAlloc &):largestAlloc(0),destroyed(0) {}
+		PoolAlloc():largestAlloc(0),destroyed(0),refs(1) {}
+		PoolAlloc(const PoolAlloc &):largestAlloc(0),destroyed(0),refs(1) {}
 		void freeExtra() {
 			//cleanup blocks
 			while (Block *k = blockList.pop()) {
@@ -84,11 +88,18 @@ namespace LightSpeed {
 			destroyed = 0x12345678;
 		}
 
+		virtual void release() {
+			if (lockDec(refs) == 0) {
+				freeExtra();
+				destroyed = 0x12345678;
+			}
+		}
 
 	protected:
 		SList<Block> blockList;
 		natural largestAlloc;
 		natural destroyed;
+		atomic refs;
 	};
 
 
@@ -96,6 +107,7 @@ namespace LightSpeed {
 	class MultiPoolAlloc: public IRuntimeAlloc {
 	public:
 		LIGHTSPEED_CLONEABLECLASS;
+
 
 		virtual void *alloc(natural objSize, IRuntimeAlloc * &owner) {
 			owner = getOwner(objSize);
@@ -108,6 +120,17 @@ namespace LightSpeed {
 		virtual void dealloc(void *ptr, natural sz)  {
 			getOwner(sz)->dealloc(ptr,sz);
 		}
+
+		virtual void release() {
+			all16.release();
+			all32.release();
+			all64.release();
+			all128.release();
+			all256.release();
+			all512.release();
+			all1024.release();
+		}
+
 	protected:
 
 		IRuntimeAlloc *getOwner(natural objSize) {

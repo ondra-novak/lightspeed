@@ -23,19 +23,27 @@ Promise<void> Future<void>::getPromise()
 }
 
 
-static PoolAlloc poolAlloc;
-static IRuntimeAlloc *curAlloc = &poolAlloc;
+
+static RuntimeAllocKeeper &getKeeper() {
+	static byte space[sizeof(PoolAlloc)];
+	static RuntimeAllocKeeper keeper(new(&space) PoolAlloc);
+	return keeper;
+}
+
+
 
 IRuntimeAlloc& IPromiseControl::getAllocator() {
-	return *curAlloc;
+	return getKeeper().getInstance();
 
 }
 
 void IPromiseControl::setAllocator(IRuntimeAlloc* alloc) {
-	if (alloc == 0) curAlloc = &poolAlloc;
-	else curAlloc = alloc;
-	poolAlloc.freeExtra();
-
+	getKeeper().setInstance(alloc);
 }
+
+IRuntimeAlloc &getWeakRefAllocator() {
+	return getKeeper().getInstance();
+}
+
 
 }

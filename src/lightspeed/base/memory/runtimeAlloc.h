@@ -59,6 +59,8 @@ namespace LightSpeed {
 		 */
 		virtual void *alloc(natural objSize, IRuntimeAlloc * &owner) = 0;
 
+
+		virtual void release() {}
 		///Allocates object using IRuntimeAlloc
 		/**
 		 * @param obj source object.
@@ -259,7 +261,21 @@ namespace LightSpeed {
 	};
 
 
+	class RuntimeAllocKeeper {
+	public:
+		RuntimeAllocKeeper(IRuntimeAlloc *alloc):alloc(alloc) {}
+		~RuntimeAllocKeeper() {
+			alloc->release();
+		}
+		IRuntimeAlloc &getInstance() {return *alloc;}
 
+		void setInstance(IRuntimeAlloc *a);
+
+
+	protected:
+		IRuntimeAlloc * volatile alloc;
+
+	};
 
 
 }
