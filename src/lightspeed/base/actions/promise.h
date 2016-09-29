@@ -554,6 +554,17 @@ public:
 	 */
 	bool removeObserver(IObserver *ifc);
 
+	///Executes observer when future has value
+	/** Function has only effect when future has a value. In this case, function
+	 * executes method on observer similar to addObserver().
+	 *
+	 * @param observer pointer to observer.
+	 * @retval true observer has been executed.
+	 * @retval false observer has not been executes, because there were no value.
+	 *
+	 */
+	bool tryObserver(IObserver *observer);
+
 	IPromiseControl::State getState() const throw ();
 
 	///Cancels the promise

@@ -151,6 +151,19 @@ bool Future<T>::removeObserver( IObserver *ifc )
 }
 
 template<typename T>
+bool Future<T>::tryObserver( IObserver *ifc )
+{
+	if (getState() != IPromiseControl::stateNotResolved) {
+		if (future->value != null) ifc->resolve(future->value);
+		if (future->exception != null) ifc->resolve(future->exception);
+		return true;
+	} else {
+		return false;
+	}
+
+}
+
+template<typename T>
 const T & Future<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 {
 	class Ntf: public IObserver {
