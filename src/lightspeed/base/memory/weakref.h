@@ -18,6 +18,7 @@ namespace LightSpeed {
 
 class ISleepingObject;
 
+
 ///Retrieves allocator for internal objects of the WeakRef
 /** It returns allocator for Promises. Currently this allocator is shared. */
 IRuntimeAlloc &getWeakRefAllocator();
@@ -25,18 +26,24 @@ IRuntimeAlloc &getWeakRefAllocator();
 template<typename T> class WeakRefPtr;
 
 ///Implements weak reference
-/** Class WeakRef<T> is primarly designed to correcly handle pointer invalidation
+/** Class WeakRef<T> is primarily designed to correctly handle pointer invalidation
  * shared between many threads. It consists from three classes WeakRef<T>, WeakRefTarget<T> and WeakRefPtr<T>.
+ *
+ * In contrast to std::weak_ptr, target object doesn't need to be kept in shared_ptr instance. You
+ * can put to the WeakRef any pointer you need and you can invalidate it any time later regardless on
+ * whether it is actually destroyed. After pointer is set to null, you can be sure, that there is nobody
+ * who currently can work with an object referred by the pointer.
  *
  * To start using weak references, you have to construct WeakRefTarget<T> which is initialized with a pointer
  * to an object which is subject of weak referencing. This object (WeakRefTarget) should be created along
  * with the target, because the target object must destroy this (WeakRefTarget) object (it should set NULL the
  * reference during destruction). Once the reference is set to NULL, all other references shared from that
- * target reference are also set to NULL. Note that, this is tje one way action. there is no way to set the pointer
+ * target reference are also set to NULL. Note that, this is the one way action. there is no way to set the pointer
  * back, or store there another value.
  *
  * Setting shared references to NULL is not easy task. Other threads can be somewhere in the middle of some
- * operation,which os repeatedly accessing the target object. Setting the reference to NULL would probably cause the program crash.
+ * operation,  so they are repeatedly accessing the target object.
+ * Setting the reference to NULL would probably cause the program crash.
  * This is the reason, why the WeakRef doesn't provide direct dereference to the target object. Instead of this,
  * the reference must be locked during the time, when the thread accessing the target object. You
  * have to call the function lock() to obtain WeakRefPtr<T> which represent locked reference and provides
