@@ -77,7 +77,7 @@ void Future<T>::Value::resolveInternal(X &var, const Y & result)
 
 
 template<typename T>
-void Future<T>::Value::registerObserver( IObserver *ifc )
+void Future<T>::Value::registerObserver( IObserver *ifc ) throw()
 {
 	//lock promise internals
 	lock.lock();
@@ -105,7 +105,7 @@ void Future<T>::Value::registerObserver( IObserver *ifc )
 }
 
 template<typename T>
-bool Future<T>::Value::unregisterObserver( IObserver *ifc )
+bool Future<T>::Value::unregisterObserver( IObserver *ifc ) throw()
 {
 	bool found = false;
 	Synchronized<FastLock> _(lock);
@@ -138,20 +138,20 @@ bool Future<T>::Value::unregisterObserver( IObserver *ifc )
 
 
 template<typename T>
-void Future<T>::addObserver( IObserver*ifc )
+void Future<T>::addObserver( IObserver*ifc ) throw()
 {
 	future->registerObserver(ifc);
 }
 
 template<typename T>
-bool Future<T>::removeObserver( IObserver *ifc )
+bool Future<T>::removeObserver( IObserver *ifc ) throw()
 {
 
 	return future->unregisterObserver(ifc);
 }
 
 template<typename T>
-bool Future<T>::tryObserver( IObserver *ifc )
+bool Future<T>::tryObserver( IObserver *ifc ) throw()
 {
 	if (getState() != IPromiseControl::stateNotResolved) {
 		if (future->value != null) ifc->resolve(future->value);
@@ -192,7 +192,7 @@ const T & Future<T>::wait( const Timeout &tm /*= Timeout()*/ ) const
 	};
 
 	//shortcut - if resolved, return value now
-	if (getState() != IPromiseControl::stateNotResolved) {
+	if (getState() == IPromiseControl::stateResolved) {
 		if (future->value != nil) return future->value;
 		if (future->exception != nil) future->exception->throwAgain(THISLOCATION);
 	}
@@ -980,24 +980,6 @@ Future<Variant> Future<T>::operator||(const Future<Y> &b) {
 	return v;
 }
 
-template<typename T>
-Future<T> Future<T>::operator||(const Future &b) {
-
-	//retrieve alocator
-	IRuntimeAlloc &alloc = getAllocator();
-	//create future with allocator
-	Future<Variant> v(alloc);
-	//retrieve promise
-	Promise<Variant> p = v.getPromise();
-
-	//resolve promise when both futures are resolve- only first will resolve, other will be ignored
-	this->then(p);
-	b.then(p);
-	//return result promise
-
-	return v;
-}
-
 namespace _intr {
 //Activates resolution, when both futures are resolved
 /* It also contains temporary stored results
@@ -1014,7 +996,7 @@ public:
 	//result 2
 	Optional<Y> v2;
 	//result promise
-	Promise<std::pair<T,Y> > result;
+	Promise<VariantPair> result;
 
 
 
@@ -1024,7 +1006,7 @@ public:
 
 		if (v1 != null && v2 != null) {
 			//resolve pair
-			result.resolve(std::pair<T,Y>(v1,v2));
+			result.resolve(VariantPair(Variant(T(v1)),Variant(Y(v2))));
 		}
 	}
 
@@ -1063,15 +1045,15 @@ public:
 		ReceiverY(const PAktivator &owner):owner(owner.getMT()) {}
 		virtual void resolve(const Y &v) throw() {
 			//store result
-			owner.v2 = v;
+			owner->v2 = v;
 			// try to resolve
-			owner.tryResolve();
+			owner->tryResolve();
 			// set pointer to NULL (decrease counter)
 			owner = null;
 		}
 		virtual void resolve(const PException &e) throw() {
 			//reject
-			owner.reject(e);
+			owner->reject(e);
 			// set pointer to NULL (decrease counter)
 			owner = null;
 		}
@@ -1080,8 +1062,8 @@ public:
 	ReceiverX recvX;
 	ReceiverY recvY;
 
-	FutureAllAktivator(const Promise<std::pair<T,Y> > &result)
-		:result(result),recvX(*this),recvY(*this) {}
+	FutureAllAktivator(const Promise<VariantPair> &result)
+		:result(result),recvX(this),recvY(this) {}
 
 
 };
@@ -1090,26 +1072,17 @@ public:
 
 template<typename T>
 template<typename Y>
-Future<std::pair<T,Y> > Future<T>::operator&& (const Future<Y> &b) {
+Future<VariantPair> Future<T>::operator&& (const Future<Y> &b) const {
 
+	Future<T> ca = *this;
+	Future<Y> cb = b;
 
-	IRuntimeAlloc &alloc = getAllocator();
-	Future<std::pair<T,Y> > res(alloc);
-	Promise<std::pair<T,Y> > p = res.getPromise();
+	IRuntimeAlloc &alloc = ca.getAllocator();
+	Future<VariantPair > res(alloc);
+	Promise<VariantPair > p = res.getPromise();
 	_intr::FutureAllAktivator<T,Y> *akt = new(alloc) _intr::FutureAllAktivator<T,Y>(p);
-	try {
-		this->addObserver(&akt->recvX);
-		b.addObserver(&akt->recvY);
-	} catch (...) {
-		try {
-			this->removeObserver(&akt->recvX);
-			b.removeObserver(&akt->recvY);
-		} catch (...) {
-			//there shouldn't be exception;...
-			std::terminate();
-		}
-		delete akt;
-	}
+	ca.addObserver(&akt->recvX);
+	cb.addObserver(&akt->recvY);
 
 	return res;
 }

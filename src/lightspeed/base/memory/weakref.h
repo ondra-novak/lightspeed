@@ -71,6 +71,14 @@ class WeakRef {
 			,clearOutNotify(0) {}
 	};
 
+	///Contains null pointer which is marked as left
+	class NullPointer: public Pointer {
+	public:
+		NullPointer():Pointer(0) {
+			this->lockCount = leftFlag;
+		}
+	};
+
 
 public:
 
@@ -135,7 +143,15 @@ protected:
 	}
 
 	void setPtr(T *ptr) {
-		ref = new(getWeakRefAllocator()) Pointer(ptr);
+		if (ptr == 0) {
+			//create shared null pointer
+			//contains null pointer and it is initialized to "left" state, so it cannot be
+			//modified later.
+			static NullPointer nullPtr;
+			ref = &nullPtr;
+		} else {
+			ref = new(getWeakRefAllocator()) Pointer(ptr);
+		}
 	}
 
 	void setNull() {
@@ -145,7 +161,7 @@ protected:
 			atomicValue v = lockCompareExchange(ref->lockCount,initedFlag,leftFlag);
 			//if this was succesful, no more work can be done, everyone will see, that pointer is zero
 			//if not, try plan B
-			if (v != initedFlag && v != leftFlag) {
+			if (v > initedFlag || v < leftFlag) {
 				//first obtain current thread sleeping object
 				RefCntPtr<IThreadSleeper> sleeper = getCurThreadSleepingObj();
 				//set sleeping object to the Pointer object. That because unlock() function can

@@ -26,10 +26,6 @@ Variant Variant::isolate() const {
 	else return Variant(dataPtr->clone());
 }
 
-Variant Variant::getMT() const {
-	return Variant(dataPtr.getMT());
-}
-
 bool Variant::operator ==(NullType ) const {
 	return isNull();
 }
@@ -48,4 +44,10 @@ bool Variant::operator !=(const Variant& v) const {
 	return !operator==(v);
 }
 
+void Variant::throwIt() const {
+	return dataPtr->throwValue();
 }
+
+}
+
+
