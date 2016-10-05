@@ -22,7 +22,7 @@ namespace LightSpeed {
 		/**
 		 * @param count count of locks before semaphore starts blocking
 		 */
-		Semaphore(atomic count):counter(count) {}
+		Semaphore(atomicValue count):counter(count) {}
 
 		///simple lock, infinite timeout
 		void lock() {

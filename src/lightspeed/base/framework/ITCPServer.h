@@ -21,6 +21,13 @@ class IExecutor;
  */
 class ITCPServerContext: virtual public IInterface {
 public:
+	///release the object
+	/** Function is called by the pointer owner. It states, that owner releases its ownership.
+	 * Default implementation performs delete operation. However, the derived class can redefine
+	 * this behaviour and implement other way of ownership tracking (for shared ownership,
+	 * it can implement for example reference counting
+	 */
+	virtual void releaseOwnership() {delete this;}
 	virtual ~ITCPServerContext() {}
 };
 

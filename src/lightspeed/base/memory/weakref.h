@@ -149,26 +149,29 @@ protected:
 		setPtr(init);
 	}
 
+	static NullPointer *initNullPointer() {
+		static NullPointer nullPtr;
+		return &nullPtr;
+	}
+
+	template<typename X> friend class WeakRef;
+
+
 	void setPtr(T *ptr) {
 		if (ptr == 0) {
-			//create shared null pointer
-			//contains null pointer and it is initialized to "left" state, so it cannot be
-			//modified later.
-			static NullPointer nullPtr;
-			ref = &nullPtr;
+			ref = reinterpret_cast<WeakRef<T>::NullPointer *>(WeakRef<void>::initNullPointer());
 		} else {
 			ref = new(getWeakRefAllocator()) Pointer(ptr);
 		}
 	}
 
 	void setNull() {
-		if (ref != null) {
 			//function marks shared pointer as invalid (that why we are setting to null)
 			//first, try straight attempt - assume, that pointer is not locked, so reset initFlag directly
 			atomicValue v = lockCompareExchange(ref->lockCount,initedFlag,leftFlag);
 			//if this was succesful, no more work can be done, everyone will see, that pointer is zero
 			//if not, try plan B
-			if (v > initedFlag || v < leftFlag) {
+			if (v < leftFlag) {
 				//first obtain current thread sleeping object
 				RefCntPtr<IThreadSleeper> sleeper = getCurThreadSleepingObj();
 				//set sleeping object to the Pointer object. That because unlock() function can
@@ -202,10 +205,10 @@ protected:
 				//because lockCount will never reach the zero, no more notifications
 				//will be generated. We can safety destroy sleeper/thread/etc.
 				lockExchangeAdd(ref->lockCount, leftFlag);
+				setPtr(0);
 			}
 		}
-		ref = null;
-	}
+
 
 };
 

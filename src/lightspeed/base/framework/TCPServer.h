@@ -20,7 +20,7 @@
 #include "ITCPServer.h"
 #include "../../mt/fastlock.h"
 #include "../../mt/mutex.h"
-#include "../memory/sharedPtr.h"
+#include "../memory/smartPtrAllocators.h"
 
 namespace LightSpeed {
 
@@ -146,7 +146,7 @@ protected:
 
 		TCPServer &owner;
 		PNetworkStream stream;
-		AllocPointer<ITCPServerContext> ctx;
+		AllocPointer<ITCPServerContext, ReleaseOwnership> ctx;
 		natural dataReadyTimeout;
 		natural writeReadyTimeout;
 		natural sourceId;
