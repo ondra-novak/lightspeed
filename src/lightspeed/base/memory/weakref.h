@@ -83,6 +83,7 @@ class WeakRef {
 	public:
 		NullPointer():Pointer(0) {
 			this->lockCount = leftFlag;
+			this->addRef();
 		}
 	};
 
@@ -171,7 +172,7 @@ protected:
 			atomicValue v = lockCompareExchange(ref->lockCount,initedFlag,leftFlag);
 			//if this was succesful, no more work can be done, everyone will see, that pointer is zero
 			//if not, try plan B
-			if (v < leftFlag) {
+			if (v > initedFlag && v < 0) {
 				//first obtain current thread sleeping object
 				RefCntPtr<IThreadSleeper> sleeper = getCurThreadSleepingObj();
 				//set sleeping object to the Pointer object. That because unlock() function can
@@ -205,6 +206,8 @@ protected:
 				//because lockCount will never reach the zero, no more notifications
 				//will be generated. We can safety destroy sleeper/thread/etc.
 				lockExchangeAdd(ref->lockCount, leftFlag);
+				setPtr(0);
+			} else if (v == initedFlag) {
 				setPtr(0);
 			}
 		}
