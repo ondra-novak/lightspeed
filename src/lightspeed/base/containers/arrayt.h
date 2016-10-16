@@ -637,6 +637,12 @@ public:
 			return res;
 		}
 
+		///Returns rest of the array
+		const ConstMid &getRest() const {
+			tmpres = new(tmpresbuff) ConstMid(subj, pos, subj.length() - pos);
+			return *tmpres;
+		}
+
 		bool lessThan(const SplitIterator &other) const {
 			return pos < other.pos;
 		}

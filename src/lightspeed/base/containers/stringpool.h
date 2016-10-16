@@ -46,6 +46,8 @@ namespace LightSpeed {
 		StringPoolStrRef():anchor(reinterpret_cast<const T *const *>(&ptrStringPoolNull)),offset(0),len(0) {}
 		const T *data() const {return *anchor + offset;}
 		natural length() const {return len;}
+		void clear() { len = 0; }
+		bool empty() const { return len == 0; }
 
 	protected:
 		const T *const * anchor;

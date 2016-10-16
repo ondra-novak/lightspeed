@@ -552,6 +552,7 @@
     <ClInclude Include="src\lightspeed\base\memory\stdAlloc.h" />
     <ClInclude Include="src\lightspeed\base\memory\stdFactory.h" />
     <ClInclude Include="src\lightspeed\base\memory\typelists.h" />
+    <ClInclude Include="src\lightspeed\base\memory\weakref.h" />
     <ClInclude Include="src\lightspeed\base\meta\assert.h" />
     <ClInclude Include="src\lightspeed\base\meta\emptyClass.h" />
     <ClInclude Include="src\lightspeed\base\meta\fninfo.h" />
@@ -593,6 +594,7 @@
     <ClInclude Include="src\lightspeed\base\streams\fileiobuff.h" />
     <ClInclude Include="src\lightspeed\base\streams\fileio_ifc.h" />
     <ClInclude Include="src\lightspeed\base\streams\fileiobuff_ifc.h" />
+    <ClInclude Include="src\lightspeed\base\streams\httpc.h" />
     <ClInclude Include="src\lightspeed\base\streams\memfile.h" />
     <ClInclude Include="src\lightspeed\base\streams\multibyte.h" />
     <ClInclude Include="src\lightspeed\base\streams\netio.h" />
@@ -791,7 +793,6 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <ClInclude Include="src\lightspeed\utils\json\jsonbuilder.h" />
     <ClInclude Include="src\lightspeed\utils\json\jsondefs.h" />
     <ClInclude Include="src\lightspeed\utils\json\jsonexception.h" />
-    <ClInclude Include="src\lightspeed\utils\json\jsonfast.h" />
     <ClInclude Include="src\lightspeed\utils\json\jsonimpl.h" />
     <ClInclude Include="src\lightspeed\utils\json\jsonparser.h" />
     <ClInclude Include="src\lightspeed\utils\json\jsonserializer.h" />
@@ -844,6 +845,7 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <ClCompile Include="src\lightspeed\base\memory\dynobject.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\nodeAlloc.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\refCntPtr.cpp" />
+    <ClCompile Include="src\lightspeed\base\memory\runtimeAlloc.cpp" />
     <ClCompile Include="src\lightspeed\base\memory\singleton.cpp" />
     <ClCompile Include="src\lightspeed\base\namedEnum.cpp" />
     <ClCompile Include="src\lightspeed\base\objmanip.cpp" />
@@ -851,6 +853,7 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <ClCompile Include="src\lightspeed\base\streams\compressNumb.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\filehlp.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\fileiobuff.cpp" />
+    <ClCompile Include="src\lightspeed\base\streams\httpc.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\memfile.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\netio.cpp" />
     <ClCompile Include="src\lightspeed\base\streams\tcpHandler.cpp" />
@@ -912,7 +915,6 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <ClCompile Include="src\lightspeed\utils\impl\sha1.cpp" />
     <ClCompile Include="src\lightspeed\utils\json\json.cpp" />
     <ClCompile Include="src\lightspeed\utils\json\jsonbuilder.cpp" />
-    <ClCompile Include="src\lightspeed\utils\json\jsonfast.cpp" />
     <ClCompile Include="src\lightspeed\utils\lzw.cpp" />
     <ClCompile Include="src\lightspeed\utils\queryParser.cpp" />
     <ClCompile Include="src\lightspeed\utils\sendmail.cpp" />
@@ -925,6 +927,7 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <ClCompile Include="src\tests\test_base85.cpp" />
     <ClCompile Include="src\tests\test_data_json.cpp" />
     <ClCompile Include="src\tests\test_fibers.cpp" />
+    <ClCompile Include="src\tests\test_httpc.cpp" />
     <ClCompile Include="src\tests\test_lzw.cpp" />
     <ClCompile Include="src\tests\test_placeholders.cpp" />
     <ClCompile Include="src\tests\test_promises.cpp" />
@@ -935,6 +938,7 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Run Tests Debug|Win32'">/execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Run Tests Release|Win32'">/execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="src\tests\test_weakref.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\lightspeed\base\actions\IDispatcher.tcc" />
@@ -967,6 +971,7 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <None Include="src\lightspeed\base\namedEnum.tcc" />
     <None Include="src\lightspeed\base\serialize\classTable.tcc" />
     <None Include="src\lightspeed\base\streams\fileiobuff.tcc" />
+    <None Include="src\lightspeed\base\streams\httpc.tcc" />
     <None Include="src\lightspeed\base\streams\memfile.tcc" />
     <None Include="src\lightspeed\base\streams\netio.tcc" />
     <None Include="src\lightspeed\base\streams\standardIO.tcc" />
@@ -984,7 +989,8 @@ if exist "%(RootDir)%(Directory)..\..\..\..\config.windows.h" echo #include  "%(
     <None Include="src\lightspeed\utils\base64.tcc" />
     <None Include="src\lightspeed\utils\configParser.tcc" />
     <None Include="src\lightspeed\utils\FilePath.tcc" />
-    <None Include="src\lightspeed\utils\json\jsonfast.tcc" />
+    <None Include="src\lightspeed\utils\json\jsonparser.tcc" />
+    <None Include="src\lightspeed\utils\json\jsonserializer.tcc" />
     <None Include="src\lightspeed\utils\lzw.tcc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

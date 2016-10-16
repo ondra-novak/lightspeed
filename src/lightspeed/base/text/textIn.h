@@ -181,6 +181,13 @@ namespace LightSpeed {
 		const typename Buffer::IterRaw &nxChain() const {
 			return buffer.getSourceIterator();
 		}
+		typename Buffer::IterRaw &getSource() {
+			return buffer.getSourceIterator();
+		}
+
+		const typename Buffer::IterRaw &getSource() const {
+			return buffer.getSourceIterator();
+		}
 
 		///Returns count of characters processed from begin of stream
 		natural getCharCount() const {return buffer.getCharCount();}

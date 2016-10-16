@@ -82,6 +82,8 @@ namespace LightSpeed {
 
 		typename OriginT<Iter>::T &nxChain() {return iter;}
 		const typename OriginT<Iter>::T &nxChain() const {return iter;}
+		typename OriginT<Iter>::T &getTarget() { return iter; }
+		const typename OriginT<Iter>::T &getTarget() const { return iter; }
 	protected:
 		Iter iter;
 		TextFormat<ItemT,Alloc> fmt;

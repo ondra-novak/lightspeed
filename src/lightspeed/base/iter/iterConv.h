@@ -155,7 +155,8 @@ public:
 		return conv.writeToIter(from, trgIter);
 	}
 
-	typename AddReference<BaseIter>::T getTarget() const {return trgIter;}
+	typename AddReference<const BaseIter>::T getTarget() const {return trgIter;}
+	typename AddReference<BaseIter>::T getTarget() { return trgIter; }
 
     Converter &getConverter() {return conv;}
     const Converter &getConverter() const {return conv;}

@@ -1,3 +1,5 @@
 /Debug/
 tmp/
 x64/
+src/lightspeed/config.h
+lightspeed.VC.db

@@ -19,6 +19,9 @@ template<typename T, typename Alloc>
 inline typename StringPool<T, Alloc>::Str StringPool<T, Alloc>::add(ConstStringT<T> str) {
 	natural curLen = pool.length();
 	if (str.length() == 0) return Str(&poolRef,0,0);
+	if (str.data() >= pool.data() && str.data() + str.length() <= pool.data() + pool.length()) {
+		return Str(&poolRef, Bin::natural32(str.data()-pool.data()), Bin::natural32(str.length()));
+	}
 	pool.append(str);
 	if (StringBase<T>::needZeroChar) {
 		typename AutoArray<T, Alloc>::WriteIter iter=pool.getWriteIterator();
@@ -109,7 +112,7 @@ inline typename StringPool<T, Alloc>::Str StringPool<T, Alloc>::WriteIterator::f
 	natural beginMark = startMark;
 	startMark = owner.pool.length();
 
-	return Str(&owner.poolRef,beginMark,beginMark - endMark);
+	return Str(&owner.poolRef,beginMark, endMark - beginMark );
 
 
 
