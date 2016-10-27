@@ -303,7 +303,7 @@ namespace LightSpeed {
 		if (reqOpened) {
 			if (headerParsed) {
 				if (readLen != naturalNull) {
-					while (hasItems()) skip();
+					while (hasItems()) this->skip();
 				}
 				else {
 					return false;
