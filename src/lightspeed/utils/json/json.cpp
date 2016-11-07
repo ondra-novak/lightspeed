@@ -1196,6 +1196,15 @@ StringA toString(const INode* json, bool escapeUTF8) {
 	return StringA(buff.getArray());
 }
 
+const JSON::INode &ConstIterator::getNextKC(ConstStrA k) {
+	if (isNextKey(k)) return *getNext();
+	else throw RequiredFieldException(THISLOCATION,k);
+}
+JSON::INode &Iterator::getNextKC(ConstStrA k) {
+	if (isNextKey(k)) return *getNext();
+	else throw RequiredFieldException(THISLOCATION,k);
+}
+
 
 }
 

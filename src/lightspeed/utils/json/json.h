@@ -392,7 +392,7 @@ namespace LightSpeed {
 			typedef ArrayIterator<ConstKeyValue, StringCore<ConstKeyValue> > Super;
 			ConstIterator(const ConstValue &object);
 			bool isNextKey(ConstStrA k) const {return hasItems() && peek().getStringKey() == k;}
-			const JSON::INode &getNextKC(ConstStrA k) {return *getNext()[k];}
+			const JSON::INode &getNextKC(ConstStrA k);
 		};
 
 		class KeyValue: public Value {
@@ -414,7 +414,7 @@ namespace LightSpeed {
 			typedef ArrayIterator<KeyValue, StringCore<KeyValue> > Super;
 			Iterator(const Value &object);
 			bool isNextKey(ConstStrA k) const {return hasItems() && peek().getStringKey() == k;}
-			JSON::INode &getNextKC(ConstStrA k) {return *getNext()[k];}
+			JSON::INode &getNextKC(ConstStrA k);
 		};
 
 		///compatibility reason
