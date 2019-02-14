@@ -45,7 +45,7 @@ bool Object::enumEntries(const IEntryEnum &fn) const {
 void Object::insertField(ConstStrA name, Value nd) {
 
 	ConstStrA out;
-	FieldNode *item = new(name, out) FieldNodeNew(Field(out, nd));
+	FieldNode *item = new(name, out) FieldNodeNew(out, nd);
 	bool exists;
 	fields.insert(item, &exists);
 	if (exists) delete item;

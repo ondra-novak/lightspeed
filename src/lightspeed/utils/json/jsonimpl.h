@@ -72,6 +72,7 @@ protected:
 	public:
 
 		FieldNodeNew(const Field &d):FieldNode(d) {}
+		FieldNodeNew(const ConstStrA &key, Value value):FieldNode(Field(key,value)) {}
 
 		void *operator new( size_t objSize, ConstStrA str, ConstStrA &stored);
 		void operator delete(void *ptr, ConstStrA str, ConstStrA &stored);

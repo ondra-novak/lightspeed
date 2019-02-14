@@ -838,7 +838,7 @@ FutureAutoCancel<T>::~FutureAutoCancel() {
 	if (this->future != null) {
 		if (this->future->isLastReference()) {
 			if (IPromiseControl::stateResolving == this->cancel()) {
-				wait();
+				this->wait();
 			}
 		}
 	}

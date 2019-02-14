@@ -18,7 +18,7 @@ class ConfigParser
 {
     Iter input;
     AutoArray<char, RTAlloc> buffer;
-    TextParser<char> parser;
+    mutable TextParser<char> parser;
  public:
     typedef StringTC<char, StrCmpCI> Str;
   
