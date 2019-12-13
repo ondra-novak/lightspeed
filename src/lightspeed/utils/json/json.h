@@ -138,7 +138,7 @@ namespace LightSpeed {
 			///inicialize empty variable (it will hold nil = undefined)
 			Container() {}
 			///share container
-			Container(const Container &x):Super(x) {}
+//			Container(const Container &x):Super(x) {}
 			///try to make container mutable
 			/** Function will check, whether container is shared. It throws exception, when
 			 * this assertion fails

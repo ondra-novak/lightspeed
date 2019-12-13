@@ -135,6 +135,10 @@ void LinuxHttpStream::parseReplyHeader() {
 			statusCode = parser[2];
 			statusMsg = parser[3].str();
 			replyHeader.clear();
+		} else if (parser("HTTP/%f1 %u2 ",hdrline)) {//HACK: Apple server doesn't sent message
+				statusCode = parser[2];
+				statusMsg = "";
+				replyHeader.clear();
 		} else {
 			natural div = hdrline.find(':');
 			if (div != naturalNull) {

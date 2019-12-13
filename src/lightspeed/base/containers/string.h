@@ -243,10 +243,10 @@ namespace LightSpeed {
          *
          * @note allocator instance is copied
          */
-		UniString &operator=(const UniString &other) {
+		/*UniString &operator=(const UniString &other) {
 			Super::operator=(other);
 			return *this;
-		}
+		}*/
 
 
 		typedef StringTC<char, StrCmp> StrA;
@@ -322,10 +322,10 @@ namespace LightSpeed {
          *
          * @note allocator instance is copied
          */
-		String &operator=(const String &other) {
+/*		String &operator=(const String &other) {
 			Super::operator=(other);
 			return *this;
-		}
+		}*/
 
 
     };
